@@ -1,134 +1,172 @@
-import PocketBase from 'pocketbase';
+import PocketBase, { type AuthRecord, type RecordSubscription } from 'pocketbase';
 import { indexedDBService } from './indexedDBService';
-import type { Train } from '../types/train';
-import type { Wagon } from '$lib/types/wagon';
-import type { Sample } from '../types/sample';
-import type { Assay } from '../types/assay';
+import type { Train, Wagon, Sample, Assay } from '$lib' 
 
 const POCKETBASE_URL = import.meta.env.VITE_POCKETBASE_URL; 
 // make sure you have VITE_POCKETBASE_URL set in your .env
+type PBCollection =
+  | 'trains'
+  | 'wagons'
+  | 'samples'
+  | 'assays'
+  // add others here...
+  ;
+
+type PBModelMap = {
+  trains: Train;
+  wagons: Wagon;
+  samples: Sample;
+  assays: Assay;
+  // add other mappings here...
+};
+
 
 /**
  * A generic PocketBase wrapper for read/write operations.
  */
 class PocketBaseService {
+  private static _instance: PocketBaseService;
   private pb: PocketBase;
 
-  constructor() {
+  private constructor() {
     this.pb = new PocketBase(POCKETBASE_URL);
   }
 
-  /** Fetch a paginated list from any collection */
-  async list<T = any>(
-    collection: string,
-    query: Record<string, any> = {},
-    expand: string[] = [],
-    page = 1,
-    perPage = 20
-  ) {
-    return this.pb
-      .collection<T>(collection)
-      .getList(page, perPage, {
-        filter: Object.entries(query)
-          .map(([k, v]) => `${k}="${v}"`)
-          .join(' && '),
-        expand: expand.join(',')
-      });
+  /** Singleton accessor */
+  public static get instance() {
+    if (!this._instance) {
+      this._instance = new PocketBaseService();
+    }
+    return this._instance;
   }
 
-  /** Fetch a single record by ID */
-  async getOne<T = any>(
-    collection: string,
+
+
+  /** ── AUTH ───────────────────────────────────────────────────────────────── */
+  get isAuthenticated(): boolean {
+    return this.pb.authStore.isValid;
+  }
+
+  get currentUser(): AuthRecord | null {
+    return this.pb.authStore.model;
+  }
+
+  async login(email: string, password: string): Promise<AuthRecord> {
+    await this.pb.collection('users').authWithPassword(email, password);
+    return this.currentUser!;
+  }
+
+  logout() {
+    this.pb.authStore.clear();
+  }
+  /** ── GENERIC CRUD ───────────────────────────────────────────────────────── */
+  private buildFilter(query: Record<string, any>): string {
+    return Object.entries(query)
+      .map(([k, v]) => {
+        if (Array.isArray(v)) {
+          return `${k}~"${v.join(',')}"`;
+        }
+        if (typeof v === 'boolean' || typeof v === 'number') {
+          return `${k}=${v}`;
+        }
+        return `${k}="${v}"`;
+      })
+      .join(' && ');
+  }
+
+  async list<K extends PBCollection>(
+    collection: K,
+    options: {
+      query?: Partial<PBModelMap[K]>;
+      expand?: (keyof PBModelMap[K])[];
+      page?: number;
+      perPage?: number;
+    } = {}
+  ) {
+  const { query = {}, expand = [], page = 1, perPage = 20 } = options;
+  return this.pb
+    .collection<PBModelMap[K]>(collection)
+    .getList(page, perPage, {
+      filter: this.buildFilter(query),
+      expand: expand.join(',') || undefined,
+    });
+}
+
+  async getOne<K extends PBCollection>(
+    collection: K,
     id: string,
-    expand: string[] = []
+  expand: (keyof PBModelMap[K])[] = []
+) {
+  return this.pb
+    .collection<PBModelMap[K]>(collection)
+    .getOne(id, { expand: expand.join(',') });
+}
+
+  async create<K extends PBCollection>(
+    collection: K,
+    data: Partial<PBModelMap[K]>
   ) {
     return this.pb
-      .collection<T>(collection)
-      .getOne(id, { expand: expand.join(',') });
-  }
+    .collection<PBModelMap[K]>(collection)
+    .create(data as Record<string, any>);
+}
 
-  /** Create a new record */
-  async create<T = any>(
-    collection: string,
-    data: Record<string, any>
-  ) {
-    return this.pb
-      .collection<T>(collection)
-      .create(data);
-  }
-
-  /** Update an existing record */
-  async update<T = any>(
-    collection: string,
+  async update<K extends PBCollection>(
+    collection: K,
     id: string,
-    data: Record<string, any>
+  data: Partial<PBModelMap[K]>
+) {
+  return this.pb
+    .collection<PBModelMap[K]>(collection)
+    .update(id, data as Record<string, any>);
+}
+
+  async delete<K extends PBCollection>(collection: K, id: string) {
+    return this.pb.collection(collection).delete(id);
+  }
+
+  /** Subscribe to real-time changes */
+  subscribe<K extends PBCollection>(
+    collection: K,
+    callback: (e: RecordSubscription<PBModelMap[K]>) => void
   ) {
-    return this.pb
-      .collection<T>(collection)
-      .update(id, data);
-  }
+  return this.pb.collection(collection).subscribe('*', callback);
+}
 
-  /** Delete a record */
-  async delete(
-    collection: string,
-    id: string
-  ) {
-    return this.pb
-      .collection(collection)
-      .delete(id);
+  unsubscribe(subscription: { unsubscribe: () => void }) {
+    subscription.unsubscribe();
   }
-
-  /** Sync trains data with local IndexedDB */
-  async syncTrains() {
-      try {
-          const response = await this.list<Train>('trains');
-          await indexedDBService.saveTrains(response.items);
-          return response.items;
-      } catch (error) {
-          console.error('Failed to sync trains:', error);
-          // If offline or error, return local data
-          return indexedDBService.getTrains();
-      }
-  }
-
-  /** Sync wagons data with local IndexedDB */
-  async syncWagons() {
-      try {
-          const response = await this.list<Wagon>('wagons');
-          await indexedDBService.saveWagons(response.items);
-          return response.items;
-      } catch (error) {
-          console.error('Failed to sync wagons:', error);
-          // If offline or error, return local data
-          return indexedDBService.getWagons();
-      }
-  }
-
-  /** Sync samples data with local IndexedDB */
-  async syncSamples() {
-      try {
-          const response = await this.list<Sample>('samples');
-          await indexedDBService.saveSamples(response.items);
-          return response.items;
-      } catch (error) {
-          console.error('Failed to sync samples:', error);
-          // If offline or error, return local data
-          return indexedDBService.getSamples();
-      }
-  }
-
-  /** Sync assays data with local IndexedDB */
-  async syncAssays() {
-      try {
-          const response = await this.list<Assay>('assays');
-          await indexedDBService.saveAssays(response.items);
-          return response.items;
-      } catch (error) {
-          console.error('Failed to sync assays:', error);
-          // If offline or error, return local data
-          return indexedDBService.getAssays();
-      }
+  /** ── SYNC HELPERS ───────────────────────────────────────────────────────── */
+  private async syncHelper<K extends PBCollection>(
+    collection: K,
+    saveFn: (items: PBModelMap[K][]) => Promise<void>,
+    getLocalFn: () => Promise<PBModelMap[K][]>
+  ): Promise<PBModelMap[K][]> {
+    try {
+    const { items } = await this.list(collection, { perPage: 1000 });
+    await saveFn(items);
+    return items;
+  } catch {
+    return getLocalFn();
   }
 }
 
-export const pocketbaseService = new PocketBaseService();
+  syncTrains() {
+    return this.syncHelper('trains', indexedDBService.saveTrains, indexedDBService.getTrains);
+  }
+
+  syncWagons() {
+    return this.syncHelper('wagons', indexedDBService.saveWagons, indexedDBService.getWagons);
+  }
+
+  syncSamples() {
+    return this.syncHelper('samples', indexedDBService.saveSamples, indexedDBService.getSamples);
+  }
+
+  syncAssays() {
+    return this.syncHelper('assays', indexedDBService.saveAssays, indexedDBService.getAssays);
+}
+}
+
+// Export the singleton
+export const pocketbaseService = PocketBaseService.instance;
