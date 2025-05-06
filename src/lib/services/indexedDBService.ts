@@ -1,208 +1,122 @@
-// Import required dependencies and type definitions
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
-import type { Train } from '../types/train';
-import type { Wagon } from '../types/wagon';
-import type { Sample } from '../types/sample';
-import type { Assay } from '../types/assay';
+import type { Assay, Wagon, Sample, Train } from '$lib';
 
-// Define the database schema with all collections
-interface TrainDB extends DBSchema {
-    trains: {
-        key: string;
-        value: Train;
-    };
-    wagons: {
-        key: string;
-        value: Wagon;
-    };
-    samples: {
-        key: string;
-        value: Sample;
-    };
-    assays: {
-        key: string;
-        value: Assay;
-    };
+// Extend DBSchema to include queue store
+interface AppDB extends DBSchema {
+    trains: { key: string; value: Train };
+    wagons: { key: string; value: Wagon };
+    samples: { key: string; value: Sample };
+    assays: { key: string; value: Assay };
+    operationQueue: { key: string; value: any };
 }
 
-/**
- * Service to handle all IndexedDB operations for offline data storage
- * Manages trains, wagons, samples, and assays data
- */
 class IndexedDBService {
     private dbName = 'wiresync-db';
-    private version = 1;
-    private db: IDBPDatabase<TrainDB> | null = null;
+    private version = 2;
+    private db: IDBPDatabase<AppDB> | null = null;
 
-    /**
-     * Initialize the IndexedDB database and create object stores if they don't exist
-     * This method is called automatically before any database operation
-     */
-    async initDB() {
-        this.db = await openDB<TrainDB>(this.dbName, this.version, {
-            upgrade(db) {
+    private async initDB() {
+        if (this.db) return;
+        this.db = await openDB<AppDB>(this.dbName, this.version, {
+            upgrade(db, oldVersion) {
                 if (!db.objectStoreNames.contains('trains')) {
                     db.createObjectStore('trains', { keyPath: 'id' });
                 }
                 if (!db.objectStoreNames.contains('wagons')) {
-                    db.createObjectStore('wagons', { keyPath: 'rfid' });
-                }
-                if (!db.objectStoreNames.contains('samples')) {
-                    db.createObjectStore('samples', { keyPath: 'id' });
-                }
-                if (!db.objectStoreNames.contains('assays')) {
-                    db.createObjectStore('assays', { keyPath: 'sampleId' });
-                }
-            },
-        });
-    }
+                db.createObjectStore('wagons', { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains('samples')) {
+                db.createObjectStore('samples', { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains('assays')) {
+                db.createObjectStore('assays', { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains('operationQueue')) {
+                db.createObjectStore('operationQueue', { keyPath: 'id' });
+            }
+        },
+    });
+  }
 
-    // Wagon-related operations
-    /**
-     * Save multiple wagons to IndexedDB
-     * Creates or updates wagon records in a single transaction
-     */
-    async saveWagons(wagons: Wagon[]) {
-        if (!this.db) await this.initDB();
-        const tx = this.db!.transaction('wagons', 'readwrite');
-        await Promise.all([
-            ...wagons.map(wagon => tx.store.put(wagon)),
-            tx.done
-        ]);
-    }
-
-    /**
-     * Retrieve all wagons from IndexedDB
-     */
-    async getWagons(): Promise<Wagon[]> {
-        if (!this.db) await this.initDB();
-        return this.db!.getAll('wagons');
-    }
-
-    /**
-     * Filter and return wagons associated with a specific train
-     */
-    async getWagonsByTrainId(trainId: string): Promise<Wagon[]> {
-        if (!this.db) await this.initDB();
-        const allWagons = await this.getWagons();
-        return allWagons.filter(wagon => wagon.trainId === trainId);
-    }
-
-    /**
-     * Remove all wagon records from IndexedDB
-     */
-    async clearWagons() {
-        if (!this.db) await this.initDB();
-        const tx = this.db!.transaction('wagons', 'readwrite');
-        await tx.store.clear();
+    // Generic record operations
+    async saveRecord<K extends keyof AppDB>(store: K, record: AppDB[K]['value']) {
+        await this.initDB();
+        const tx = this.db!.transaction(store, 'readwrite');
+        await tx.store.put(record);
         await tx.done;
     }
 
-    // Train-related operations
-    /**
-     * Save multiple trains to IndexedDB
-     * Creates or updates train records in a single transaction
-     */
+    async updateRecord<K extends keyof AppDB>(
+        store: K,
+        key: AppDB[K]['key'],
+        updates: Partial<AppDB[K]['value']>
+    ) {
+        await this.initDB();
+        const tx = this.db!.transaction(store, 'readwrite');
+        const existing = await tx.store.get(key as any);
+        if (existing) {
+            const merged = { ...existing, ...updates };
+            await tx.store.put(merged as any);
+    }
+      await tx.done;
+  }
+
+    async deleteRecord<K extends keyof AppDB>(store: K, key: AppDB[K]['key']) {
+        await this.initDB();
+        const tx = this.db!.transaction(store, 'readwrite');
+        await tx.store.delete(key as any);
+        await tx.done;
+    }
+
+    async addItem<K extends keyof AppDB>(store: K, item: AppDB[K]['value']) {
+        await this.initDB();
+        const tx = this.db!.transaction(store, 'readwrite');
+        await tx.store.put(item);
+        await tx.done;
+    }
+
+    async getAllItems<K extends keyof AppDB>(store: K): Promise<AppDB[K]['value'][]> {
+        await this.initDB();
+        return this.db!.getAll(store as any) as Promise<T[]>;
+    }
+
+    async deleteItem<K extends keyof AppDB>(store: K, key: AppDB[K]['key']) {
+        await this.initDB();
+        const tx = this.db!.transaction(store, 'readwrite');
+        await tx.store.delete(key as any);
+        await tx.done;
+    }
+
+    // Domain-specific batch operations
     async saveTrains(trains: Train[]) {
-        if (!this.db) await this.initDB();
-        const tx = this.db!.transaction('trains', 'readwrite');
-        await Promise.all([
-            ...trains.map(train => tx.store.put(train)),
-            tx.done
-        ]);
+        const tx = (await this.initDB(), this.db)!.transaction('trains', 'readwrite');
+        trains.forEach(train => tx.store.put(train));
+        await tx.done;
     }
-
-    /**
-     * Retrieve all trains from IndexedDB
-     */
     async getTrains(): Promise<Train[]> {
-        if (!this.db) await this.initDB();
-        return this.db!.getAll('trains');
+        await this.initDB(); return this.db!.getAll('trains');
     }
+    async clearTrains() { const tx = (await this.initDB(), this.db)!.transaction('trains', 'readwrite'); await tx.store.clear(); await tx.done; }
 
-    /**
-     * Remove all train records from IndexedDB
-     */
-    async clearTrains() {
-        if (!this.db) await this.initDB();
-        const tx = this.db!.transaction('trains', 'readwrite');
-        await tx.store.clear();
-        await tx.done;
+    async saveWagons(wagons: Wagon[]) {
+        const tx = (await this.initDB(), this.db)!.transaction('wagons', 'readwrite');
+        wagons.forEach(w => tx.store.put(w)); await tx.done;
     }
+    async getWagons(): Promise<Wagon[]> { await this.initDB(); return this.db!.getAll('wagons'); }
+    async clearWagons() { const tx = (await this.initDB(), this.db)!.transaction('wagons', 'readwrite'); await tx.store.clear(); await tx.done; }
 
-    // Sample-related operations
-    /**
-     * Save multiple samples to IndexedDB
-     * Creates or updates sample records in a single transaction
-     */
     async saveSamples(samples: Sample[]) {
-        if (!this.db) await this.initDB();
-        const tx = this.db!.transaction('samples', 'readwrite');
-        await Promise.all([
-            ...samples.map(sample => tx.store.put(sample)),
-            tx.done
-        ]);
+        const tx = (await this.initDB(), this.db)!.transaction('samples', 'readwrite'); samples.forEach(s => tx.store.put(s)); await tx.done;
     }
+    async getSamples(): Promise<Sample[]> { await this.initDB(); return this.db!.getAll('samples'); }
+    async clearSamples() { const tx = (await this.initDB(), this.db)!.transaction('samples', 'readwrite'); await tx.store.clear(); await tx.done; }
 
-    /**
-     * Retrieve all samples from IndexedDB
-     */
-    async getSamples(): Promise<Sample[]> {
-        if (!this.db) await this.initDB();
-        return this.db!.getAll('samples');
-    }
-
-    /**
-     * Remove all sample records from IndexedDB
-     */
-    async clearSamples() {
-        if (!this.db) await this.initDB();
-        const tx = this.db!.transaction('samples', 'readwrite');
-        await tx.store.clear();
-        await tx.done;
-    }
-
-    // Assay-related operations
-    /**
-     * Save multiple assays to IndexedDB
-     * Creates or updates assay records in a single transaction
-     */
     async saveAssays(assays: Assay[]) {
-        if (!this.db) await this.initDB();
-        const tx = this.db!.transaction('assays', 'readwrite');
-        await Promise.all([
-            ...assays.map(assay => tx.store.put(assay)),
-            tx.done
-        ]);
+        const tx = (await this.initDB(), this.db)!.transaction('assays', 'readwrite'); assays.forEach(a => tx.store.put(a)); await tx.done;
     }
-
-    /**
-     * Retrieve all assays from IndexedDB
-     */
-    async getAssays(): Promise<Assay[]> {
-        if (!this.db) await this.initDB();
-        return this.db!.getAll('assays');
-    }
-
-    /**
-     * Retrieve a specific assay by its sample ID
-     * Returns undefined if no matching assay is found
-     */
-    async getAssayBySampleId(sampleId: string): Promise<Assay | undefined> {
-        if (!this.db) await this.initDB();
-        return this.db!.get('assays', sampleId);
-    }
-
-    /**
-     * Remove all assay records from IndexedDB
-     */
-    async clearAssays() {
-        if (!this.db) await this.initDB();
-        const tx = this.db!.transaction('assays', 'readwrite');
-        await tx.store.clear();
-        await tx.done;
-    }
+    async getAssays(): Promise<Assay[]> { await this.initDB(); return this.db!.getAll('assays'); }
+    async getAssayById(id: string): Promise<Assay | undefined> { await this.initDB(); return this.db!.get('assays', id); }
+    async clearAssays() { const tx = (await this.initDB(), this.db)!.transaction('assays', 'readwrite'); await tx.store.clear(); await tx.done; }
 }
 
-// Export a singleton instance of the service
 export const indexedDBService = new IndexedDBService();

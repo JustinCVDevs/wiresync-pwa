@@ -1,3 +1,5 @@
+
+
 <script lang="ts">
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
@@ -7,11 +9,19 @@
     let transcoreTag = '';
     let wagonId = '';
     let capturedImage: string | null = null;
+    let error = '';
     let showCamera = false;
 
     onMount(() => {
-        window.addEventListener('online', () => isOnline = true);
-        window.addEventListener('offline', () => isOnline = false);
+        loadPersistedData();
+        window.addEventListener('online', () => {
+            isOnline = true;
+            error = '';
+        });
+        window.addEventListener('offline', () => {
+            isOnline = false;
+            error = 'Application is offline - data will be submitted when connection is restored';
+        });
 
         return () => {
             window.removeEventListener('online', () => isOnline = true);
@@ -32,8 +42,35 @@
     }
 
     function handleSubmit() {
-        goto(`/processes/marshaling-receival/verify?wagonId=${wagonId}`);
+        if (!transcoreTag || !wagonId) {
+            alert('Please fill all required fields');
+            return;
+        }
+
+        const receivalData = {
+            transcoreTag,
+            wagonId,
+            capturedImage,
+            timestamp: new Date().toISOString(),
+            componentType: 'MARSHALING_RECEIVAL'
+        };
+
+        localStorage.setItem('currentMarshalingReceival', JSON.stringify(receivalData));
+        goto('/processes/marshaling-receival/verify');
     }
+
+    function loadPersistedData() {
+        const savedData = localStorage.getItem('currentMarshalingReceival');
+        if (savedData) {
+            const data = JSON.parse(savedData);
+            transcoreTag = data.transcoreTag;
+            wagonId = data.wagonId;
+            capturedImage = data.capturedImage;
+        }
+    }
+
+    onMount(() => {
+        loadPersistedData();});
 </script>
 
 <div class="app-container" class:online={isOnline} class:offline={!isOnline}>

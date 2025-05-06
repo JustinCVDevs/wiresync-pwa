@@ -1,19 +1,42 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import type { PageData } from './$types';
+	import { goto } from '$app/navigation';
     
     export let data: PageData;
     let isOnline = navigator.onLine;
+    let receivalData: any = null;
+    let error = '';
 
     onMount(() => {
+        const savedData = localStorage.getItem('currentMarshalingReceival');
+        if (savedData) {
+            receivalData = JSON.parse(savedData);
+        } else {
+            goto('/processes/marshaling-receival');
+        }
+
         window.addEventListener('online', () => isOnline = true);
-        window.addEventListener('offline', () => isOnline = false);
+        window.addEventListener('offline', () => {
+            isOnline = false;
+            error = 'Offline - changes will be saved locally';
+        });
 
         return () => {
             window.removeEventListener('online', () => isOnline = true);
             window.removeEventListener('offline', () => isOnline = false);
         };
     });
+
+    async function handleConfirm() {
+        try {
+            // TODO: Implement API submission
+            localStorage.removeItem('currentMarshalingReceival');
+            goto('/processes');
+        } catch (err) {
+            error = 'Failed to submit receival data';
+        }
+    }
 
     function handleVerify() {
         const date = new Date();
