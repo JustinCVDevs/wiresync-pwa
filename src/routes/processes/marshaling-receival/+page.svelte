@@ -1,278 +1,147 @@
-
-
 <script lang="ts">
-    import { onMount } from 'svelte';
-    import { goto } from '$app/navigation';
-    import Camera from '$lib/components/Camera.svelte';
-    
-    let isOnline = navigator.onLine;
-    let transcoreTag = '';
-    let wagonId = '';
-    let capturedImage: string | null = null;
-    let error = '';
-    let showCamera = false;
+	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import Camera from '$lib/components/Camera.svelte';
+	import Header from '$lib/components/Header.svelte';
+	import RfidReader from '$lib/components/RFIDReader.svelte';
 
-    onMount(() => {
-        loadPersistedData();
-        window.addEventListener('online', () => {
-            isOnline = true;
-            error = '';
-        });
-        window.addEventListener('offline', () => {
-            isOnline = false;
-            error = 'Application is offline - data will be submitted when connection is restored';
-        });
+	let isOnline = navigator.onLine;
+	let transcoreTag = '';
+	let wagonId = '';
+	let capturedImage: string | null = null;
+	let error = '';
+	let showCamera = false;
 
-        return () => {
-            window.removeEventListener('online', () => isOnline = true);
-            window.removeEventListener('offline', () => isOnline = false);
-        };
-    });
+	onMount(() => {
+		loadPersistedData();
+		window.addEventListener('online', () => {
+			isOnline = true;
+			error = '';
+		});
+		window.addEventListener('offline', () => {
+			isOnline = false;
+			error = 'Application is offline - data will be submitted when connection is restored';
+		});
 
-    function handleCapture(event: CustomEvent<string>) {
-        capturedImage = event.detail;
-    }
+		return () => {
+			window.removeEventListener('online', () => (isOnline = true));
+			window.removeEventListener('offline', () => (isOnline = false));
+		};
+	});
 
-    function handleCameraClose() {
-        showCamera = false;
-    }
+	function handleCapture(event: CustomEvent<string>) {
+		capturedImage = event.detail;
+	}
 
-    function handleCancel() {
-        goto('/processes');
-    }
+	function handleCameraClose() {
+		showCamera = false;
+	}
 
-    function handleSubmit() {
-        if (!transcoreTag || !wagonId) {
-            alert('Please fill all required fields');
-            return;
-        }
+	function handleCancel() {
+		goto('/processes');
+	}
 
-        const receivalData = {
-            transcoreTag,
-            wagonId,
-            capturedImage,
-            timestamp: new Date().toISOString(),
-            componentType: 'MARSHALING_RECEIVAL'
-        };
+	function handleSubmit() {
+		if (!transcoreTag || !wagonId) {
+			alert('Please fill all required fields');
+			return;
+		}
 
-        localStorage.setItem('currentMarshalingReceival', JSON.stringify(receivalData));
-        goto('/processes/marshaling-receival/verify');
-    }
+		const receivalData = {
+			transcoreTag,
+			wagonId,
+			capturedImage,
+			timestamp: new Date().toISOString(),
+			componentType: 'MARSHALING_RECEIVAL'
+		};
 
-    function loadPersistedData() {
-        const savedData = localStorage.getItem('currentMarshalingReceival');
-        if (savedData) {
-            const data = JSON.parse(savedData);
-            transcoreTag = data.transcoreTag;
-            wagonId = data.wagonId;
-            capturedImage = data.capturedImage;
-        }
-    }
+		localStorage.setItem('currentMarshalingReceival', JSON.stringify(receivalData));
+		goto('/processes/marshaling-receival/verify');
+	}
 
-    onMount(() => {
-        loadPersistedData();});
+	function loadPersistedData() {
+		const savedData = localStorage.getItem('currentMarshalingReceival');
+		if (savedData) {
+			const data = JSON.parse(savedData);
+			transcoreTag = data.transcoreTag;
+			wagonId = data.wagonId;
+			capturedImage = data.capturedImage;
+		}
+	}
+
+	onMount(() => {
+		loadPersistedData();
+	});
 </script>
-
-<div class="app-container" class:online={isOnline} class:offline={!isOnline}>
-    <div class="form-container">
-        <h1>Marshaling Receival</h1>
-        
-        <div class="input-group">
-            <label for="rfid">RFID Tag (TRANSCORE_TAG)</label>
-            <input 
-                id="rfid"
-                type="text"
-                bind:value={transcoreTag}
-                placeholder="Scan or enter RFID tag"
-            />
-        </div>
-
-        <div class="input-group">
-            <label for="wagonId">Wagon ID</label>
-            <input 
-                id="wagonId"
-                type="text"
-                bind:value={wagonId}
-                placeholder="Enter Wagon ID"
-            />
-        </div>
-
-        <Camera 
-            {showCamera} 
-            on:capture={handleCapture} 
-            on:close={handleCameraClose}
-        />
-
-        {#if capturedImage}
-            <div class="image-preview">
-                <img src={capturedImage} alt="Captured wagon" />
-                <div class="button-group">
-                    <button class="camera-button" on:click={() => showCamera = true}>
-                        Retake Photo
-                    </button>
-                </div>
-            </div>
-        {:else}
-            <button class="camera-button" on:click={() => showCamera = true}>
-                Open Camera
-            </button>
-        {/if}
-
-        <div class="button-group">
-            <button class="cancel-button" on:click={handleCancel}>
-                Cancel
-            </button>
-            <button class="submit-button" on:click={handleSubmit}>
-                Submit
-            </button>
-        </div>
+<main class="bg-gray-50 min-h-screen flex p-4">
+  <section class="w-full max-w-md bg-white rounded-xl shadow-lg p-6 space-y-6">
+    
+    <!-- Breadcrumb -->
+    <div class="text-sm text-gray-600">
+      PMC &gt; Marshaling Receival &gt; <span class="font-medium text-gray-900">New Process</span>
     </div>
-</div>
+    
+    <h1 class="text-center text-2xl font-semibold text-gray-900">Marshaling Receival</h1>
 
-<style>
-    /* Remove camera-related styles as they're now in the Camera component */
-    .app-container {
-        min-height: 100vh;
-        border: 8px solid;
-        margin: 0;
-        padding: 1rem;
-        box-sizing: border-box;
-    }
+    <div class="space-y-4">
+<RfidReader 
+  onScan={(tagId) => transcoreTag = tagId}
+  targetFieldId="transcoreTag"
+  label="Transcore Tag"
+/>
 
-    .online {
-        border-color: #4CAF50;
-    }
+      <div class="flex flex-col">
+        <label for="wagonId" class="mb-1 text-gray-700 font-medium">Wagon ID</label>
+        <input
+          id="wagonId"
+          type="text"
+          bind:value={wagonId}
+          placeholder="Enter Wagon ID"
+          class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
+        />
+      </div>
 
-    .offline {
-        border-color: #FF9800;
-    }
+      <Camera
+        {showCamera}
+        on:capture={handleCapture}
+        on:close={handleCameraClose}
+      />
 
-    .form-container {
-        max-width: 600px;
-        margin: 0 auto;
-        padding: 2rem;
-    }
+      {#if capturedImage}
+        <div class="space-y-4">
+          <div class="image-preview rounded-lg overflow-hidden border border-gray-200">
+            <img src={capturedImage} alt="Captured wagon" class="w-full object-cover" />
+          </div>
+          <button
+            class="w-full bg-gray-800 text-white py-3 rounded-lg font-medium hover:bg-gray-700 active:bg-gray-900 transition"
+            on:click={() => (showCamera = true)}
+          >
+            Retake Photo
+          </button>
+        </div>
+      {:else}
+        <button
+          class="w-full bg-gray-800 text-white py-3 rounded-lg font-medium hover:bg-gray-700 active:bg-gray-900 transition"
+          on:click={() => (showCamera = true)}
+        >
+          Open Camera
+        </button>
+      {/if}
+    </div>
 
-    .input-group {
-        margin-bottom: 1.5rem;
-    }
-
-    label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-weight: bold;
-    }
-
-    input {
-        width: 100%;
-        padding: 0.75rem;
-        font-size: 1.1rem;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-    }
-
-    .button-group {
-        display: flex;
-        gap: 1rem;
-        margin-top: 2rem;
-    }
-
-    button {
-        padding: 0.75rem 1.5rem;
-        font-size: 1rem;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        color: white;
-    }
-
-    .camera-button {
-        background-color: #2196F3;
-    }
-
-    .submit-button {
-        background-color: #4CAF50;
-    }
-
-    .cancel-button {
-        background-color: #f44336;
-    }
-
-    .camera-container {
-        position: relative;
-        width: 100%;
-        max-width: 600px;
-        height: 400px;
-        background: black;
-        border-radius: 8px;
-        overflow: hidden;
-        margin: 1rem 0;
-    }
-
-    .camera-preview {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .camera-controls {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        padding: 1rem;
-        display: flex;
-        justify-content: space-around;
-        background: rgba(0, 0, 0, 0.7);
-    }
-
-    .capture-button {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background-color: #fff;
-        border: 3px solid #4CAF50;
-        padding: 0;
-        cursor: pointer;
-        position: relative;
-    }
-
-    .capture-button::after {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        background-color: #4CAF50;
-        transition: all 0.2s;
-    }
-
-    .capture-button:hover::after {
-        width: 44px;
-        height: 44px;
-    }
-
-    .camera-button {
-        background-color: #2196F3;
-        margin: 1rem 0;
-    }
-
-    .cancel-button {
-        background-color: #f44336;
-        color: white;
-    }
-    .image-preview {
-        margin: 1rem 0;
-        text-align: center;
-    }
-
-    .image-preview img {
-        max-width: 100%;
-        max-height: 300px;
-        margin-bottom: 1rem;
-        border-radius: 4px;
-    }
-</style>
+    <div class="flex space-x-4">
+      <button
+        class="flex-1 bg-red-700 text-white py-3 rounded-lg font-medium hover:bg-red-600 active:bg-red-800 transition"
+        on:click={handleCancel}
+      >
+        Cancel
+      </button>
+      <button
+        class="flex-1 bg-green-700 text-white py-3 rounded-lg font-medium hover:bg-green-600 active:bg-green-800 transition"
+        on:click={handleSubmit}
+      >
+        Submit
+      </button>
+    </div>
+  </section>
+</main>

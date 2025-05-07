@@ -1,6 +1,6 @@
-import type { BaseRecord, ID } from "./baserecord";
+import type { BaseRecord, ID } from './baserecord';
 // consignments componentimp
 export interface Consignment extends BaseRecord {
-    name: string                 // consignment number
-    linkedTrainId?: ID           // relation to Train.id
-  }
+	name: string; // consignment number
+	linkedTrainId?: ID; // relation to Train.id
+}
