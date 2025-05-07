@@ -73,8 +73,7 @@
 		loadPersistedData();
 	});
 </script>
-<Header/>
-<main class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+<main class="bg-gray-50 min-h-screen flex p-4">
   <section class="w-full max-w-md bg-white rounded-xl shadow-lg p-6 space-y-6">
     
     <!-- Breadcrumb -->
@@ -85,7 +84,11 @@
     <h1 class="text-center text-2xl font-semibold text-gray-900">Marshaling Receival</h1>
 
     <div class="space-y-4">
-     <RfidReader>
+<RfidReader 
+  onScan={(tagId) => transcoreTag = tagId}
+  targetFieldId="transcoreTag"
+  label="Transcore Tag"
+/>
 
       <div class="flex flex-col">
         <label for="wagonId" class="mb-1 text-gray-700 font-medium">Wagon ID</label>
@@ -124,6 +127,7 @@
           Open Camera
         </button>
       {/if}
+    </div>
 
     <div class="flex space-x-4">
       <button
@@ -139,4 +143,5 @@
         Submit
       </button>
     </div>
+  </section>
 </main>

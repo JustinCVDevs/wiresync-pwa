@@ -1,4 +1,3 @@
-<!-- RFIDReader.svelte -->
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { Scan, AlertTriangle } from 'lucide-svelte';
@@ -14,6 +13,7 @@
 	let nfcEnabled = rfidService.isNFCEnabled();
 	let lastScanned: string | null = null;
 	let assetName: string | null = null;
+	let manualTagId = '';
 	let unregister: () => void;
 
 	async function handleTagScanned(tagId: string) {
@@ -44,6 +44,15 @@
 	onDestroy(() => {
 		unregister?.();
 	});
+
+	function handleManualInput(e: Event) {
+		const value = (e.target as HTMLInputElement).value;
+		manualTagId = value;
+		if (value) {
+			lastScanned = value;
+			onScan(value);
+		}
+	}
 </script>
 
 <div class="bg-muted/30 mb-4 rounded-md border p-4">
@@ -51,9 +60,18 @@
 		<h3 class="text-sm font-medium">{label}</h3>
 
 		{#if !nfcAvailable}
-			<div class="text-alert-amber flex items-center text-xs">
-				<AlertTriangle class="mr-1 h-3 w-3" />
-				NFC not available
+			<div class="space-y-2">
+				<input
+					type="text"
+					class="w-full rounded border px-2 py-1 text-sm"
+					placeholder="Enter RFID tag manually"
+					bind:value={manualTagId}
+					on:input={handleManualInput}
+				/>
+				<div class="text-alert-amber flex items-center text-xs">
+					<AlertTriangle class="mr-1 h-3 w-3" />
+					NFC unavailable - manual entry enabled
+				</div>
 			</div>
 		{:else if !nfcEnabled}
 			<Button variant="outline" size="sm" class="text-xs" on:click={requestNFCPermission}>

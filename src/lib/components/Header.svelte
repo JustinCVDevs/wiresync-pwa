@@ -1,12 +1,26 @@
 <script>
 	import { pocketbaseService } from '$lib/services/pocketbaseService';
 
-	export let user = {
-		name: 'Philip Mare',
-		org: 'PMC',
-		status: 'Online',
-		syncedAt: '07:48:44'
+	export let user = pocketbaseService?.currentUser?.data ?? {
+		name: 'Guest',
+		org: 'No Organization',
+		status: 'Offline',
+		syncedAt: new Date().toLocaleTimeString()
 	};
+
+	// Update online status based on network connectivity
+	let online = true;
+	
+	function updateOnlineStatus() {
+		online = navigator.onLine;
+		user.status = online ? 'Online' : 'Offline';
+	}
+
+	// Add event listeners for online/offline status
+	if (typeof window !== 'undefined') {
+		window.addEventListener('online', updateOnlineStatus);
+		window.addEventListener('offline', updateOnlineStatus);
+	}
 
 	function handleLogout() {
 		// your logout logic
