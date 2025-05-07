@@ -7,6 +7,7 @@
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Wagon } from '$lib';
 	import { NetworkIcon } from 'lucide-svelte';
+	import { pocketbaseService } from '$lib/services/pocketbaseService';
 
 	let isOnline = navigator.onLine;
 	let transcoreTag = '';
@@ -56,12 +57,18 @@
 			 wagonPhotoUrl: "",
 			 created: new Date().toISOString(),
 			 componentType: 'MARSHALING_RECEIVAL',
-			 id: wagonId + new Date().toISOString(),
-			 updated: ''
+			 id: '',
+			 updated: new Date().toISOString(),
 		 };
 
-		await indexedDBService.saveWagons([receivalData]);
-		goto('/processes/marshaling-receival/verify');
+		await indexedDBService.saveRecord('operationQueue', receivalData);
+		await pocketbaseService.create('wagons', receivalData);
+		goto('/processes/marshaling-receival/verify', {
+			state: {
+				wagonId: wagonId,
+				wagonrfid: transcoreTag,
+			}
+		} );
 	}
 
 	function loadPersistedData() {
