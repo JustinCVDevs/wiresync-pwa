@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { indexedDBService } from '$lib/services/indexedDBService';
+	import type { Assay } from '$lib/types/assay';
 
 	interface Consignment {
 		name: string;
@@ -29,22 +31,41 @@
 
 	async function handleSubmit() {
 		try {
-			const response = await fetch('/api/wire/assays', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					name: sampleId,
-					productGrade,
-					consignment,
-					loadingLocation
-				})
-			});
+			// Create the assay object according to the Assay interface
+			const assay: Assay = {
+				id: crypto.randomUUID(),
+				name: sampleId,
+				productGrade: productGrade,
+				location: loadingLocation,
+				created: new Date().toISOString(),
+				updated: new Date().toISOString(),
+				linkedWagonIds: [],
+				linkedTruckIds: []
+			};
 
-			if (response.ok) {
-				goto('/processes/west-loadout/wagon-details?sampleId=' + sampleId);
+			// Save to IndexedDB
+			await indexedDBService.saveRecord('assays', assay);
+
+			// Try to sync with backend if online
+			try {
+				const response = await fetch('/api/wire/assays', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(assay)
+				});
+
+				if (!response.ok) {
+					console.warn('Failed to sync with backend, but data saved locally');
+				}
+			} catch (err) {
+				console.warn('Failed to sync with backend, but data saved locally');
 			}
+
+			// Navigate to review page instead of wagon details
+			goto('/processes/west-loadout/review?sampleId=' + assay.id);
 		} catch (err) {
-			error = 'Failed to create assay';
+			error = 'Failed to save assay data';
+			console.error(err);
 		}
 	}
 

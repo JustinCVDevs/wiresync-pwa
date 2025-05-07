@@ -2,6 +2,8 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import WagonDetails from '$lib/components/WagonDetails.svelte';
+	import { indexedDBService } from '$lib/services/indexedDBService';
+	import type { Wagon } from '$lib/types/wagon';
 
 	const sampleId = $page.url.searchParams.get('sampleId') || '';
 	let currentWagon = {
@@ -13,14 +15,44 @@
 
 	async function handleWagonSubmit(event: CustomEvent) {
 		try {
-			await fetch('/api/wire/wagons', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					...event.detail,
-					sampleId
-				})
-			});
+			// Create wagon object according to Wagon interface
+			const wagon: Wagon = {
+				id: currentWagon.id || currentWagon.rfidTag,
+				transcoreTag: currentWagon.rfidTag,
+				wagonIdSimple: currentWagon.id,
+				created: new Date().toISOString(),
+				updated: new Date().toISOString(),
+				weight: currentWagon.weight,
+				samplingStatus: currentWagon.samplingStatus 
+			};
+
+			// Save wagon to IndexedDB
+			await indexedDBService.saveRecord('wagons', wagon);
+
+			// Update assay to link the wagon
+			const assay = await indexedDBService.getAssayById(sampleId);
+			if (assay) {
+				const updatedAssay = {
+					...assay,
+					linkedWagonIds: [...(assay.linkedWagonIds || []), wagon.id],
+					updated: new Date().toISOString()
+				};
+				await indexedDBService.saveRecord('assays', updatedAssay);
+			}
+
+			// Try to sync with backend if online
+			try {
+				await fetch('/api/wire/wagons', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						...wagon,
+						sampleId
+					})
+				});
+			} catch (err) {
+				console.warn('Failed to sync with backend, but data saved locally');
+			}
 
 			goto('/processes/west-loadout/review?sampleId=' + sampleId);
 		} catch (err) {
