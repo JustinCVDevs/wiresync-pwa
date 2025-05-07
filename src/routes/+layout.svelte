@@ -1,7 +1,9 @@
 <script lang="ts">
-	import Header from '$lib/components/Header.svelte';
+	import { goto } from '$app/navigation';
+	import Button from '$lib/components/ui/button/button.svelte';
 	import '../app.scss';
 	let { children } = $props();
 </script>
-<Header />
-{@render children()}
+  {@render children()}
+
+

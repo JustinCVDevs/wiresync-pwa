@@ -1,4 +1,4 @@
-import PocketBase, { type AuthRecord, type RecordSubscription } from 'pocketbase';
+import PocketBase, { ClientResponseError, type AuthRecord, type RecordSubscription } from 'pocketbase';
 import { indexedDBService } from './indexedDBService';
 import type { Train, Wagon, Sample, Assay } from '$lib';
 
@@ -40,12 +40,20 @@ class PocketBaseService {
 	}
 
 	get currentUser(): AuthRecord | null {
-		return this.pb.authStore.model;
+		return this.pb.authStore.record;
 	}
 
 	async login(email: string, password: string): Promise<AuthRecord> {
-		await this.pb.collection('users').authWithPassword(email, password);
-		return this.currentUser!;
+		try {
+			await this.pb.collection('users').authWithPassword(email, password);
+			return this.currentUser!;	
+		} catch (e: any) {
+			if (e instanceof ClientResponseError) {
+				throw new Error(e.data.message);
+			}
+			throw e;
+		}
+
 	}
 
 	logout() {
