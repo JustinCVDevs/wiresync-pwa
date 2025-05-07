@@ -4,6 +4,9 @@
 	import WagonDetails from '$lib/components/WagonDetails.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Wagon } from '$lib/types/wagon';
+	import type { Assay } from '$lib/types/assay';
+	import { pocketbaseService } from '$lib/services/pocketbaseService';
+	import { syncService } from '$lib/services/syncService';
 
 	const sampleId = $page.url.searchParams.get('sampleId') || '';
 	let currentWagon = {
@@ -23,36 +26,29 @@
 				created: new Date().toISOString(),
 				updated: new Date().toISOString(),
 				weight: currentWagon.weight,
-				samplingStatus: currentWagon.samplingStatus 
+				samplingStatus: currentWagon.samplingStatus,
+				syncStatus: 'pending' 
 			};
 
 			// Save wagon to IndexedDB
 			await indexedDBService.saveRecord('wagons', wagon);
+			// RUBEN move this out?
+			await syncService.syncWagon(wagon);
 
 			// Update assay to link the wagon
 			const assay = await indexedDBService.getAssayById(sampleId);
 			if (assay) {
-				const updatedAssay = {
+				const updatedAssay: Assay = {
 					...assay,
-					linkedWagonIds: [...(assay.linkedWagonIds || []), wagon.id],
-					updated: new Date().toISOString()
+					linkedWagonIds: [...(assay.linkedWagonIds || []), wagon.id].filter((id): id is string => id !== undefined),
+					updated: new Date().toISOString(),
+					syncStatus: 'pending' 
 				};
 				await indexedDBService.saveRecord('assays', updatedAssay);
+				// RUBEN move this out
+				await syncService.syncAssay(updatedAssay);
 			}
-
-			// Try to sync with backend if online
-			try {
-				await fetch('/api/wire/wagons', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						...wagon,
-						sampleId
-					})
-				});
-			} catch (err) {
-				console.warn('Failed to sync with backend, but data saved locally');
-			}
+			
 
 			goto('/processes/west-loadout/review?sampleId=' + sampleId);
 		} catch (err) {

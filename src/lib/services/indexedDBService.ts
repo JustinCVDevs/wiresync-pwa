@@ -53,6 +53,18 @@ class IndexedDBService {
 		return result;
 	}
 
+	/**
+   * Get records from a store filtered by an optional predicate.
+   */
+	async getRecords<K extends StoreName>(
+		store: K,
+		predicate?: (record: AppDB[K]['value']) => boolean
+	  ): Promise<AppDB[K]['value'][]> {
+		// Fetch all and then apply filter
+		const all = await this.getAllRecords(store);
+		return predicate ? all.filter(predicate) : all;
+	  }
+
 	async getAllRecords<K extends StoreName>(store: K): Promise<AppDB[K]['value'][]> {
 		await this.initDB();
 		const tx = this.db!.transaction(store, 'readonly');
