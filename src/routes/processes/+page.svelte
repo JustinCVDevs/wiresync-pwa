@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { pocketbaseService } from '$lib/services/pocketbaseService';
 	let isOnline = navigator.onLine;
 
 	onMount(() => {
@@ -11,6 +12,9 @@
 			window.removeEventListener('online', () => (isOnline = true));
 			window.removeEventListener('offline', () => (isOnline = false));
 		};
+if (!pocketbaseService.isAuthenticated) {
+    goto('/');
+}
 	});
 
 	const processes = [

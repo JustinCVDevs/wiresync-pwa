@@ -84,17 +84,14 @@
 	}
 </script>
 
-<div class="app-container" class:online={isOnline} class:offline={!isOnline}>
-	<div class="form-container">
+<div >
+	<div >
 		<h1>Marshaling Dispatch</h1>
 
 		{#if error}
 			<div class="error-message">{error}</div>
 		{/if}
 
-		{#if isLoadingData}
-			<div class="loading">Loading data from WIRE...</div>
-		{:else}
 			<div class="input-group">
 				<label for="trainRef">Train Reference Number</label>
 				<select id="trainRef" bind:value={selectedTrainRef}>
@@ -155,103 +152,5 @@
 			<div class="button-group">
 				<button class="submit-button" on:click={handleSubmit}> Submit </button>
 			</div>
-		{/if}
 	</div>
 </div>
-
-<style>
-	/* Remove all camera-related styles as they're now in Camera.svelte */
-	.app-container {
-		min-height: 100vh;
-		border: 8px solid;
-		margin: 0;
-		padding: 1rem;
-		box-sizing: border-box;
-	}
-
-	.online {
-		border-color: #4caf50;
-	}
-
-	.offline {
-		border-color: #ff9800;
-	}
-
-	.form-container {
-		max-width: 600px;
-		margin: 0 auto;
-		padding: 2rem;
-	}
-
-	.input-group {
-		margin-bottom: 1.5rem;
-	}
-
-	label {
-		display: block;
-		margin-bottom: 0.5rem;
-		font-weight: bold;
-	}
-
-	select,
-	input {
-		width: 100%;
-		padding: 0.75rem;
-		font-size: 1.1rem;
-		border: 1px solid #ccc;
-		border-radius: 4px;
-		margin-bottom: 0.5rem;
-	}
-
-	.button-group {
-		display: flex;
-		gap: 1rem;
-		margin-top: 2rem;
-	}
-
-	.submit-button {
-		padding: 0.75rem 1.5rem;
-		font-size: 1rem;
-		background-color: #4caf50;
-		color: white;
-		border: none;
-		border-radius: 4px;
-		cursor: pointer;
-	}
-
-	.camera-button {
-		background-color: #2196f3;
-		color: white;
-		border: none;
-		border-radius: 4px;
-		cursor: pointer;
-		padding: 0.75rem 1.5rem;
-		font-size: 1rem;
-	}
-
-	.error-message {
-		background-color: #ffebee;
-		color: #c62828;
-		padding: 1rem;
-		border-radius: 4px;
-		margin-bottom: 1rem;
-	}
-
-	.loading {
-		text-align: center;
-		padding: 2rem;
-		color: #666;
-	}
-
-	.image-preview {
-		margin: 1rem 0;
-		text-align: center;
-	}
-
-	.image-preview img {
-		max-width: 100%;
-		max-height: 300px;
-		margin-bottom: 1rem;
-		border-radius: 4px;
-	}
-</style>

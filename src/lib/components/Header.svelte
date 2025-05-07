@@ -1,61 +1,61 @@
 <script>
-	import { pocketbaseService } from '$lib/services/pocketbaseService';
+	import { goto } from '$app/navigation';
+  import { pocketbaseService } from '$lib/services/pocketbaseService';
+	import { onMount } from 'svelte';
+  import LoginForm from './LoginForm.svelte';
+  
 
-	export let user = pocketbaseService?.currentUser?.data ?? {
-		name: 'Guest',
-		org: 'No Organization',
-		status: 'Offline',
-		syncedAt: new Date().toLocaleTimeString()
-	};
 
-	// Update online status based on network connectivity
-	let online = true;
-	
-	function updateOnlineStatus() {
-		online = navigator.onLine;
-		user.status = online ? 'Online' : 'Offline';
-	}
+  $: isAuthenticated = pocketbaseService.isAuthenticated;
+  let showLoginForm = false;
 
-	// Add event listeners for online/offline status
-	if (typeof window !== 'undefined') {
-		window.addEventListener('online', updateOnlineStatus);
-		window.addEventListener('offline', updateOnlineStatus);
-	}
+  // Update online status based on network connectivity
+  let online = true;
+  let status = 'Online';
+  
+  function updateOnlineStatus() {
+    online = navigator.onLine;
+    status = online ? 'Online' : 'Offline';
+  }
 
-	function handleLogout() {
-		// your logout logic
-		console.log('logging out');
-	}
+  // Add event listeners for online/offline status
+  if (typeof window !== 'undefined') {
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+  }
+
+  function handleLogout() {
+    pocketbaseService.logout();
+    goto('/');
+    
+  }
+  
 </script>
 
-<div class="space-y-2">
-	<!-- Section label -->
 
-	<!-- Card -->
-	<div class="flex items-center justify-between bg-gray-800 p-4 text-white">
-		<!-- User info -->
-		<div class="text-sm">
-			<span class="font-medium">User</span>
-			<span class="font-semibold">{user.name}</span>
-			<span class="opacity-75">{user.org}</span>
-		</div>
+<div class="bg-gray-700 grid grid-cols-3 grid-rows-1 gap-2 text-white py-2 px-3">
+    
+  <!-- User info -->
+  <div class="text-sm">
+    <span class="font-medium">Welcome Back,</span>
+    <span class="font-semibold">{pocketbaseService.currentUser?.name}</span>
+  </div>
 
-		<!-- Status & sync time -->
-		<div class="flex flex-col items-center">
-			<span class="rounded-full bg-green-500 px-3 py-1 text-xs font-medium text-white">
-				{user.status}
-			</span>
-			<span class="mt-1 text-xs opacity-75">
-				Synced at {user.syncedAt}
-			</span>
-		</div>
+  <!-- Status & sync time -->
+  <div class="flex flex-col items-center">
+    <span class="rounded-full bg-green-500 px-3 py-1 text-xs font-medium text-white">
+      {status}
+    </span>
+    <span class="mt-1 text-xs opacity-75">
+      Synced at {new Date().toLocaleTimeString()}
+    </span>
+  </div>
 
-		<!-- Logout button -->
-		<button
-			on:click={handleLogout}
-			class="rounded bg-gray-700 px-3 py-1 text-sm font-medium text-white hover:bg-gray-600"
-		>
-			Log Out
-		</button>
-	</div>
+  <!-- Logout button -->
+  <button
+    on:click={handleLogout}
+    class="rounded bg-gray-700 px-3 py-1 text-sm font-medium text-white hover:bg-gray-600"
+  >
+    Log Out
+  </button>
 </div>

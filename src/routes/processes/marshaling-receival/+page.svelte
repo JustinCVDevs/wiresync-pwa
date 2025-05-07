@@ -4,6 +4,10 @@
 	import Camera from '$lib/components/Camera.svelte';
 	import Header from '$lib/components/Header.svelte';
 	import RfidReader from '$lib/components/RFIDReader.svelte';
+	import { indexedDBService } from '$lib/services/indexedDBService';
+	import type { Wagon } from '$lib';
+	import { NetworkIcon } from 'lucide-svelte';
+	import { pocketbaseService } from '$lib/services/pocketbaseService';
 
 	let isOnline = navigator.onLine;
 	let transcoreTag = '';
@@ -41,22 +45,30 @@
 		goto('/processes');
 	}
 
-	function handleSubmit() {
+	async function handleSubmit()  {
 		if (!transcoreTag || !wagonId) {
 			alert('Please fill all required fields');
 			return;
 		}
 
-		const receivalData = {
-			transcoreTag,
-			wagonId,
-			capturedImage,
-			timestamp: new Date().toISOString(),
-			componentType: 'MARSHALING_RECEIVAL'
-		};
+		 const receivalData: Wagon = {
+			 transcoreTag,
+			 wagonIdSimple: wagonId,
+			 wagonPhotoUrl: "",
+			 created: new Date().toISOString(),
+			 componentType: 'MARSHALING_RECEIVAL',
+			 id: '',
+			 updated: new Date().toISOString(),
+		 };
 
-		localStorage.setItem('currentMarshalingReceival', JSON.stringify(receivalData));
-		goto('/processes/marshaling-receival/verify');
+		await indexedDBService.saveRecord('operationQueue', receivalData);
+		await pocketbaseService.create('wagons', receivalData);
+		goto('/processes/marshaling-receival/verify', {
+			state: {
+				wagonId: wagonId,
+				wagonrfid: transcoreTag,
+			}
+		} );
 	}
 
 	function loadPersistedData() {
@@ -84,6 +96,8 @@
     <h1 class="text-center text-2xl font-semibold text-gray-900">Marshaling Receival</h1>
 
     <div class="space-y-4">
+		<form on:submit|preventDefault={handleSubmit}>
+      <div class="flex flex-col">
 <RfidReader 
   onScan={(tagId) => transcoreTag = tagId}
   targetFieldId="transcoreTag"
@@ -138,10 +152,12 @@
       </button>
       <button
         class="flex-1 bg-green-700 text-white py-3 rounded-lg font-medium hover:bg-green-600 active:bg-green-800 transition"
-        on:click={handleSubmit}
+        type="submit"
       >
         Submit
       </button>
+	</form>
+
     </div>
   </section>
 </main>
