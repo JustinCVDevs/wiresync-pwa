@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 
+	import { indexedDBService } from '$lib/services/indexedDBService';
+	import type { Assay } from '$lib/types/assay';
+	import { syncService } from '$lib/services/syncService';
+
 	let sampleId = '';
 	let productGrade = '';
 	let error = '';
@@ -9,24 +13,30 @@
 
 	async function handleSubmit() {
 		try {
-			// Mock successful API response
-			const mockResponse = {
-				success: true,
-				data: {
-					name: sampleId,
-					productGrade,
-					componentType: 'ASSAY',
-					timestamp: new Date().toISOString()
-				}
+			// Create the assay object according to the Assay interface
+			const assay: Assay = {
+				id: crypto.randomUUID(),
+				name: sampleId,
+				productGrade: productGrade,
+				location: 'East Load Out',
+				created: new Date().toISOString(),
+				updated: new Date().toISOString(),
+				linkedWagonIds: [],
+				linkedTruckIds: [],
+				syncStatus: 'pending'
 			};
 
-			// Store in localStorage for demo purposes
-			localStorage.setItem('currentAssay', JSON.stringify(mockResponse.data));
+			// Save to IndexedDB
+			await indexedDBService.saveRecord('assays', assay);
 
-			// Navigate to next page
-			goto('/processes/east-loadout/wagon-details?sampleId=' + sampleId);
+			// Try to sync using the sync service
+			await syncService.syncAssay(assay);
+
+			// Navigate to review page
+			goto('/processes/east-loadout/review?sampleId=' + assay.id);
 		} catch (err) {
-			error = 'Failed to create assay';
+			error = 'Failed to save assay data';
+			console.error(err);
 		}
 	}
 
