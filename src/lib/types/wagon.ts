@@ -10,4 +10,6 @@ export interface Wagon extends BaseRecord {
 	linkedConsignmentId?: ID; // relation to Consignment.id (dispatch)
 	weight?: string; // WAGON_WEIGHT
 	samplingStatus?: string; // WAGON_SAMPLING_STATUS
+	serverId?: string; 
+	syncStatus: 'pending' | 'synced';
 }

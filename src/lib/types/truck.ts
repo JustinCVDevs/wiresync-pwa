@@ -10,4 +10,6 @@ export interface Truck extends BaseRecord {
 	samplingStatus?: boolean; // TRUCK_SAMPLING_STATUS
 	loadingLocation?: string; // TRUCK_LOADING_LOCATION
 	unrefinedCuProdType?: string; // TRUCK_UNREFINED_CU_PROD_TYPE (copper)
+	serverId?: string; 
+	syncStatus: 'pending' | 'synced';
 }

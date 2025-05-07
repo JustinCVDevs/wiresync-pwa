@@ -3,6 +3,8 @@
 	import { goto } from '$app/navigation';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Assay } from '$lib/types/assay';
+	import { pocketbaseService } from '$lib/services/pocketbaseService';
+	import { syncService } from '$lib/services/syncService';
 
 	interface Consignment {
 		name: string;
@@ -40,28 +42,18 @@
 				created: new Date().toISOString(),
 				updated: new Date().toISOString(),
 				linkedWagonIds: [],
-				linkedTruckIds: []
+				linkedTruckIds: [],
+				syncStatus: 'pending'
 			};
 
 			// Save to IndexedDB
 			await indexedDBService.saveRecord('assays', assay);
 
-			// Try to sync with backend if online
-			try {
-				const response = await fetch('/api/wire/assays', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(assay)
-				});
+			// Ruben decide if we want this in here
+			// Try to sync using the sync service
+			await syncService.syncAssay(assay);
 
-				if (!response.ok) {
-					console.warn('Failed to sync with backend, but data saved locally');
-				}
-			} catch (err) {
-				console.warn('Failed to sync with backend, but data saved locally');
-			}
-
-			// Navigate to review page instead of wagon details
+			// Navigate to review page
 			goto('/processes/west-loadout/review?sampleId=' + assay.id);
 		} catch (err) {
 			error = 'Failed to save assay data';
