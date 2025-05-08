@@ -2,42 +2,51 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import Camera from '$lib/components/Camera.svelte';
+	import { indexedDBService } from '$lib/services/indexedDBService';
 
-	let truckRegistration = '';
+	import type { Assay } from '$lib/types/assay';
+
+	let truckServerId = '';
+	let availableTrucks: { id: string; registration: string }[] = [];
 	let tankLocation = '';
 	let acidType = '';
 	let sampleId = '';
 	let showCamera = false;
 	let error = '';
-	let availableTrucks: string[] = [];
 	let capturedImage = '';
 
 	const tankLocations = ['Tank 1', 'Tank 2', 'Tank 3', 'Tank 4'];
 	const acidTypes = ['Weak Acid', 'Strong Acid'];
 
 	onMount(async () => {
-		// Mock truck registrations (replace with API call later)
-		availableTrucks = ['ACD001', 'ACD002', 'ACD003', 'ACD004', 'ACD005'];
+		// Fetch trucks from IndexedDB
+		const trucks = await indexedDBService.getRecords('trucks');
+		availableTrucks = trucks;
 	});
+
 
 	async function handleSubmit() {
 		try {
-			const truckData = {
-				truckRegistration,
-				tankLocation,
-				acidType,
-				sampleId,
-				image: capturedImage,
-				timestamp: new Date().toISOString(),
-				componentType: 'TRUCK'
+			// Generate assay ID if not provided
+			const assayId = sampleId || `TRUCK_${Date.now()}`;
+			
+			// Create assay record with proper typing
+			const assay: Assay = {
+				id: crypto.randomUUID(),
+				name: assayId,
+				syncStatus: 'pending',
+				// RUBEN still need to confirm we use correct ID here for truck from pocket base
+				linkedTruckIds: [truckServerId]
 			};
 
-			// Store in localStorage for demo
-			localStorage.setItem('currentAcidTruck', JSON.stringify(truckData));
-
+			await indexedDBService.saveRecord('assays', assay);
+			
+			// Store for review page
+			// localStorage.setItem('currentAcidTruck', JSON.stringify(assay));
 			goto('/processes/acid-truck/review');
 		} catch (err) {
 			error = 'Failed to submit data';
+			console.error(err);
 		}
 	}
 
@@ -61,10 +70,11 @@
 	<div class="form">
 		<div class="input-group">
 			<label for="truckRegistration">Truck Registration</label>
-			<select id="truckRegistration" bind:value={truckRegistration} required>
+			<!-- Update the select element to use truck objects -->
+			<select id="truckRegistration" bind:value={truckServerId} required>
 				<option value="">Select Truck Registration</option>
 				{#each availableTrucks as truck}
-					<option value={truck}>{truck}</option>
+					<option value={truck.registration}>{truck.registration}</option>
 				{/each}
 			</select>
 			<button class="camera-button" on:click={() => (showCamera = true)}> Open Camera </button>

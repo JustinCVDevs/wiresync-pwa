@@ -8,7 +8,6 @@
 	}
 </script>
 
-<Header />
 <main class="flex min-h-screen items-center justify-center bg-gray-50 p-4">
 	<section class="w-full max-w-sm rounded-xl border-2 bg-white p-6 shadow-lg">
 		<h2 class="mb-6 text-2xl font-semibold text-gray-900 sm:text-3xl">Select Location</h2>

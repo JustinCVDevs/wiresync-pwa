@@ -1,10 +1,15 @@
-<script>
+<script lang="ts">
 	import { goto } from '$app/navigation';
   import { pocketbaseService } from '$lib/services/pocketbaseService';
 	import { onMount } from 'svelte';
   import LoginForm from './LoginForm.svelte';
   
+  import type { Writable } from 'svelte/store';
+  export let lastSyncTime: Writable<Date | null>;
 
+    $: syncTimeDisplay = $lastSyncTime 
+        ? `Last sync: ${$lastSyncTime.toLocaleTimeString()}`
+        : 'Never synced';
 
   $: isAuthenticated = pocketbaseService.isAuthenticated;
   let showLoginForm = false;
@@ -28,10 +33,24 @@
     pocketbaseService.logout();
     goto('/');
     
+    
   }
   
 </script>
 
+
+
+<style>
+    
+    .sync-indicator {
+        font-size: 0.625rem;
+        color: #ff4444;
+    }
+    
+    .sync-indicator.online {
+        color: #44ff44;
+    }
+</style>
 
 <div class="bg-gray-700 grid grid-cols-3 grid-rows-1 gap-2 text-white py-2 px-3">
     
@@ -47,7 +66,8 @@
       {status}
     </span>
     <span class="mt-1 text-xs opacity-75">
-      Synced at {new Date().toLocaleTimeString()}
+      <span class="sync-indicator" class:online={navigator.onLine}>⬤</span>
+      {syncTimeDisplay}
     </span>
   </div>
 
