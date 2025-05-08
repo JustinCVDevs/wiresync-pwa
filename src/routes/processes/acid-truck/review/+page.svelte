@@ -17,8 +17,6 @@
 	}
 
 	function handleCompleteLoading() {
-		// In a real application, this would make an API call to finalize the transaction
-		localStorage.removeItem('currentAcidTruck');
 		goto('/processes');
 	}
 

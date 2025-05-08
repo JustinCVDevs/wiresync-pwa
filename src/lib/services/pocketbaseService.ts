@@ -1,10 +1,10 @@
 import PocketBase, { ClientResponseError, type AuthRecord, type RecordSubscription } from 'pocketbase';
 import { indexedDBService } from './indexedDBService';
-import type { Train, Wagon, Sample, Assay } from '$lib';
+import type { Train, Wagon, Sample, Assay, Consignment } from '$lib';
 
 const POCKETBASE_URL = import.meta.env.VITE_POCKETBASE_URL;
 // make sure you have VITE_POCKETBASE_URL set in your .env
-type PBCollection = 'trains' | 'wagons' | 'samples' | 'assays';
+type PBCollection = 'trains' | 'wagons' | 'samples' | 'assays' | 'trucks' | 'consignments';
 // add others here...
 
 type PBModelMap = {
@@ -12,6 +12,8 @@ type PBModelMap = {
 	wagons: Wagon;
 	samples: Sample;
 	assays: Assay;
+	trucks: { id: string; registration: string };
+	consignments: Consignment;
 	// add other mappings here...
 };
 

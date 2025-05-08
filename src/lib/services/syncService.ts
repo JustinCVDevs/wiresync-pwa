@@ -118,5 +118,61 @@ export const syncService = {
             this.syncPendingAssays(),
             this.syncPendingWagons()
         ]);
+    },
+
+    async syncTruckList() {
+        try {
+            const response = await pocketbaseService.list('trucks');
+            for (const truck of response.items) {
+                await indexedDBService.saveRecord('trucks', {
+                    id: truck.id,
+                    registration: truck.registration,
+                    syncStatus: 'synced',
+                    serverId: truck.id
+                });
+            }
+            return true;
+        } catch (err) {
+            console.warn('Failed to sync truck list:', err);
+            return false;
+        }
+    },
+
+    async syncTrainList() {
+        try {
+            const response = await pocketbaseService.list('trains');
+            for (const train of response.items) {
+                await indexedDBService.saveRecord('trains', {
+                    id: train.id,
+                    refNr: train.refNr,
+                    serverId: train.id,
+                    rfidNr: train.rfidNr,
+                    syncStatus:'synced'
+                });
+            }
+            return true;
+        } catch (err) {
+            console.warn('Failed to sync train list:', err);
+            return false;
+        }
+    },
+
+    async syncConsignmentList() {
+        try {
+            const response = await pocketbaseService.list('consignments');
+            for (const consignment of response.items) {
+                await indexedDBService.saveRecord('operationQueue', {
+                    id: consignment.id,
+                    consignmentNumber: consignment.name,
+                    type: 'consignment',
+                    syncStatus: 'synced',
+                    serverId: consignment.id
+                });
+            }
+            return true;
+        } catch (err) {
+            console.warn('Failed to sync consignment list:', err);
+            return false;
+        }
     }
 };
