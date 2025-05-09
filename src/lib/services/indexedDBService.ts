@@ -1,8 +1,8 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
-import type { Assay, Wagon, Sample, Train, BaseRecord, Truck, Consignment } from '$lib';
+import type { Assay, Wagon, Sample, Train, BaseRecord, Truck, Consignment, TrainDispatch } from '$lib';
 
 // concretely list your stores so TS sees them as literals
-const STORE_NAMES = ['trains', 'wagons', 'samples', 'assays', 'operationQueue', 'tags', 'trucks', 'consignments'] as const;
+const STORE_NAMES = ['trains', 'wagons', 'samples', 'assays', 'operationQueue', 'tags', 'trucks', 'consignments', 'trainDispatches'] as const;
 type StoreName = (typeof STORE_NAMES)[number];
 
 interface AppDB extends DBSchema {
@@ -14,6 +14,7 @@ interface AppDB extends DBSchema {
 	tags: { key: string; value: Tag };
 	trucks: { key: string; value: Truck };
 	consignments: { key: string; value: Consignment };
+	trainDispatches: { key: string; value: TrainDispatch };
 }
 interface Tag extends BaseRecord {
 	id: string;
@@ -22,7 +23,7 @@ interface Tag extends BaseRecord {
 class IndexedDBService {
 
 	private dbName = 'wiresync-db';
-	private version = 4; // Increment version to trigger upgrade
+	private version = 5; // Increment version to trigger upgrade
 	private db: IDBPDatabase<AppDB> | null = null;
 
 	private async initDB(): Promise<void> {
@@ -162,6 +163,21 @@ class IndexedDBService {
 		await this.clearStore('assays');
 	}
 
+	// Add these new methods
+	async saveTrainDispatches(dispatches: TrainDispatch[]): Promise<void> {
+		await this.initDB();
+		const tx = this.db!.transaction('trainDispatches', 'readwrite');
+		dispatches.forEach((d) => tx.store.put(d));
+		await tx.done;
+	}
+
+	async getTrainDispatches(): Promise<TrainDispatch[]> {
+		return this.getAllRecords('trainDispatches');
+	}
+
+	async clearTrainDispatches(): Promise<void> {
+		await this.clearStore('trainDispatches');
+	}
 }
 
 export const indexedDBService = new IndexedDBService();

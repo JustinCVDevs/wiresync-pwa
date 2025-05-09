@@ -51,24 +51,20 @@
 			return;
 		}
 
-		 const receivalData: Wagon = {
-			 transcoreTag,
-			 wagonIdSimple: wagonId,
-			 wagonPhotoUrl: "",
-			 created: new Date().toISOString(),
-			 componentType: 'MARSHALING_RECEIVAL',
-			 id: '',
-			 updated: new Date().toISOString(),
-		 };
+		const receivalData: Wagon = {
+			transcoreTag,
+			wagonIdSimple: wagonId,
+			wagonPhotoUrl: "",
+			created: new Date().toISOString(),
+			componentType: 'MARSHALING_RECEIVAL',
+			id: crypto.randomUUID(),
+			updated: new Date().toISOString(),
+			syncStatus: 'pending'
+		};
 
-		await indexedDBService.saveRecord('operationQueue', receivalData);
-		await pocketbaseService.create('wagons', receivalData);
-		goto('/processes/marshaling-receival/verify', {
-			state: {
-				wagonId: wagonId,
-				wagonrfid: transcoreTag,
-			}
-		} );
+		await indexedDBService.saveRecord('wagons', receivalData);
+
+		goto(`/processes/marshaling-receival/verify?id=${receivalData.id}`);
 	}
 
 	function loadPersistedData() {

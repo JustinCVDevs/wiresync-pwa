@@ -6,3 +6,4 @@ export * from './types/train';
 export * from './types/truck';
 export * from './types/wagon';
 export * from './types/sample';
+export * from './types/trainDispatch';  // Add this line
