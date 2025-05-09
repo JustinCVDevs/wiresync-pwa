@@ -161,10 +161,10 @@ export const syncService = {
         try {
             const response = await pocketbaseService.list('consignments');
             for (const consignment of response.items) {
-                await indexedDBService.saveRecord('operationQueue', {
+                await indexedDBService.saveRecord('consignments', {
                     id: consignment.id,
-                    consignmentNumber: consignment.name,
-                    type: 'consignment',
+                    name: consignment.name,
+                    linkedTrainId: consignment.linkedTrainId,
                     syncStatus: 'synced',
                     serverId: consignment.id
                 });
