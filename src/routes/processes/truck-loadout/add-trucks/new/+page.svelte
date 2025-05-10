@@ -2,40 +2,95 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import { indexedDBService } from '$lib/services/indexedDBService';
+	// Add TruckLoad type import at the top
+	import type { Assay, Truck } from '$lib/types';
+	import type { TruckLoad } from '$lib/types/truckLoad';
 
-	const sampleId = $page.url.searchParams.get('sampleId') || '';
-	let truckRegistration = '';
+	const assayId = $page.url.searchParams.get('assayId') || '';
+	let assay: Assay | undefined;
+	let selectedTruck = '';
 	let felWeight = '';
 	let samplingStatus: 'Yes' | 'No' = 'No';
 	let loadingLocation = '';
-	let availableTrucks: string[] = [];
+	let loadingHour= '';
+	let availableTrucks: Truck[] = [];
 	let error = '';
+	let isLoading = true;
+
+	async function loadData() {
+		try {
+			// Load assay data
+			const assayData = await indexedDBService.getRecord('assays', assayId);
+			if (!assayData) {
+				error = 'Assay not found';
+				return;
+			}
+			assay = assayData;
+
+			// Load available trucks
+			const trucks = await indexedDBService.getAllRecords('trucks');
+			availableTrucks = trucks; 
+		} catch (err) {
+			error = 'Failed to load data';
+			console.error(err);
+		} finally {
+			isLoading = false;
+		}
+	}
+
+	onMount(() => {
+		if (assayId) {
+			loadData();
+		}
+	});
 
 	const loadingLocations = ['West Load Out', 'East Load Out', 'Gravelotte', 'TLO'];
 
-	onMount(async () => {
-		// Mock truck registrations (replace with API call later)
-		availableTrucks = ['TRK001', 'TRK002', 'TRK003', 'TRK004', 'TRK005'];
-	});
+
+	// Add validation function at the top of the script
+	function validateLoadingHour(value: string) {
+		const hour = parseInt(value);
+		return !isNaN(hour) && hour >= 0 && hour <= 23;
+	}
 
 	async function handleSubmit() {
 		try {
-			const truckData = {
-				truckRegistration,
-				felWeight,
-				samplingStatus,
+			if (!assay) return;
+			if (!validateLoadingHour(loadingHour)) {
+				error = 'Loading hour must be between 00 and 23';
+				return;
+			}
+
+			const truckLoad: TruckLoad = {
+				id: crypto.randomUUID(),
+				truckId: selectedTruck,
+				felWeight: felWeight,
+				samplingStatus: samplingStatus === 'Yes',
 				loadingLocation,
-				timestamp: new Date().toISOString()
+				loadingHour,
+				process: 'Truck Loadout',
+				syncStatus: 'pending',
+				created: new Date().toISOString(),
+				updated: new Date().toISOString()
 			};
 
-			// Store in localStorage for demo
-			const existingTrucks = JSON.parse(localStorage.getItem(`trucks_${sampleId}`) || '[]');
-			existingTrucks.push(truckData);
-			localStorage.setItem(`trucks_${sampleId}`, JSON.stringify(existingTrucks));
+			// Save truckLoad to IndexedDB
+			await indexedDBService.saveRecord('truckLoads', truckLoad);
 
-			goto(`/processes/truck-loadout/add-trucks/review?sampleId=${sampleId}`);
+			// Update assay with new truckLoad ID
+			const updatedAssay: Assay = {
+				...assay,
+				syncStatus: 'pending',
+				linkedTruckLoadIds: [...(assay.linkedTruckLoadIds || []), truckLoad.id].filter((id): id is string => id !== undefined),
+				updated: new Date().toISOString()
+			};
+			await indexedDBService.saveRecord('assays', updatedAssay);
+			
+			goto(`/processes/truck-loadout/add-trucks?assayId=${assay.id}`);
 		} catch (err) {
 			error = 'Failed to submit truck data';
+			console.error(err);
 		}
 	}
 
@@ -46,63 +101,83 @@
 
 <div class="container">
 	<h1>Add New Truck</h1>
-	<p class="sample-id">Sample ID: {sampleId}</p>
+	{#if assay}
+		<p class="sample-id">Sample ID: {assay.name}</p>
+	{/if}
 
 	{#if error}
 		<div class="error">{error}</div>
 	{/if}
 
-	<div class="form">
-		<div class="input-group">
-			<label for="truckRegistration">Truck Registration</label>
-			<select id="truckRegistration" bind:value={truckRegistration} required>
-				<option value="">Select Truck Registration</option>
-				{#each availableTrucks as truck}
-					<option value={truck}>{truck}</option>
-				{/each}
-			</select>
-		</div>
+	{#if isLoading}
+		<div class="text-center">Loading...</div>
+	{:else}
+		<div class="form">
+			<div class="input-group">
+				<label for="truckRegistration">Truck Registration</label>
+				<select id="truckRegistration" bind:value={selectedTruck} required>
+					<option value="">Select Truck Registration</option>
+					{#each availableTrucks as truck}
+						<option value={truck.serverId}>{truck.registration}</option>
+					{/each}
+				</select>
+			</div>
 
-		<div class="input-group">
-			<label for="felWeight">FEL Weight (kg)</label>
-			<input
-				id="felWeight"
-				type="number"
-				bind:value={felWeight}
-				placeholder="Enter FEL Weight"
-				required
-			/>
-		</div>
+			<div class="input-group">
+				<label for="felWeight">FEL Weight (kg)</label>
+				<input
+					id="felWeight"
+					type="number"
+					bind:value={felWeight}
+					placeholder="Enter FEL Weight"
+					required
+				/>
+			</div>
 
-		<div class="input-group">
-			<label>Sample Status</label>
-			<div class="radio-group">
-				<label class="radio-button">
-					<input type="radio" name="samplingStatus" value="Yes" bind:group={samplingStatus} />
-					<span class="radio-label">Yes</span>
-				</label>
-				<label class="radio-button">
-					<input type="radio" name="samplingStatus" value="No" bind:group={samplingStatus} />
-					<span class="radio-label">No</span>
-				</label>
+			<div class="input-group">
+				<label>Sample Status</label>
+				<div class="radio-group">
+					<label class="radio-button">
+						<input type="radio" name="samplingStatus" value="Yes" bind:group={samplingStatus} />
+						<span class="radio-label">Yes</span>
+					</label>
+					<label class="radio-button">
+						<input type="radio" name="samplingStatus" value="No" bind:group={samplingStatus} />
+						<span class="radio-label">No</span>
+					</label>
+				</div>
+			</div>
+
+			<div class="input-group">
+
+				<label for="loadingLocation">Loading Location</label>
+				<select id="loadingLocation" bind:value={loadingLocation} required>
+					<option value="">Select Loading Location</option>
+					{#each loadingLocations as location}
+						<option value={location}>{location}</option>
+					{/each}
+				</select>
+			</div>
+
+			<div class="input-group">
+				<label for="loadingHour">Loading Hour (00-23)</label>
+				<input
+					id="loadingHour"
+					type="text"
+					bind:value={loadingHour}
+					maxlength="2"
+					pattern="[0-9]*"
+					placeholder="Enter hour (00-23)"
+					required
+				/>
+			</div>
+
+			<div class="button-group">
+				<button class="cancel-button" on:click={handleCancel}>Cancel</button>
+				<button class="submit-button" on:click={handleSubmit}>Submit</button>
 			</div>
 		</div>
-
-		<div class="input-group">
-			<label for="loadingLocation">Loading Location</label>
-			<select id="loadingLocation" bind:value={loadingLocation} required>
-				<option value="">Select Loading Location</option>
-				{#each loadingLocations as location}
-					<option value={location}>{location}</option>
-				{/each}
-			</select>
-		</div>
-
-		<div class="button-group">
-			<button class="cancel-button" on:click={handleCancel}>Cancel</button>
-			<button class="submit-button" on:click={handleSubmit}>Submit</button>
-		</div>
-	</div>
+	{/if}
 </div>
 
 <style>

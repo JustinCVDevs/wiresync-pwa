@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { indexedDBService } from '$lib/services/indexedDBService';
+	import type { Assay } from '$lib/types';
 
 	let isDedicatedFleet: 'Yes' | 'No' = 'No';
 	let sampleId = '';
@@ -14,20 +16,26 @@
 
 	async function handleSubmit() {
 		try {
-			// Store in localStorage for demo purposes
-			const truckData = {
-				isDedicatedFleet,
-				sampleId,
+			const assay: Assay = {
+				id: crypto.randomUUID(),
+				name: sampleId,
 				sampleSize,
 				commodity,
 				productType,
-				timestamp: new Date().toISOString()
+				dedicatedFleet: isDedicatedFleet === 'Yes', // Convert to boolean
+				syncStatus: 'pending',
+				created: new Date().toISOString(),
+				updated: new Date().toISOString(),
+				process: 'Truck Loadout'
 			};
-			localStorage.setItem('currentTruckAssay', JSON.stringify(truckData));
 
-			goto('/processes/truck-loadout/add-trucks');
+			// Save assay to IndexedDB
+			await indexedDBService.saveRecord('assays', assay);
+			
+			goto(`/processes/truck-loadout/add-trucks?assayId=${assay.id}`);
 		} catch (err) {
 			error = 'Failed to submit data';
+			console.error(err);
 		}
 	}
 
