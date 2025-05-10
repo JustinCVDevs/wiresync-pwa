@@ -41,7 +41,7 @@
 
     function handleNewTruck() {
         if (!assay) return;
-        goto(`/processes/truck-loadout/add-trucks/new?assayId=${assay.id}`);
+        goto(`/processes/gravelotte/add-trucks/new?assayId=${assay.id}`);
     }
 
     function handleCancel() {

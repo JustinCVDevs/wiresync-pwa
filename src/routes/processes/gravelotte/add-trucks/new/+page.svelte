@@ -69,7 +69,7 @@
 				samplingStatus: samplingStatus === 'Yes',
 				loadingLocation,
 				loadingHour,
-				process: 'Truck Loadout',
+				process: 'Gravelotte',
 				syncStatus: 'pending',
 				created: new Date().toISOString(),
 				updated: new Date().toISOString()
@@ -87,7 +87,7 @@
 			};
 			await indexedDBService.saveRecord('assays', updatedAssay);
 			
-			goto(`/processes/truck-loadout/add-trucks?assayId=${assay.id}`);
+			goto(`/processes/gravelotte/add-trucks?assayId=${assay.id}`);
 		} catch (err) {
 			error = 'Failed to submit truck data';
 			console.error(err);

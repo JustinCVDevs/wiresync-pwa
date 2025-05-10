@@ -12,4 +12,5 @@ export interface Wagon extends BaseRecord {
 	samplingStatus?: string; // WAGON_SAMPLING_STATUS
 	serverId?: string; 
 	syncStatus: 'pending' | 'synced';
+	process?: string; // e.g. "Loading" / "Unloading" / "Transferring"
 }

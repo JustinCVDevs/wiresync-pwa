@@ -1,8 +1,8 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
-import type { Assay, Wagon, Sample, Train, BaseRecord, Truck, Consignment, TrainDispatch } from '$lib';
+import type { Assay, Wagon, Sample, Train, BaseRecord, Truck, Consignment, TrainDispatch, TruckLoad } from '$lib';
 
 // concretely list your stores so TS sees them as literals
-const STORE_NAMES = ['trains', 'wagons', 'samples', 'assays', 'operationQueue', 'tags', 'trucks', 'consignments', 'trainDispatches'] as const;
+const STORE_NAMES = ['trains', 'wagons', 'samples', 'assays', 'operationQueue', 'tags', 'trucks', 'consignments', 'trainDispatches', 'truckLoads'] as const;
 type StoreName = (typeof STORE_NAMES)[number];
 
 interface AppDB extends DBSchema {
@@ -15,6 +15,7 @@ interface AppDB extends DBSchema {
 	trucks: { key: string; value: Truck };
 	consignments: { key: string; value: Consignment };
 	trainDispatches: { key: string; value: TrainDispatch };
+	truckLoads: { key: string; value: TruckLoad };
 }
 interface Tag extends BaseRecord {
 	id: string;
@@ -23,7 +24,7 @@ interface Tag extends BaseRecord {
 class IndexedDBService {
 
 	private dbName = 'wiresync-db';
-	private version = 5; // Increment version to trigger upgrade
+	private version = 6; // Increment version to trigger upgrade
 	private db: IDBPDatabase<AppDB> | null = null;
 
 	private async initDB(): Promise<void> {

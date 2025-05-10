@@ -3,38 +3,66 @@
 	import Camera from '$lib/components/Camera.svelte';
 	import { onMount } from 'svelte';
 
-	let truckRegistration = '';
+	import { indexedDBService } from '$lib/services/indexedDBService';
+	import type { TruckLoad } from '$lib/types/truckLoad';
+	import type { Assay } from '$lib/types/assay';
+
+	let truckId = '';
 	let materialType = '';
 	let loadedWeight = '';
 	let sampleId = '';
 	let showCamera = false;
 	let error = '';
-	let availableTrucks: string[] = [];
 	let capturedImage = ''; // Add this line
 
 	const materialTypes = ['HG', 'LG', 'Reverts'];
 
+	// Update the trucks type
+	let availableTrucks: { id: string; registration: string; serverId: string }[] = [];
+
 	onMount(async () => {
-		// Mock truck registrations (replace with API call later)
-		availableTrucks = ['CPR001', 'CPR002', 'CPR003', 'CPR004', 'CPR005'];
+	    // Fetch trucks from IndexedDB
+	    const trucks = await indexedDBService.getRecords('trucks');
+	    availableTrucks = trucks;
 	});
 
 	async function handleSubmit() {
 		try {
-			const truckData = {
-				truckRegistration,
-				materialType,
-				loadedWeight,
-				sampleId,
-				timestamp: new Date().toISOString(),
-				componentType: 'TRUCK',
-				image: capturedImage // Add this line
+			// Create TruckLoad
+			const truckLoadId = crypto.randomUUID();
+			const truckLoad: TruckLoad = {
+				id: truckLoadId,
+				truckId: truckId,
+				felWeight: loadedWeight,
+				created: new Date().toISOString(),
+				samplingStatus: true,
+				syncStatus: 'pending',
+				process: 'Copper Truck Loadout',
 			};
 
-			localStorage.setItem('currentCopperTruck', JSON.stringify(truckData));
-			goto('/processes/copper-truck-loadout/review');
+			// Create Assay
+			const assay: Assay = {
+				id: crypto.randomUUID(),
+				name: sampleId,
+				created: new Date().toISOString(),
+				dedicatedFleet: false,
+				commodity: 'Copper',
+				productType: materialType,
+				linkedTruckLoadIds: [truckLoadId],
+				syncStatus: 'pending',
+				process: 'Copper Truck Loadout',
+			};
+
+			// Save both records
+			await Promise.all([
+				indexedDBService.saveRecord('truckLoads', truckLoad),
+				indexedDBService.saveRecord('assays', assay)
+			]);
+
+			goto('/processes');
 		} catch (err) {
-			error = 'Failed to submit data';
+			console.error('Failed to save records:', err);
+			error = 'Failed to save data';
 		}
 	}
 
@@ -58,10 +86,10 @@
 	<div class="form">
 		<div class="input-group">
 			<label for="truckRegistration">Truck Registration</label>
-			<select id="truckRegistration" bind:value={truckRegistration} required>
+			<select id="truckRegistration" bind:value={truckId} required>
 				<option value="">Select Truck Registration</option>
 				{#each availableTrucks as truck}
-					<option value={truck}>{truck}</option>
+					<option value={truck.serverId}>{truck.registration}</option>
 				{/each}
 			</select>
 			<button class="camera-button" on:click={() => (showCamera = true)}> Open Camera </button>

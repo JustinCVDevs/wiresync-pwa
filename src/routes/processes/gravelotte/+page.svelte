@@ -26,13 +26,13 @@
 				syncStatus: 'pending',
 				created: new Date().toISOString(),
 				updated: new Date().toISOString(),
-				process: 'Truck Loadout'
+				process: 'Gravelotte'
 			};
 
 			// Save assay to IndexedDB
 			await indexedDBService.saveRecord('assays', assay);
 			
-			goto(`/processes/truck-loadout/add-trucks?assayId=${assay.id}`);
+			goto(`/processes/gravelotte/add-trucks?assayId=${assay.id}`);
 		} catch (err) {
 			error = 'Failed to submit data';
 			console.error(err);
@@ -45,7 +45,7 @@
 </script>
 
 <div class="container">
-	<h1>Truck Loadout - Data Capturing</h1>
+	<h1>Gravelotte - Data Capturing</h1>
 
 	{#if error}
 		<div class="error">{error}</div>
