@@ -65,6 +65,52 @@ import type { TrainDispatch } from '$lib/types/trainDispatch';
                             serverId: created.id
                         });
                     }
+                } else {
+                    // For new records, check linked items before creating
+                    if (assay.linkedWagonIds?.length) {
+                        const wagons = await Promise.all(
+                            assay.linkedWagonIds.map(id => 
+                                indexedDBService.getRecord('wagons', id)
+                            )
+                        );
+                        
+                        const allWagonsHaveServerId = wagons.every(wagon => wagon?.serverId);
+                        if (!allWagonsHaveServerId) {
+                            console.warn('Waiting for all wagons to sync before creating assay');
+                            return false;
+                        }
+
+                        payload.linkedWagonIds = wagons
+                            .map(wagon => wagon?.serverId)
+                            .filter((id): id is string => id !== undefined);
+                    }
+
+                    if (assay.linkedTruckLoadIds?.length) {
+                        const truckLoads = await Promise.all(
+                            assay.linkedTruckLoadIds.map(id => 
+                                indexedDBService.getRecord('truckLoads', id)
+                            )
+                        );
+                        
+                        const allTruckLoadsHaveServerId = truckLoads.every(load => load?.serverId);
+                        if (!allTruckLoadsHaveServerId) {
+                            console.warn('Waiting for all truck loads to sync before creating assay');
+                            return false;
+                        }
+
+                        payload.linkedTruckLoadIds = truckLoads
+                            .map(load => load?.serverId)
+                            .filter((id): id is string => id !== undefined);
+                    }
+
+                    const created = await pocketbaseService.create('assays', payload);
+                    if (assay.id) {
+                        await indexedDBService.updateRecord('assays', assay.id, {
+                            ...assay,
+                            syncStatus: 'synced',
+                            serverId: created.id
+                        });
+                    }
                 }
                 return true;
             } catch (err) {

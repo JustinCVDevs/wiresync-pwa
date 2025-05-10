@@ -39,6 +39,8 @@ if (!pocketbaseService.isAuthenticated) {
 			goto('/processes/east-loadout');
 		} else if (process === 'Truck Loadout') {
 			goto('/processes/truck-loadout');
+		} else if (process === 'Gravelotte (Trucks)') {
+			goto('/processes/gravelotte');
 		} else if (process === 'Copper Truck Loadout') {
 			goto('/processes/copper-truck-loadout');
 		} else if (process === 'Acid Truck') {
