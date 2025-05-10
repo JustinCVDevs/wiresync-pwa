@@ -1,170 +1,155 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
+    import { page } from '$app/stores';
+    import { onMount } from 'svelte';
+    import { goto } from '$app/navigation';
+    import { indexedDBService } from '$lib/services/indexedDBService';
+    import type { Assay } from '$lib/types/assay';
+    import type { TruckLoad } from '$lib/types/truckLoad';
 
-	let truckData: any = null;
-	let error = '';
+    // Update the variable declaration
+    let assay: Assay | null | undefined = null;
+    let truckLoad: TruckLoad | null | undefined = null;
+    let truck: any | null | undefined = null;
 
-	onMount(() => {
-		const storedData = localStorage.getItem('currentAcidTruck');
-		if (storedData) {
-			truckData = JSON.parse(storedData);
-		}
-	});
+    onMount(async () => {
+        try {
+            const assayId = $page.url.searchParams.get('assayId');
+            if (!assayId) {
+                return;
+            }
 
-	function handleNewTruck() {
-		goto('/processes/acid-truck');
-	}
+            // Fetch assay
+            assay = await indexedDBService.getRecord('assays', assayId);
+            if (!assay) {
+                return;
+            }
 
-	function handleCompleteLoading() {
-		goto('/processes');
-	}
+            // Fetch linked truck load
+            if (assay.linkedTruckLoadIds?.[0]) {
+                truckLoad = await indexedDBService.getRecord('truckLoads', assay.linkedTruckLoadIds[0]);
+                
+                // Fetch truck details
+                if (truckLoad?.truckId) {
+                    truck = await indexedDBService.getRecord('trucks', truckLoad.truckId);
+                }
+            }
+        } catch (err) {
+            console.error('Failed to fetch data:', err);
+        }
+    });
 
-	function formatDate(dateString: string) {
-		return new Date(dateString).toLocaleString();
-	}
+    function handleConfirm() {
+        goto('/processes');
+    }
 </script>
 
 <div class="container">
-	<h1>Review Acid Truck Details</h1>
+    <h1>Review Acid Truck Details</h1>
 
-	{#if error}
-		<div class="error">{error}</div>
-	{/if}
+    {#if assay && truckLoad}
+        <div class="review-section">
+            <h2>Sample Details</h2>
+            <div class="detail-item">
+                <span class="label">Sample ID:</span>
+                <span>{assay.name}</span>
+            </div>
+            <div class="detail-item">
+                <span class="label">Process:</span>
+                <span>{assay.process}</span>
+            </div>
+            <div class="detail-item">
+                <span class="label">Product Type:</span>
+                <span>{assay.productType}</span>
+            </div>
 
-	{#if truckData}
-		<div class="truck-details">
-			<h2>Transaction Details</h2>
-			<div class="details-grid">
-				<div class="detail-item">
-					<label>Truck Registration</label>
-					<span class="value">{truckData.truckRegistration}</span>
-				</div>
-				<div class="detail-item">
-					<label>Tank Location</label>
-					<span class="value">{truckData.tankLocation}</span>
-				</div>
-				<div class="detail-item">
-					<label>Acid Type</label>
-					<span class="value">{truckData.acidType}</span>
-				</div>
-				{#if truckData.sampleId}
-					<div class="detail-item">
-						<label>Sample ID</label>
-						<span class="value">{truckData.sampleId}</span>
-					</div>
-				{/if}
-				<div class="detail-item">
-					<label>Timestamp</label>
-					<span class="value">{formatDate(truckData.timestamp)}</span>
-				</div>
-			</div>
+            <h2>Truck Details</h2>
+            <div class="detail-item">
+                <span class="label">Truck Registration:</span>
+                <span>{truck?.registration || 'N/A'}</span>
+            </div>
+            <div class="detail-item">
+                <span class="label">Tank Location:</span>
+                <span>{truckLoad.loadingLocation}</span>
+            </div>
+            <div class="detail-item">
+                <span class="label">Acid Type:</span>
+                <span>{truckLoad.acidType}</span>
+            </div>
 
-			{#if truckData.image}
-				<div class="image-section">
-					<h3>Captured Image</h3>
-					<div class="captured-image">
-						<img src={truckData.image} alt="Truck registration" />
-					</div>
-				</div>
-			{/if}
-		</div>
+        </div>
 
-		<div class="button-group">
-			<button class="new-button" on:click={handleNewTruck}>New Truck</button>
-			<button class="complete-button" on:click={handleCompleteLoading}>Complete Loading</button>
-		</div>
-	{/if}
+        <div class="button-group">
+            <button class="confirm-button" on:click={handleConfirm}>Confirm</button>
+        </div>
+    {:else}
+        <div class="loading">Loading...</div>
+    {/if}
 </div>
 
 <style>
-	.container {
-		max-width: 800px;
-		margin: 0 auto;
-		padding: 2rem;
-	}
+    .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
 
-	.truck-details {
-		background-color: #f5f5f5;
-		border-radius: 8px;
-		padding: 1.5rem;
-		margin: 2rem 0;
-	}
+    .review-section {
+        background-color: #f5f5f5;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
 
-	h2,
-	h3 {
-		margin-top: 0;
-		margin-bottom: 1.5rem;
-		color: #333;
-	}
+    .detail-item {
+        margin: 1rem 0;
+        display: flex;
+        justify-content: space-between;
+        border-bottom: 1px solid #ddd;
+        padding-bottom: 0.5rem;
+    }
 
-	.details-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-		gap: 1.5rem;
-		margin-bottom: 2rem;
-	}
+    .label {
+        font-weight: bold;
+        color: #666;
+    }
 
-	.detail-item {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
+    .image-section {
+        margin-top: 2rem;
+    }
 
-	.detail-item label {
-		font-weight: bold;
-		color: #666;
-	}
+    .image-section img {
+        width: 100%;
+        border-radius: 4px;
+        margin-top: 1rem;
+    }
 
-	.detail-item .value {
-		font-size: 1.1rem;
-		color: #333;
-	}
+    .button-group {
+        margin-top: 2rem;
+        display: flex;
+        justify-content: center;
+    }
 
-	.image-section {
-		margin-top: 2rem;
-	}
+    .confirm-button {
+        background-color: #4caf50;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+    }
 
-	.captured-image {
-		border: 1px solid #ccc;
-		border-radius: 4px;
-		overflow: hidden;
-	}
+    .error {
+        background-color: #ffebee;
+        color: #c62828;
+        padding: 1rem;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+    }
 
-	.captured-image img {
-		width: 100%;
-		height: auto;
-		display: block;
-	}
-
-	.button-group {
-		display: flex;
-		gap: 1rem;
-		margin-top: 2rem;
-	}
-
-	button {
-		padding: 0.75rem 1.5rem;
-		font-size: 1rem;
-		border: none;
-		border-radius: 4px;
-		cursor: pointer;
-		color: white;
-	}
-
-	.new-button {
-		background-color: #2196f3;
-	}
-
-	.complete-button {
-		background-color: #4caf50;
-	}
-
-	.error {
-		background-color: #ffebee;
-		color: #c62828;
-		padding: 1rem;
-		border-radius: 4px;
-		margin-bottom: 1rem;
-	}
+    .loading {
+        text-align: center;
+        padding: 2rem;
+        color: #666;
+    }
 </style>

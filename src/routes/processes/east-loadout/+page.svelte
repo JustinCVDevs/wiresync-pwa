@@ -23,7 +23,8 @@
 				updated: new Date().toISOString(),
 				linkedWagonIds: [],
 				linkedTruckIds: [],
-				syncStatus: 'pending'
+				syncStatus: 'pending',
+				process: 'East Loadout',
 			};
 
 			// Save to IndexedDB

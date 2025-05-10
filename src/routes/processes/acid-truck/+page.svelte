@@ -5,6 +5,7 @@
 	import { indexedDBService } from '$lib/services/indexedDBService';
 
 	import type { Assay } from '$lib/types/assay';
+	import type { TruckLoad } from '$lib/types/truckLoad';
 
 	let truckServerId = '';
 	let availableTrucks: { id: string; registration: string }[] = [];
@@ -27,23 +28,38 @@
 
 	async function handleSubmit() {
 		try {
-			// Generate assay ID if not provided
-			const assayId = sampleId || `TRUCK_${Date.now()}`;
+			const truckLoadId = crypto.randomUUID();
 			
-			// Create assay record with proper typing
-			const assay: Assay = {
-				id: crypto.randomUUID(),
-				name: assayId,
+			// Create truck load record
+			const truckLoad: TruckLoad = {
+				id: truckLoadId,
+				truckId: truckServerId,
+				created: new Date().toISOString(),
+				samplingStatus: true,
 				syncStatus: 'pending',
-				// RUBEN still need to confirm we use correct ID here for truck from pocket base
-				linkedTruckIds: [truckServerId]
+				process: 'Acid Truck',
+				loadingLocation: tankLocation,
+				acidType: acidType
 			};
 
-			await indexedDBService.saveRecord('assays', assay);
-			
-			// Store for review page
-			// localStorage.setItem('currentAcidTruck', JSON.stringify(assay));
-			goto('/processes/acid-truck/review');
+			// Create assay record
+			const assay: Assay = {
+				id: crypto.randomUUID(),
+				name: sampleId || `ACID_${Date.now()}`,
+				created: new Date().toISOString(),
+				syncStatus: 'pending',
+				process: 'Acid Truck',
+				productType: acidType,
+				linkedTruckLoadIds: [truckLoadId]
+			};
+
+			// Save both records
+			await Promise.all([
+				indexedDBService.saveRecord('truckLoads', truckLoad),
+				indexedDBService.saveRecord('assays', assay)
+			]);
+
+			goto(`/processes/acid-truck/review?assayId=${assay.id}`);
 		} catch (err) {
 			error = 'Failed to submit data';
 			console.error(err);
@@ -74,7 +90,7 @@
 			<select id="truckRegistration" bind:value={truckServerId} required>
 				<option value="">Select Truck Registration</option>
 				{#each availableTrucks as truck}
-					<option value={truck.registration}>{truck.registration}</option>
+					<option value={truck.id}>{truck.registration}</option>
 				{/each}
 			</select>
 			<button class="camera-button" on:click={() => (showCamera = true)}> Open Camera </button>

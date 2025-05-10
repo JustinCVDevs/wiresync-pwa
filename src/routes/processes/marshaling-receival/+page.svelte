@@ -59,7 +59,8 @@
 			componentType: 'MARSHALING_RECEIVAL',
 			id: crypto.randomUUID(),
 			updated: new Date().toISOString(),
-			syncStatus: 'pending'
+			syncStatus: 'pending',
+			process: 'Marshaling_Receival'
 		};
 
 		await indexedDBService.saveRecord('wagons', receivalData);

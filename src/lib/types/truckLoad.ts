@@ -10,4 +10,6 @@ export interface TruckLoad extends BaseRecord {
 	process?: string; // e.g. "Loading" / "Unloading" / "Transferring"
 	serverId?: string; 
 	syncStatus: 'pending' | 'synced';
+    tankLocation?: string;
+    acidType?: string;
 }
