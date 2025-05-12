@@ -26,9 +26,7 @@
 			}
 		} catch (e: Error | any) {
 			error = e?.message;
-		} finally {
-			isLoggingIn = false;
-		}
+		} 
 	}
 </script>
 
@@ -38,11 +36,11 @@
 	</div>
 {:else}
 	<div class="flex h-screen flex-col items-center justify-center">
-		<img src="./icons/logo-512.png" alt="Wire Sync Logo" class="mb-6 inline-block h-32" />
-		<div class="mb-4 text-center text-3xl font-bold text-red-950">WireSYNC</div>
+		<img src="./icons/logo-512.png" alt="Wire Sync Logo" class="mb-6 inline-block h-32 dark:invert" />
+		<div class="mb-4 text-center text-3xl font-bold text-red-950 dark:text-gray-300">WireSYNC</div>
 
 		<div class="w-96 rounded-lg bg-white p-8 shadow-md">
-			<h1 class="mb-6 text-center text-2xl font-bold">Login to your account</h1>
+			<h1 class="mb-6 text-center text-2xl font-bold dark:text-gray-800">Login to your account</h1>
 
 			{#if error}
 				<div class="mb-4 rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">

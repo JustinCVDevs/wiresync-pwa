@@ -5,6 +5,8 @@
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Train, Consignment } from '$lib/types';
 	import type { TrainDispatch } from '$lib';
+	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
+	import FormField from '$lib/components/FormField.svelte';
 
 	let trains: Train[] = [];
 	let consignments: Consignment[] = [];
@@ -18,6 +20,9 @@
 	let showCamera = false;
 	let error = '';
 	let isLoading = true;
+
+	const processSteps = ['Train & Consignment Details', 'Wagon Linkage', 'Complete Loading', 'Review'];
+	let currentStep = 0; // Marshaling Dispatch is the first step
 
 	async function loadTrainsAndConsignments() {
 		try {
@@ -137,11 +142,12 @@
 	}
 </script>
 
-<div class="mx-auto max-w-md rounded-lg bg-white p-6 shadow-lg">
-	<h1 class="mb-6 text-center text-2xl font-bold">Marshaling Dispatch</h1>
+<ProcessLayout {processSteps} {currentStep} title="Marshaling Dispatch">
+	<div class="mx-auto max-w-md rounded-lg bg-white p-6 shadow-lg">
+		<!-- <h1 class="mb-6 text-center text-2xl font-bold">Marshaling Dispatch</h1> -->
 
-	{#if error}
-		<div class="mb-4 rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">
+		{#if error}
+			<div class="mb-4 rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">
 			{error}
 		</div>
 	{/if}
@@ -151,67 +157,70 @@
 	{:else}
 		<form class="space-y-6" on:submit|preventDefault={handleSubmit}>
 			<div class="space-y-2">
-				<label for="trainRef" class="block text-sm font-medium text-gray-700">
-					Train Reference Number
-				</label>
-				<select
-					id="trainRef"
-					class="w-full rounded-md border border-gray-300 p-2 shadow-sm"
-					bind:value={selectedTrainRef}
-				>
-					<option value="">Select Train Reference</option>
-					{#each trains as train}
-						<option value={train.refNr}>{train.refNr}</option>
-					{/each}
-				</select>
-			</div>
-
-			<div class="space-y-2">
-				<label class="block text-sm font-medium text-gray-700"> Consignment Number </label>
-				{#if consignments.length > 0}
+				<FormField label="Train Reference Number" id="trainRef">
 					<select
-						class="mb-2 w-full rounded-md border border-gray-300 p-2 shadow-sm"
-						bind:value={selectedConsignment}
-						disabled={manualConsignment !== ''}
+						id="trainRef"
+						class="w-full rounded-md border border-gray-300 p-2 shadow-sm"
+						bind:value={selectedTrainRef}
 					>
-						<option value="">Select Consignment</option>
-						{#each consignments as consignment}
-							<option value={consignment.name}>
-								{consignment.name}
-							</option>
+						<option value="">Select Train Reference</option>
+						{#each trains as train}
+							<option value={train.refNr}>{train.refNr}</option>
 						{/each}
 					</select>
-				{/if}
-				<input
-					type="text"
-					placeholder="Enter Consignment Number"
-					class="w-full rounded-md border border-gray-300 p-2 shadow-sm"
-					bind:value={manualConsignment}
-					disabled={selectedConsignment !== ''}
-				/>
+				</FormField>
 			</div>
 
 			<div class="space-y-2">
-				<label class="block text-sm font-medium text-gray-700"> Train RFID Number </label>
-				{#if selectedTrainRef && trains.find((t) => t.refNr === selectedTrainRef)?.rfidNr}
-					<select
-						class="mb-2 w-full rounded-md border border-gray-300 p-2 shadow-sm"
-						bind:value={selectedRfid}
-						disabled={manualRfid !== ''}
-					>
-						<option value="">Select RFID</option>
-						<option value={trains.find((t) => t.refNr === selectedTrainRef)?.rfidNr}>
-							{trains.find((t) => t.refNr === selectedTrainRef)?.rfidNr}
-						</option>
-					</select>
-				{/if}
-				<input
-					type="text"
-					placeholder="Enter Train RFID Number"
-					class="w-full rounded-md border border-gray-300 p-2 shadow-sm"
-					bind:value={manualRfid}
-					disabled={selectedRfid !== ''}
-				/>
+				<FormField label="Consignment Number" id="consignmentNumber">
+					{#if consignments.length > 0}
+						<select
+							class="mb-2 w-full rounded-md border border-gray-300 p-2 shadow-sm"
+							bind:value={selectedConsignment}
+							disabled={manualConsignment !== ''}
+							id="consignmentNumber"
+						>
+							<option value="">Select Consignment</option>
+							{#each consignments as consignment}
+								<option value={consignment.name}>
+									{consignment.name}
+								</option>
+							{/each}
+						</select>
+					{/if}
+					<input
+						type="text"
+						placeholder="Enter Consignment Number"
+						class="w-full rounded-md border border-gray-300 p-2 shadow-sm"
+						bind:value={manualConsignment}
+						disabled={selectedConsignment !== ''}
+					/>
+				</FormField>
+			</div>
+
+			<div class="space-y-2">
+				<FormField label="Train RFID Number" id="trainRfid">
+					{#if selectedTrainRef && trains.find((t) => t.refNr === selectedTrainRef)?.rfidNr}
+						<select
+							class="mb-2 w-full rounded-md border border-gray-300 p-2 shadow-sm"
+							bind:value={selectedRfid}
+							disabled={manualRfid !== ''}
+							id="trainRfid"
+						>
+							<option value="">Select RFID</option>
+							<option value={trains.find((t) => t.refNr === selectedTrainRef)?.rfidNr}>
+								{trains.find((t) => t.refNr === selectedTrainRef)?.rfidNr}
+							</option>
+						</select>
+					{/if}
+					<input
+						type="text"
+						placeholder="Enter Train RFID Number"
+						class="w-full rounded-md border border-gray-300 p-2 shadow-sm"
+						bind:value={manualRfid}
+						disabled={selectedRfid !== ''}
+					/>
+				</FormField>
 			</div>
 
 			<div class="space-y-4">
@@ -244,4 +253,5 @@
 			</button>
 		</form>
 	{/if}
-</div>
+	</div>
+</ProcessLayout>
