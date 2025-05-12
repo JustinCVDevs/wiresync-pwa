@@ -44,6 +44,7 @@
 				syncStatus: 'pending',
 				updated: new Date().toISOString()
 			});
+			
 
 			// Redirect to completion page or process list
 			goto('/processes');
