@@ -62,12 +62,12 @@
 
 <h3 class="text-sm font-medium dark:text-gray-800">{label}</h3>
 
-<div class="bg-muted/30 mb-4 rounded-md">
-	<div class="mb-4 flex items-center justify-between">
+<div class="bg-muted/30 mb-4 rounded-md ">
+	<div class="mb-4 flex items-center justify-between ">
 		{#if !nfcAvailable}
 			<input
 				type="text"
-				class="w-full rounded border px-4 py-2 text-sm dark:text-gray-800"
+				class="w-full rounded border px-4 py-2 text-sm border-gray-300 dark:text-gray-800"
 				placeholder="Enter RFID tag manually"
 				bind:value={manualTagId}
 				on:input={handleManualInput}
@@ -84,7 +84,7 @@
 		{/if}
 	</div>
 
-	<div
+	<!-- <div
 		class="bg-background flex h-20 items-center justify-center rounded-md border-2 border-dashed dark:border-gray-800"
 	>
 		{#if lastScanned}
@@ -96,13 +96,13 @@
 			</div>
 		{:else}
 			<div class="text-muted-foreground text-center">
-				<Scan class="mx-auto mb-1 h-6 w-6" />
+				<Scan class="mx-auto mb-1 h-6 w-6 dark:text-gray-800" />
 				<span class="text-sm dark:text-black">Ready to scan</span>
 			</div>
 		{/if}
-	</div>
+	</div> -->
 
-	<p class="text-muted-foreground mt-2 text-xs dark:text-black">
+	<!-- <p class="text-muted-foreground mt-2 text-xs dark:text-black">
 		Keyboard wedge scanner support is always active. Connect your RFID scanner and scan a tag.
-	</p>
+	</p> -->
 </div>

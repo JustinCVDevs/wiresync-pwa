@@ -39,10 +39,11 @@
 </script>
 
 <Header {lastSyncTime} />
-<Breadcrumbs />
+
 {#if message != null}
 	<Toaster title={message} />
 {/if}
 <div class="p-4">
 	{@render children()}
 </div>
+<Breadcrumbs />

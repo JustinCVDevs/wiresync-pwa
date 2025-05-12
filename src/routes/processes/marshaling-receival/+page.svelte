@@ -78,10 +78,7 @@
 
 			await indexedDBService.saveRecord('wagons', receivalData);
 
-			processLayout.setSuccess('Data saved successfully');
-			setTimeout(() => {
 				goto(`/processes/marshaling-receival/verify?id=${receivalData.id}`);
-			}, 1000);
 		} catch (e) {
 			processLayout.setError('Failed to save data. Please try again.');
 		} finally {
@@ -151,7 +148,7 @@
 		/>
 
 		<div class="space-y-1">
-			<label for="camera" class="block font-medium text-gray-700"
+			<label for="camera" class="block font-medium text-gray-700 text-sm"
 				>Capture a photo of the Wagon ID/Number:</label
 			>
 			<Camera initialFile={selectedPhoto} onPhotoSelected={(file) => (selectedPhoto = file)} />

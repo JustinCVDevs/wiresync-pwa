@@ -7,10 +7,9 @@
 	import type { TrainDispatch } from '$lib';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import FormField from '$lib/components/FormField.svelte';
-
+  
 	let trains: Train[] = [];
 	let consignments: Consignment[] = [];
-
 	let selectedTrainRef = '';
 	let selectedConsignment = '';
 	let manualConsignment = '';
@@ -19,239 +18,174 @@
 	let capturedImage: string | null = null;
 	let showCamera = false;
 	let error = '';
+	let success = '';
 	let isLoading = true;
-
-	const processSteps = ['Train & Consignment Details', 'Wagon Linkage', 'Complete Loading', 'Review'];
-	let currentStep = 0; // Marshaling Dispatch is the first step
-
+	
+	const steps = ['Train & Consignment Details', 'Wagon Linkage', 'Complete'];
+	let currentStep = 1;
+  
 	async function loadTrainsAndConsignments() {
-		try {
-			const trainRecords = await indexedDBService.getRecords(
-				'trains',
-				(record) => record.syncStatus === 'synced'
+	  try {
+		const trainRecords = await indexedDBService.getRecords(
+		  'trains', rec => rec.syncStatus === 'synced'
+		);
+		trains = trainRecords;
+		if (selectedTrainRef) {
+		  const train = trains.find(t => t.refNr === selectedTrainRef);
+		  if (train) {
+			consignments = await indexedDBService.getRecords(
+			  'consignments', rec =>
+				rec.syncStatus === 'synced' && rec.linkedTrainId === train.serverId
 			);
-
-			trains = trainRecords;
-
-			if (selectedTrainRef) {
-				const selectedTrain = trains.find((t) => t.refNr === selectedTrainRef);
-				if (selectedTrain) {
-					const consignmentRecords = await indexedDBService.getRecords(
-						'consignments',
-						(record) =>
-							record.syncStatus === 'synced' && record.linkedTrainId === selectedTrain.serverId
-					);
-
-					consignments = consignmentRecords;
-				}
-			}
-		} catch (err) {
-			error = 'Failed to load data';
-			console.error(err);
-		} finally {
-			isLoading = false;
+		  }
 		}
+	  } catch (e) {
+		console.error(e);
+		error = 'Failed to load data';
+	  } finally {
+		isLoading = false;
+	  }
 	}
-
+  
+	onMount(loadTrainsAndConsignments);
+	$: if (selectedTrainRef) loadTrainsAndConsignments();
+  
 	function handleCapture(event: CustomEvent<string>) {
-		capturedImage = event.detail;
+	  capturedImage = event.detail;
 	}
-
 	function handleCameraClose() {
-		showCamera = false;
+	  showCamera = false;
 	}
-
+  
 	async function handleSubmit() {
-		if (!selectedTrainRef) {
-			error = 'Please select a train reference number';
-			return;
-		}
-
-		if (!selectedConsignment && !manualConsignment) {
-			error = 'Please select or enter a consignment number';
-			return;
-		}
-
-		const selectedTrain = trains.find((t) => t.refNr === selectedTrainRef);
-		if (!selectedTrain || !selectedTrain.serverId) return;
-
-		// Create train dispatch record
-		const trainDispatchRecord: TrainDispatch = {
-			id: crypto.randomUUID(),
-			linkedTrainId: selectedTrain.serverId,
-			linkedConsignmentId: selectedConsignment || undefined,
-			process: 'MarshalingDispatch',
+	  error = '';
+	  if (!selectedTrainRef) {
+		error = 'Please select a train reference number';
+		return;
+	  }
+	  if (!selectedConsignment && !manualConsignment) {
+		error = 'Please select or enter a consignment number';
+		return;
+	  }
+	  const train = trains.find(t => t.refNr === selectedTrainRef);
+	  if (!train?.serverId) return;
+  
+	  const dispatchId = crypto.randomUUID();
+	  const trainDispatch: TrainDispatch = {
+		id: dispatchId,
+		linkedTrainId: train.serverId,
+		linkedConsignmentId: selectedConsignment || undefined,
+		process: 'MarshalingDispatch',
+		syncStatus: 'pending',
+		created: new Date().toISOString(),
+		updated: new Date().toISOString()
+	  };
+  
+	  try {
+		await indexedDBService.saveRecord('trainDispatches', trainDispatch);
+		if (manualConsignment) {
+		  await indexedDBService.saveRecord('consignments', {
+			name: manualConsignment,
+			linkedTrainId: train.serverId,
 			syncStatus: 'pending',
 			created: new Date().toISOString(),
 			updated: new Date().toISOString()
-		};
-
-		// Save train dispatch record
-		try {
-			await indexedDBService.saveRecord('trainDispatches', trainDispatchRecord);
-		} catch (err) {
-			error = 'Failed to create train dispatch';
-			return;
+		  });
 		}
-
-		// If manual consignment, create new record
-		if (manualConsignment) {
-			try {
-				await indexedDBService.saveRecord('consignments', {
-					name: manualConsignment,
-					linkedTrainId: selectedTrain.serverId,
-					syncStatus: 'pending',
-					created: new Date().toISOString(),
-					updated: new Date().toISOString()
-				});
-			} catch (err) {
-				error = 'Failed to save consignment';
-				return;
-			}
+		if (manualRfid) {
+		  await indexedDBService.updateRecord('trains', train.serverId, {
+			...train,
+			rfidNr: manualRfid,
+			syncStatus: 'pending',
+			updated: new Date().toISOString()
+		  });
 		}
-
-		// If manual RFID, update train record
-		if (manualRfid && selectedTrain) {
-			try {
-				await indexedDBService.updateRecord('trains', selectedTrain.serverId, {
-					...selectedTrain,
-					rfidNr: manualRfid,
-					syncStatus: 'pending',
-					updated: new Date().toISOString()
-				});
-			} catch (err) {
-				error = 'Failed to update train RFID';
-				return;
-			}
-		}
-
-		const consignment = selectedConsignment || manualConsignment;
-		const rfid = selectedRfid || manualRfid;
-
-		const dispatchId = trainDispatchRecord.id;
+		success = 'Dispatch initialized';
 		goto(`/processes/marshaling-dispatch/wagon-linkage?dispatchId=${dispatchId}`);
+	  } catch (e) {
+		console.error(e);
+		error = 'Failed to initialize dispatch';
+	  }
 	}
-
-	onMount(() => {
-		loadTrainsAndConsignments();
-	});
-
-	// Reload consignments when train selection changes
-	$: if (selectedTrainRef) {
-		loadTrainsAndConsignments();
-	}
-</script>
-
-<ProcessLayout {processSteps} {currentStep} title="Marshaling Dispatch">
-	<div class="mx-auto max-w-md rounded-lg bg-white p-6 shadow-lg">
-		<!-- <h1 class="mb-6 text-center text-2xl font-bold">Marshaling Dispatch</h1> -->
-
-		{#if error}
-			<div class="mb-4 rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">
-			{error}
-		</div>
+  </script>
+  
+  <ProcessLayout
+	title="Marshaling Dispatch"
+	processKey="marshaling-dispatch"
+	{steps}
+	{currentStep}
+	isSubmitting={isLoading}
+	cancelPath="/processes"
+	on:cancel={() => goto('/processes')}
+	on:submit={handleSubmit}
+	on:error={({ detail }) => error = detail}
+	on:success={({ detail }) => success = detail}
+  >
+	<slot name="header" />
+  
+	{#if error}
+	  <div class="mb-4 rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">
+		{error}
+	  </div>
 	{/if}
-
+  
 	{#if isLoading}
-		<div class="text-center">Loading...</div>
+	  <div>Loading…</div>
 	{:else}
-		<form class="space-y-6" on:submit|preventDefault={handleSubmit}>
-			<div class="space-y-2">
-				<FormField label="Train Reference Number" id="trainRef">
-					<select
-						id="trainRef"
-						class="w-full rounded-md border border-gray-300 p-2 shadow-sm"
-						bind:value={selectedTrainRef}
-					>
-						<option value="">Select Train Reference</option>
-						{#each trains as train}
-							<option value={train.refNr}>{train.refNr}</option>
-						{/each}
-					</select>
-				</FormField>
-			</div>
+	  <div class="space-y-6">
+		  <select id="trainRef" bind:value={selectedTrainRef} class="w-full rounded-md border p-2 dark:text-gray-800">
+			<option value="">Select Train Reference</option>
+			{#each trains as t}
+			  <option value={t.refNr}>{t.refNr}</option>
+			{/each}
+		  </select>
 
-			<div class="space-y-2">
-				<FormField label="Consignment Number" id="consignmentNumber">
-					{#if consignments.length > 0}
-						<select
-							class="mb-2 w-full rounded-md border border-gray-300 p-2 shadow-sm"
-							bind:value={selectedConsignment}
-							disabled={manualConsignment !== ''}
-							id="consignmentNumber"
-						>
-							<option value="">Select Consignment</option>
-							{#each consignments as consignment}
-								<option value={consignment.name}>
-									{consignment.name}
-								</option>
-							{/each}
-						</select>
-					{/if}
-					<input
-						type="text"
-						placeholder="Enter Consignment Number"
-						class="w-full rounded-md border border-gray-300 p-2 shadow-sm"
-						bind:value={manualConsignment}
-						disabled={selectedConsignment !== ''}
-					/>
-				</FormField>
-			</div>
-
-			<div class="space-y-2">
-				<FormField label="Train RFID Number" id="trainRfid">
-					{#if selectedTrainRef && trains.find((t) => t.refNr === selectedTrainRef)?.rfidNr}
-						<select
-							class="mb-2 w-full rounded-md border border-gray-300 p-2 shadow-sm"
-							bind:value={selectedRfid}
-							disabled={manualRfid !== ''}
-							id="trainRfid"
-						>
-							<option value="">Select RFID</option>
-							<option value={trains.find((t) => t.refNr === selectedTrainRef)?.rfidNr}>
-								{trains.find((t) => t.refNr === selectedTrainRef)?.rfidNr}
-							</option>
-						</select>
-					{/if}
-					<input
-						type="text"
-						placeholder="Enter Train RFID Number"
-						class="w-full rounded-md border border-gray-300 p-2 shadow-sm"
-						bind:value={manualRfid}
-						disabled={selectedRfid !== ''}
-					/>
-				</FormField>
-			</div>
-
-			<div class="space-y-4">
-				<Camera {showCamera} on:capture={handleCapture} on:close={handleCameraClose} />
-
-				{#if capturedImage}
-					<div class="overflow-hidden rounded-lg border">
-						<img src={capturedImage} alt="Captured RFID" class="h-48 w-full object-cover" />
-						<button
-							type="button"
-							class="w-full bg-gray-800 py-2 text-white"
-							on:click={() => (showCamera = true)}
-						>
-							Retake Photo
-						</button>
-					</div>
-				{:else}
-					<button
-						type="button"
-						class="w-full rounded bg-gray-800 py-2 text-white"
-						on:click={() => (showCamera = true)}
-					>
-						Open Camera
-					</button>
-				{/if}
-			</div>
-
-			<button type="submit" class="w-full rounded-md bg-blue-600 py-3 text-white hover:bg-blue-700">
-				Continue
+		  {#if consignments.length}
+			<select bind:value={selectedConsignment} disabled={!!manualConsignment} class="w-full rounded-md border p-2  dark:text-gray-800">
+			  <option value="">Select Consignment</option>
+			  {#each consignments as c}
+				<option value={c.name}>{c.name}</option>
+			  {/each}
+			</select>
+		  {/if}
+		  <input
+			type="text"
+			placeholder="Enter Consignment Number"
+			bind:value={manualConsignment}
+			disabled={!!selectedConsignment}
+			class="w-full rounded-md border p-2 dark:text-gray-800"
+		  />
+  
+		<FormField label="Train RFID Number" id="trainRfid">
+		  {#if trains.find(t => t.refNr === selectedTrainRef)?.rfidNr}
+			<select bind:value={selectedRfid} disabled={!!manualRfid} class="w-full rounded-md border p-2">
+			  <option value="">Select RFID</option>
+			  <option value={trains.find(t => t.refNr === selectedTrainRef)?.rfidNr}>
+				{trains.find(t => t.refNr === selectedTrainRef)?.rfidNr}
+			  </option>
+			</select>
+		  {/if}
+		  <input
+			type="text"
+			placeholder="Enter Train RFID Number"
+			bind:value={manualRfid}
+			disabled={!!selectedRfid}
+			class="w-full rounded-md border p-2"
+		  />
+		</FormField>
+  
+		<Camera {showCamera} on:capture={handleCapture} on:close={handleCameraClose} />
+  
+		{#if capturedImage}
+		  <div class="overflow-hidden rounded-lg border">
+			<img src={capturedImage} alt="Captured RFID" class="h-48 w-full object-cover" />
+			<button type="button" class="w-full bg-gray-800 py-2 text-white" on:click={() => showCamera = true}>
+			  Retake Photo
 			</button>
-		</form>
+		  </div>
+		
+		{/if}
+	  </div>
 	{/if}
-	</div>
-</ProcessLayout>
+  </ProcessLayout>
+  
