@@ -1,67 +1,84 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { pocketbaseService } from '$lib/services/pocketbaseService';
-	let isOnline = navigator.onLine;
-
-	onMount(() => {
-		window.addEventListener('online', () => (isOnline = true));
-		window.addEventListener('offline', () => (isOnline = false));
-
-		return () => {
-			window.removeEventListener('online', () => (isOnline = true));
-			window.removeEventListener('offline', () => (isOnline = false));
-		};
-if (!pocketbaseService.isAuthenticated) {
-    goto('/');
-}
-	});
+	import { page } from '$app/stores';
+	import { derived } from 'svelte/store';
+	import {
+		ReceiptText,
+		ArrowRightCircle,
+		Train,
+		Truck,
+		HardDrive,
+		Package,
+		Droplet
+	} from 'lucide-svelte';
 
 	const processes = [
-		'Marshaling Receival',
-		'Marshaling Dispatch',
-		'West Loadout (Wagons)',
-		'East Loadout (Wagons)',
-		'Gravelotte (Trucks)',
-		'Truck Loadout',
-		'Copper Truck Loadout',
-		'Acid Truck'
+		{
+			name: 'Marshaling Receival',
+			icon: ReceiptText,
+			color: 'text-blue-500',
+			href: '/processes/marshaling-receival'
+		},
+		{
+			name: 'Marshaling Dispatch',
+			icon: ArrowRightCircle,
+			color: 'text-green-500',
+			href: '/processes/marshaling-dispatch'
+		},
+		{
+			name: 'West Loadout (Wagons)',
+			icon: Train,
+			color: 'text-red-500',
+			href: '/processes/west-loadout'
+		},
+		{
+			name: 'East Loadout (Wagons)',
+			icon: Train,
+			color: 'text-orange-500',
+			href: '/processes/east-loadout'
+		},
+		{
+			name: 'Gravelotte (Trucks)',
+			icon: Truck,
+			color: 'text-teal-500',
+			href: '/processes/gravelotte'
+		},
+		{
+			name: 'Truck Loadout',
+			icon: HardDrive,
+			color: 'text-purple-500',
+			href: '/processes/truck-loadout'
+		},
+		{
+			name: 'Copper Truck Loadout',
+			icon: Package,
+			color: 'text-amber-500',
+			href: '/processes/copper-truck-loadout'
+		},
+		{
+			name: 'Acid Truck',
+			icon: Droplet,
+			color: 'text-pink-500',
+			href: '/processes/acid-truck'
+		}
 	] as const;
 
-	function handleProcessSelect(process: string) {
-		if (process === 'Marshaling Receival') {
-			goto('/processes/marshaling-receival');
-		} else if (process === 'Marshaling Dispatch') {
-			goto('/processes/marshaling-dispatch');
-		} else if (process === 'West Loadout (Wagons)') {
-			goto('/processes/west-loadout');
-		} else if (process === 'East Loadout (Wagons)') {
-			goto('/processes/east-loadout');
-		} else if (process === 'Truck Loadout') {
-			goto('/processes/truck-loadout');
-		} else if (process === 'Gravelotte (Trucks)') {
-			goto('/processes/gravelotte');
-		} else if (process === 'Copper Truck Loadout') {
-			goto('/processes/copper-truck-loadout');
-		} else if (process === 'Acid Truck') {
-			goto('/processes/acid-truck');
-		}
-	}
-	// Add other process routes as needed
+	const currentPath = derived(page, ($page) => $page.url.pathname);
 </script>
 
-<main class="bg-gray-50 min-h-screen flex flex-col items-center justify-start p-4">
-	<section class="w-full max-w-sm bg-white rounded-xl shadow-lg p-6">
-	  <h1 class="text-2xl font-semibold text-gray-900 mb-6">Select Process</h1>
-	  <div class="space-y-4">
-		{#each processes as process}
-		  <button
-			class="w-full bg-gray-800 text-white py-3 rounded-lg text-base font-medium hover:bg-gray-700 active:bg-gray-900 transition"
-			on:click={() => handleProcessSelect(process)}
-		  >
-			{process}
-		  </button>
+<section class="mx-auto rounded-xl bg-white p-6 shadow-lg">
+	<h1 class="mb-6 text-2xl font-semibold text-gray-900">PMC Processes</h1>
+	<div class="space-y-4">
+		{#each processes as { name, icon: Icon, color, href }}
+			<button
+				on:click={() => goto(href)}
+				class={`flex w-full transform items-center gap-4 rounded-lg border-1 border-gray-100 px-5 py-4 shadow-lg transition-transform
+				  hover:-translate-y-1 hover:shadow-lg focus:ring-2 focus:ring-blue-500 focus:outline-none
+				  ${$currentPath === href ? 'bg-blue-500 text-white' : 'bg-gray-50 text-gray-800'}`}
+			>
+				<Icon class={`h-6 w-6 flex-shrink-0 ${color}`} />
+				<span class="flex-1 text-left">{name}</span>
+			</button>
 		{/each}
-	  </div>
-	</section>
-  </main>
+	</div>
+</section>

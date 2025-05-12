@@ -6,6 +6,6 @@ export interface TrainDispatch extends BaseRecord {
 	linkedConsignmentId?: string;
 	linkedWagonIds?: ID[]; // many-to-many with Wagon.id
 	process?: string; // e.g. "Loading" / "Unloading" / "Transferring"
-	serverId?: string; 
+	serverId?: string;
 	syncStatus: 'pending' | 'synced';
 }

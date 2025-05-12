@@ -10,6 +10,6 @@ export interface Fleet extends BaseRecord {
 	samplingStatus?: boolean; // FLEET_TRUCK_SAMPLING_STATUS
 	loadingLocation?: string; // FLEET_TRUCK_LOADING_LOCATION
 	loadingHour?: number; // FLEET_HR (0–23)
-	serverId?: string; 
+	serverId?: string;
 	syncStatus: 'pending' | 'synced';
 }

@@ -21,9 +21,9 @@
 	let availableTrucks: { id: string; registration: string; serverId: string }[] = [];
 
 	onMount(async () => {
-	    // Fetch trucks from IndexedDB
-	    const trucks = await indexedDBService.getRecords('trucks');
-	    availableTrucks = trucks;
+		// Fetch trucks from IndexedDB
+		const trucks = await indexedDBService.getRecords('trucks');
+		availableTrucks = trucks;
 	});
 
 	async function handleSubmit() {
@@ -37,7 +37,7 @@
 				created: new Date().toISOString(),
 				samplingStatus: true,
 				syncStatus: 'pending',
-				process: 'Copper Truck Loadout',
+				process: 'Copper Truck Loadout'
 			};
 
 			// Create Assay
@@ -50,7 +50,7 @@
 				productType: materialType,
 				linkedTruckLoadIds: [truckLoadId],
 				syncStatus: 'pending',
-				process: 'Copper Truck Loadout',
+				process: 'Copper Truck Loadout'
 			};
 
 			// Save both records

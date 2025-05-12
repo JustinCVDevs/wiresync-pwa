@@ -1,5 +1,5 @@
 [![BUN CI](https://github.com/Claer-Volker/wiresync-pwa/actions/workflows/node.js.yml/badge.svg)](https://github.com/Claer-Volker/wiresync-pwa/actions/workflows/node.js.yml)
-
+[![Netlify Status](https://api.netlify.com/api/v1/badges/b6972c29-66ed-4c25-9c31-774741ce17ec/deploy-status)](https://app.netlify.com/sites/wiresync/deploys)
 # sv
 
 Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).

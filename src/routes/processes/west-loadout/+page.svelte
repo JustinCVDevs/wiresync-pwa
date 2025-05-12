@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import FormField from '$lib/components/FormField.svelte';
+	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
+	import { formPersistenceService } from '$lib/services/formPersistenceService';
 	import type { Assay } from '$lib/types/assay';
 	import { pocketbaseService } from '$lib/services/pocketbaseService';
 	import { syncService } from '$lib/services/syncService';
@@ -15,7 +18,21 @@
 	let consignment = '';
 	let loadingLocation = 'West Load Out';
 	let consignments: string[] = [];
-	let error = '';
+	let isSubmitting = false;
+	let currentStep = 1;
+
+	// Process steps
+	const processSteps = ['Train Details', 'Sample Details Verification', 'FEL Weight Capturing', 'Wagon Review'];
+
+	// Reference to the ProcessLayout component
+	let processLayout: ProcessLayout;
+
+	// Form errors
+	let formErrors = {
+		sampleId: '',
+		productGrade: '',
+		consignment: ''
+	};
 
 	const productGrades = ['Iron Oxide', 'Magnetite', 'Mag-64', 'Mag-65'];
 
@@ -27,12 +44,81 @@
 			const data: Consignment[] = await response.json();
 			consignments = data.map((c) => c.name);
 		} catch (err) {
-			error = 'Failed to load consignments';
+			if (processLayout) {
+				processLayout.setError('Failed to load consignments');
+			}
 		}
+
+		// Load persisted form data
+		loadPersistedData();
 	});
 
+	// Save form data when component is unmounted
+	onMount(() => {
+		return () => {
+			if (sampleId || productGrade || consignment) {
+				formPersistenceService.saveForm('west_loadout', {
+					sampleId,
+					productGrade,
+					consignment,
+					loadingLocation
+				});
+			}
+		};
+	});
+
+	function loadPersistedData() {
+		const savedData = formPersistenceService.loadForm<{
+			sampleId: string;
+			productGrade: string;
+			consignment: string;
+			loadingLocation: string;
+		}>('west_loadout');
+
+		if (savedData) {
+			sampleId = savedData.sampleId || '';
+			productGrade = savedData.productGrade || '';
+			consignment = savedData.consignment || '';
+			loadingLocation = savedData.loadingLocation || 'West Load Out';
+		}
+	}
+
+	function validateForm() {
+		let isValid = true;
+		formErrors = {
+			sampleId: '',
+			productGrade: '',
+			consignment: ''
+		};
+
+		if (!sampleId) {
+			formErrors.sampleId = 'Sample ID is required';
+			isValid = false;
+		}
+
+		if (!productGrade) {
+			formErrors.productGrade = 'Product grade is required';
+			isValid = false;
+		}
+
+		if (!consignment) {
+			formErrors.consignment = 'Consignment is required';
+			isValid = false;
+		}
+
+		return isValid;
+	}
+
 	async function handleSubmit() {
+		if (!validateForm()) {
+			return;
+		}
+
 		try {
+			isSubmitting = true;
+			processLayout.setError('');
+			processLayout.setSuccess('');
+
 			// Create the assay object according to the Assay interface
 			const assay: Assay = {
 				id: crypto.randomUUID(),
@@ -43,77 +129,91 @@
 				updated: new Date().toISOString(),
 				linkedWagonIds: [],
 				linkedTruckIds: [],
-				syncStatus: 'pending'
+				syncStatus: 'pending',
+				process: 'West Loadout',
+				consignment: consignment
 			};
 
 			// Save to IndexedDB
 			await indexedDBService.saveRecord('assays', assay);
 
-			// Ruben decide if we want this in here
 			// Try to sync using the sync service
 			await syncService.syncAssay(assay);
 
-			// Navigate to review page
-			goto('/processes/west-loadout/review?sampleId=' + assay.id);
-		} catch (err) {
-			error = 'Failed to save assay data';
-			console.error(err);
-		}
-	}
+			// Clear persisted form data
+			formPersistenceService.clearForm('west_loadout');
 
-	function handleCancel() {
-		goto('/processes');
+			processLayout.setSuccess('Data saved successfully');
+			setTimeout(() => {
+				// Navigate to verification page
+				goto('/processes/west-loadout/verification?sampleId=' + assay.id);
+			}, 1000);
+		} catch (err) {
+			processLayout.setError('Failed to save assay data');
+			console.error(err);
+		} finally {
+			isSubmitting = false;
+		}
 	}
 </script>
 
-<div class="container">
-	<h1>West Loadout - Train Details</h1>
-
-	{#if error}
-		<div class="error">{error}</div>
-	{/if}
-
-	<div class="form">
-		<div class="input-group">
-			<label for="sampleId">Sample ID</label>
-			<input id="sampleId" type="text" bind:value={sampleId} placeholder="Enter Sample ID" />
-		</div>
-
-		<div class="input-group">
-			<label for="productGrade">Product Grade</label>
-			<select id="productGrade" bind:value={productGrade}>
-				<option value="">Select Product Grade</option>
-				{#each productGrades as grade}
-					<option value={grade}>{grade}</option>
-				{/each}
-			</select>
-		</div>
-
-		<div class="input-group">
-			<label for="consignment">Consignment Number</label>
-			<select id="consignment" bind:value={consignment}>
-				<option value="">Select Consignment</option>
-				{#each consignments as number}
-					<option value={number}>{number}</option>
-				{/each}
-			</select>
-		</div>
-
-		<div class="input-group">
-			<label for="loadingLocation">Loading Location</label>
-			<select id="loadingLocation" bind:value={loadingLocation}>
-				{#each loadingLocations as location}
-					<option value={location}>{location}</option>
-				{/each}
-			</select>
-		</div>
-
-		<div class="button-group">
-			<button class="cancel-button" on:click={handleCancel}>Cancel</button>
-			<button class="submit-button" on:click={handleSubmit}>Submit</button>
-		</div>
+<ProcessLayout
+	title="West Loadout - Train Details"
+	processKey="west_loadout"
+	steps={processSteps}
+	{currentStep}
+	{isSubmitting}
+	bind:this={processLayout}
+	on:submit={handleSubmit}
+>
+	<div slot="header">
+		<h5 class="text-xl font-bold ">Train Loading Details</h5>
+		<p class="text-sm text-gray-600">Please enter the sample and product details</p>
 	</div>
-</div>
+
+	<div class="space-y-4">
+		<FormField
+			id="sampleId"
+			label="Sample ID"
+			bind:value={sampleId}
+			placeholder="Enter Sample ID"
+			required={true}
+			error={formErrors.sampleId}
+		/>
+
+		<FormField
+			id="productGrade"
+			label="Product Grade"
+			bind:value={productGrade}
+			placeholder="Select Product Grade"
+			isSelect={true}
+			options={productGrades.map((grade) => ({ value: grade, label: grade }))}
+			required={true}
+			error={formErrors.productGrade}
+		/>
+
+		<FormField
+			id="consignment"
+			label="Consignment Number"
+			bind:value={consignment}
+			placeholder="Select Consignment"
+			isSelect={true}
+			options={consignments.map((number) => ({ value: number, label: number }))}
+			required={true}
+			error={formErrors.consignment}
+		/>
+
+		<FormField
+			id="loadingLocation"
+			label="Loading Location"
+			bind:value={loadingLocation}
+			placeholder="Select Loading Location"
+			isSelect={true}
+			options={loadingLocations.map((location) => ({ value: location, label: location }))}
+			required={true}
+		/>
+	</div>
+</ProcessLayout>
 
 <style>
 	.container {

@@ -27,7 +27,7 @@
 				updated: new Date().toISOString(),
 				weight: currentWagon.weight,
 				samplingStatus: currentWagon.samplingStatus,
-				syncStatus: 'pending' 
+				syncStatus: 'pending'
 			};
 
 			// Save wagon to IndexedDB
@@ -40,15 +40,16 @@
 			if (assay) {
 				const updatedAssay: Assay = {
 					...assay,
-					linkedWagonIds: [...(assay.linkedWagonIds || []), wagon.id].filter((id): id is string => id !== undefined),
+					linkedWagonIds: [...(assay.linkedWagonIds || []), wagon.id].filter(
+						(id): id is string => id !== undefined
+					),
 					updated: new Date().toISOString(),
-					syncStatus: 'pending' 
+					syncStatus: 'pending'
 				};
 				await indexedDBService.saveRecord('assays', updatedAssay);
 				// RUBEN move this out
 				await syncService.syncAssay(updatedAssay);
 			}
-			
 
 			goto('/processes/west-loadout/review?sampleId=' + sampleId);
 		} catch (err) {

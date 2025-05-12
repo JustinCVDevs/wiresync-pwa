@@ -2,159 +2,197 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import Camera from '$lib/components/Camera.svelte';
-	import Header from '$lib/components/Header.svelte';
 	import RfidReader from '$lib/components/RFIDReader.svelte';
+	import FormField from '$lib/components/FormField.svelte';
+	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
+	import { formPersistenceService } from '$lib/services/formPersistenceService';
 	import type { Wagon } from '$lib';
-	import { NetworkIcon } from 'lucide-svelte';
-	import { pocketbaseService } from '$lib/services/pocketbaseService';
+	import { Trash } from 'lucide-svelte';
 
-	let isOnline = navigator.onLine;
 	let transcoreTag = '';
 	let wagonId = '';
-	let capturedImage: string | null = null;
-	let error = '';
-	let showCamera = false;
+	let selectedPhoto: File | null = null;
+	let isSubmitting = false;
+	let currentStep = 1;
+	let formErrors = {
+		transcoreTag: '',
+		wagonId: ''
+	};
+
+	// Process steps
+	const processSteps = ['RFID Tag Linking', 'Verification'];
+
+	// Reference to the ProcessLayout component
+	let processLayout: ProcessLayout;
 
 	onMount(() => {
 		loadPersistedData();
-		window.addEventListener('online', () => {
-			isOnline = true;
-			error = '';
-		});
-		window.addEventListener('offline', () => {
-			isOnline = false;
-			error = 'Application is offline - data will be submitted when connection is restored';
-		});
+	});
 
-		return () => {
-			window.removeEventListener('online', () => (isOnline = true));
-			window.removeEventListener('offline', () => (isOnline = false));
+	// Save form data when component is unmounted
+	onMount(() => {
+		return async () => {
+			if (transcoreTag || wagonId || selectedPhoto) {
+				let dataUrl = null;
+				if (selectedPhoto) {
+					dataUrl = await formPersistenceService.fileToDataURL(selectedPhoto);
+				}
+				formPersistenceService.saveForm('marshaling_receival', {
+					transcoreTag,
+					wagonId,
+					capturedImage: dataUrl
+				});
+			}
 		};
 	});
 
-	function handleCapture(event: CustomEvent<string>) {
-		capturedImage = event.detail;
+	function validateForm() {
+		let isValid = true;
+		formErrors = {
+			transcoreTag: '',
+			wagonId: ''
+		};
+
+		if (!transcoreTag) {
+			formErrors.transcoreTag = 'RFID tag is required';
+			isValid = false;
+		}
+
+		if (!wagonId) {
+			formErrors.wagonId = 'Wagon ID is required';
+			isValid = false;
+		}
+
+		return isValid;
 	}
 
-	function handleCameraClose() {
-		showCamera = false;
-	}
-
-	function handleCancel() {
-		goto('/processes');
-	}
-
-	async function handleSubmit()  {
-		if (!transcoreTag || !wagonId) {
-			alert('Please fill all required fields');
+	async function handleSubmit() {
+		if (!validateForm()) {
 			return;
 		}
 
-		const receivalData: Wagon = {
-			transcoreTag,
-			wagonIdSimple: wagonId,
-			wagonPhotoUrl: "",
-			created: new Date().toISOString(),
-			componentType: 'MARSHALING_RECEIVAL',
-			id: crypto.randomUUID(),
-			updated: new Date().toISOString(),
-			syncStatus: 'pending',
-			process: 'Marshaling_Receival'
-		};
+		try {
+			isSubmitting = true;
+			processLayout.setError('');
+			processLayout.setSuccess('');
 
-		await indexedDBService.saveRecord('wagons', receivalData);
+			const receivalData: Wagon = {
+				transcoreTag,
+				wagonIdSimple: wagonId,
+				wagonPhotoUrl: selectedPhoto,
+				created: new Date().toISOString(),
+				componentType: 'MARSHALING_RECEIVAL',
+				id: crypto.randomUUID(),
+				updated: new Date().toISOString(),
+				syncStatus: 'pending',
+				process: 'Marshaling_Receival'
+			};
 
-		goto(`/processes/marshaling-receival/verify?id=${receivalData.id}`);
-	}
+			await indexedDBService.saveRecord('wagons', receivalData);
+			formPersistenceService.clearForm('marshaling_receival');
 
-	function loadPersistedData() {
-		const savedData = localStorage.getItem('currentMarshalingReceival');
-		if (savedData) {
-			const data = JSON.parse(savedData);
-			transcoreTag = data.transcoreTag;
-			wagonId = data.wagonId;
-			capturedImage = data.capturedImage;
+			processLayout.setSuccess('Data saved successfully');
+			setTimeout(() => {
+				goto(`/processes/marshaling-receival/verify?id=${receivalData.id}`);
+			}, 1000);
+		} catch (e) {
+			processLayout.setError('Failed to save data. Please try again.');
+		} finally {
+			isSubmitting = false;
 		}
 	}
 
-	onMount(() => {
-		loadPersistedData();
-	});
+	function loadPersistedData() {
+		const savedData = formPersistenceService.loadForm<{
+			transcoreTag: string;
+			wagonId: string;
+			capturedImage: string;
+		}>('marshaling_receival');
+
+		if (savedData) {
+			transcoreTag = savedData.transcoreTag || '';
+			wagonId = savedData.wagonId || '';
+			if (savedData.capturedImage) {
+				selectedPhoto = formPersistenceService.dataURLtoFile(
+					savedData.capturedImage,
+					'wagonPhoto.png'
+				);
+			}
+		}
+
+		// Also check the old storage key for backward compatibility
+		if (!savedData) {
+			const oldSavedData = localStorage.getItem('currentMarshalingReceival');
+			if (oldSavedData) {
+				try {
+					const data = JSON.parse(oldSavedData);
+					transcoreTag = data.transcoreTag || '';
+					wagonId = data.wagonId || '';
+					if (data.capturedImage) {
+						selectedPhoto = formPersistenceService.dataURLtoFile(
+							data.capturedImage,
+							'wagonPhoto.png'
+						);
+					}
+					// Migrate to new storage format
+					formPersistenceService.saveForm('marshaling_receival', {
+						transcoreTag,
+						wagonId,
+						capturedImage: data.capturedImage
+					});
+					localStorage.removeItem('currentMarshalingReceival');
+				} catch (e) {
+					console.error('Error parsing old saved data:', e);
+				}
+			}
+		}
+	}
 </script>
-<main class="bg-gray-50 min-h-screen flex p-4">
-  <section class="w-full max-w-md bg-white rounded-xl shadow-lg p-6 space-y-6">
-    
-    <!-- Breadcrumb -->
-    <div class="text-sm text-gray-600">
-      PMC &gt; Marshaling Receival &gt; <span class="font-medium text-gray-900">New Process</span>
-    </div>
-    
-    <h1 class="text-center text-2xl font-semibold text-gray-900">Marshaling Receival</h1>
 
-    <div class="space-y-4">
-		<form on:submit|preventDefault={handleSubmit}>
-      <div class="flex flex-col">
-<RfidReader 
-  onScan={(tagId) => transcoreTag = tagId}
-  targetFieldId="transcoreTag"
-  label="Transcore Tag"
-/>
+<ProcessLayout
+	title="Wagon Details"
+	processKey="marshaling_receival"
+	steps={processSteps}
+	{currentStep}
+	{isSubmitting}
+	bind:this={processLayout}
+	on:submit={handleSubmit}
+>
+	<div slot="header">
+		<h5 class="text-xl font-bold ">RFID Tag & Wagon Number</h5>
+		<p class="text-sm text-gray-600">
+			Please place the RFID tag on the wagon in the appropriate position
+		</p>
+	</div>
 
-      <div class="flex flex-col">
-        <label for="wagonId" class="mb-1 text-gray-700 font-medium">Wagon ID</label>
-        <input
-          id="wagonId"
-          type="text"
-          bind:value={wagonId}
-          placeholder="Enter Wagon ID"
-          class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
-        />
-      </div>
+	<div class="space-y-4">
+		<div class="space-y-1">
+			<RfidReader
+				onScan={(tagId) => (transcoreTag = tagId)}
+				defaultValue={transcoreTag}
+				targetFieldId={transcoreTag}
+				label="Enter/scan the RFID tag:"
+			/>
+			{#if formErrors.transcoreTag}
+				<p class="text-sm text-red-600">{formErrors.transcoreTag}</p>
+			{/if}
+		</div>
 
-      <Camera
-        {showCamera}
-        on:capture={handleCapture}
-        on:close={handleCameraClose}
-      />
+		<FormField
+			id="wagonId"
+			label="Enter Wagon ID/Number:"
+			bind:value={wagonId}
+			placeholder="Enter Wagon ID"
+			required={true}
+			error={formErrors.wagonId}
+		/>
 
-      {#if capturedImage}
-        <div class="space-y-4">
-          <div class="image-preview rounded-lg overflow-hidden border border-gray-200">
-            <img src={capturedImage} alt="Captured wagon" class="w-full object-cover" />
-          </div>
-          <button
-            class="w-full bg-gray-800 text-white py-3 rounded-lg font-medium hover:bg-gray-700 active:bg-gray-900 transition"
-            on:click={() => (showCamera = true)}
-          >
-            Retake Photo
-          </button>
-        </div>
-      {:else}
-        <button
-          class="w-full bg-gray-800 text-white py-3 rounded-lg font-medium hover:bg-gray-700 active:bg-gray-900 transition"
-          on:click={() => (showCamera = true)}
-        >
-          Open Camera
-        </button>
-      {/if}
-    </div>
-
-    <div class="flex space-x-4">
-      <button
-        class="flex-1 bg-red-700 text-white py-3 rounded-lg font-medium hover:bg-red-600 active:bg-red-800 transition"
-        on:click={handleCancel}
-      >
-        Cancel
-      </button>
-      <button
-        class="flex-1 bg-green-700 text-white py-3 rounded-lg font-medium hover:bg-green-600 active:bg-green-800 transition"
-        type="submit"
-      >
-        Submit
-      </button>
-	</form>
-
-    </div>
-  </section>
-</main>
+		<div class="space-y-1">
+			<label for="camera" class="block font-medium text-gray-700"
+				>Capture a photo of the Wagon ID/Number:</label
+			>
+			<Camera initialFile={selectedPhoto} onPhotoSelected={(file) => (selectedPhoto = file)} />
+		</div>
+	</div>
+</ProcessLayout>
