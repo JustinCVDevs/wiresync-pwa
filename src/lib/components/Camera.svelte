@@ -1,135 +1,159 @@
+<!-- CameraPicker.svelte -->
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
+	import { onDestroy } from 'svelte';
+	// Callback prop: parent passes a function to receive the File
+	export let onPhotoSelected: (file: File) => void;
+	export let initialFile: File | null = null;
 
-	const dispatch = createEventDispatcher<{
-		capture: string;
-		close: void;
-	}>();
+	let videoEl: HTMLVideoElement;
+	let stream: MediaStream | null = null;
+	let previewUrl: string | null = null;
+	let capturedFile: File | null = null;
+	let hasCamera = false;
+	let fileInput: HTMLInputElement;
 
-	export let showCamera = false;
+	// Initialize with initial file if provided
+	$: if (initialFile) {
+		capturedFile = initialFile;
+		previewUrl = URL.createObjectURL(initialFile);
+	}
 
-	let videoStream: MediaStream | null = null;
-	let videoElement: HTMLVideoElement;
+	// Cleanup object URLs when component unmounts
+	onDestroy(() => {
+		if (previewUrl) {
+			URL.revokeObjectURL(previewUrl);
+		}
+	});
 
-	async function openCamera() {
+	// Check if camera is available
+	async function checkCamera() {
 		try {
-			const stream = await navigator.mediaDevices.getUserMedia({
-				video: { facingMode: 'environment' }
+			const devices = await navigator.mediaDevices.enumerateDevices();
+			hasCamera = devices.some((device) => device.kind === 'videoinput');
+		} catch (error) {
+			console.error('Failed to check camera availability:', error);
+			hasCamera = false;
+		}
+	}
+
+	// Initialize camera check
+	checkCamera();
+
+	// Handle file selection
+	function handleFileSelect(event: Event) {
+		const input = event.target as HTMLInputElement;
+		if (input.files && input.files[0]) {
+			const file = input.files[0];
+			if (file.type.startsWith('image/')) {
+				if (previewUrl) {
+					URL.revokeObjectURL(previewUrl);
+				}
+				previewUrl = URL.createObjectURL(file);
+				onPhotoSelected(file);
+			} else {
+				alert('Please select an image file');
+			}
+		}
+	}
+
+	// Open device camera with error handling
+	export async function openCamera() {
+		try {
+			// Try to get the camera stream without forcing environment mode
+			stream = await navigator.mediaDevices.getUserMedia({
+				video: true
 			});
-			videoStream = stream;
-			if (videoElement) {
-				videoElement.srcObject = stream;
+			videoEl.srcObject = stream;
+		} catch (error) {
+			console.error('Failed to access camera:', error);
+			alert('Unable to access camera. Please ensure camera permissions are granted.');
+		}
+	}
+
+	// Capture a frame, stop camera, set preview + notify parent
+	export function capturePhoto() {
+		if (!stream) return;
+
+		const canvas = document.createElement('canvas');
+		canvas.width = videoEl.videoWidth;
+		canvas.height = videoEl.videoHeight;
+		const ctx = canvas.getContext('2d');
+		if (!ctx) return;
+
+		ctx.drawImage(videoEl, 0, 0);
+		canvas.toBlob((blob) => {
+			if (!blob) return;
+			if (previewUrl) {
+				URL.revokeObjectURL(previewUrl);
 			}
-		} catch (err) {
-			console.error('Error accessing camera:', err);
-		}
+			capturedFile = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
+			previewUrl = URL.createObjectURL(blob);
+			onPhotoSelected(capturedFile);
+			stopCamera();
+		}, 'image/jpeg');
 	}
 
-	function capturePhoto() {
-		if (videoElement) {
-			const canvas = document.createElement('canvas');
-			canvas.width = videoElement.videoWidth;
-			canvas.height = videoElement.videoHeight;
-			const context = canvas.getContext('2d');
-			if (context) {
-				context.drawImage(videoElement, 0, 0);
-				const imageData = canvas.toDataURL('image/jpeg');
-				dispatch('capture', imageData);
-				closeCamera();
-			}
-		}
-	}
-
-	function closeCamera() {
-		if (videoStream) {
-			videoStream.getTracks().forEach((track) => track.stop());
-			videoStream = null;
-		}
-		dispatch('close');
-	}
-
-	$: if (showCamera) {
-		openCamera();
+	// Stop and clean up camera stream
+	export function stopCamera() {
+		stream?.getTracks().forEach((t) => t.stop());
+		stream = null;
 	}
 </script>
 
-{#if showCamera}
-	<div class="camera-container">
-		<video bind:this={videoElement} autoplay playsinline class="camera-preview">
-			<track kind="captions" label="Camera Feed" />
-		</video>
-		<div class="camera-controls">
-			<button class="cancel-button" on:click={closeCamera}> Cancel </button>
-			<button class="capture-button" on:click={capturePhoto} aria-label="Take photo"> </button>
+<div class="space-y-4">
+	<!-- 1) Camera/Upload options -->
+	{#if hasCamera}
+		<button
+			type="button"
+			class="w-full rounded bg-gray-800 px-4 py-2 text-white hover:bg-blue-700"
+			on:click={openCamera}
+		>
+			Take Photo
+		</button>
+	{:else}
+		<input
+			type="file"
+			accept="image/*"
+			bind:this={fileInput}
+			on:change={handleFileSelect}
+			class="hidden"
+		/>
+		<button
+			type="button"
+			class="w-full rounded bg-gray-800 px-4 py-2 text-white hover:bg-blue-700"
+			on:click={() => fileInput.click()}
+		>
+			Upload Photo
+		</button>
+	{/if}
+
+	<!-- 2) Live video while streaming -->
+	{#if stream}
+		<video bind:this={videoEl} autoplay playsinline class="w-full max-w-xs rounded shadow-md" />
+		<div class="flex gap-2">
+			<button
+				type="button"
+				class="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+				on:click={capturePhoto}
+			>
+				Capture
+			</button>
+			<button
+				type="button"
+				class="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+				on:click={stopCamera}
+			>
+				Cancel
+			</button>
 		</div>
-	</div>
-{/if}
+	{/if}
 
-<style>
-	.camera-container {
-		position: relative;
-		width: 100%;
-		max-width: 600px;
-		height: 400px;
-		background: black;
-		border-radius: 8px;
-		overflow: hidden;
-		margin: 1rem 0;
-	}
-
-	.camera-preview {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-	}
-
-	.camera-controls {
-		position: absolute;
-		bottom: 0;
-		left: 0;
-		right: 0;
-		padding: 1rem;
-		display: flex;
-		justify-content: space-around;
-		background: rgba(0, 0, 0, 0.7);
-	}
-
-	.capture-button {
-		width: 60px;
-		height: 60px;
-		border-radius: 50%;
-		background-color: #fff;
-		border: 3px solid #4caf50;
-		padding: 0;
-		cursor: pointer;
-		position: relative;
-	}
-
-	.capture-button::after {
-		content: '';
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		transform: translate(-50%, -50%);
-		width: 48px;
-		height: 48px;
-		border-radius: 50%;
-		background-color: #4caf50;
-		transition: all 0.2s;
-	}
-
-	.capture-button:hover::after {
-		width: 44px;
-		height: 44px;
-	}
-
-	.cancel-button {
-		padding: 0.75rem 1.5rem;
-		font-size: 1rem;
-		background-color: #f44336;
-		color: white;
-		border: none;
-		border-radius: 4px;
-		cursor: pointer;
-	}
-</style>
+	<!-- 3) Show preview if captured -->
+	{#if previewUrl}
+		<img
+			src={previewUrl}
+			alt="Captured photo preview"
+			class="mx-auto w-full max-w-xs rounded shadow-inner"
+		/>
+	{/if}
+</div>

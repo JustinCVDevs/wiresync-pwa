@@ -7,20 +7,26 @@
 	const crumbs = derived(page, ($page) => {
 		const segments = $page.url.pathname.split('/').filter(Boolean);
 
-		const list = segments.map((seg, i) => {
+		let list = segments.map((seg, i) => {
 			const href = '/' + segments.slice(0, i + 1).join('/');
 			const name = decodeURIComponent(seg)
 				.replace(/[-_]/g, ' ')
 				.replace(/\b\w/g, (c) => c.toUpperCase());
+			if (name === 'Processes') {
+				return { name: 'PMC Processes', href: '/processes' };
+			}
 			return { name, href };
 		});
 
-		return [{ name: 'Home', href: '/' }, ...list];
+		if (list.length == 1) {
+			list = [];
+		}
+		return [...list];
 	});
 </script>
 
-<nav aria-label="Breadcrumb" class="text-sm text-gray-500">
-	<ol class="flex items-center space-x-2">
+<nav aria-label="Breadcrumb" class="text-center text-sm text-gray-500">
+	<ol class="flex items-center justify-center space-x-2">
 		{#each $crumbs as crumb, i}
 			<li class="flex items-center">
 				{#if i > 0}

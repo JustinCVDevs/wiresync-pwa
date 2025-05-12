@@ -1,81 +1,79 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-  import { pocketbaseService } from '$lib/services/pocketbaseService';
-	import { onMount } from 'svelte';
-  import LoginForm from './LoginForm.svelte';
-  
-  import type { Writable } from 'svelte/store';
-  export let lastSyncTime: Writable<Date | null>;
+	import { pocketbaseService } from '$lib/services/pocketbaseService';
+	import LoginForm from './LoginForm.svelte';
 
-    $: syncTimeDisplay = $lastSyncTime 
-        ? `Last sync: ${$lastSyncTime.toLocaleTimeString()}`
-        : 'Never synced';
+	import type { Writable } from 'svelte/store';
+	export let lastSyncTime: Writable<Date | null>;
 
-  $: isAuthenticated = pocketbaseService.isAuthenticated;
-  let showLoginForm = false;
+	$: syncTimeDisplay = $lastSyncTime
+		? `Last sync: ${$lastSyncTime.toLocaleTimeString()}`
+		: 'Never synced';
 
-  // Update online status based on network connectivity
-  let online = true;
-  let status = 'Online';
-  
-  function updateOnlineStatus() {
-    online = navigator.onLine;
-    status = online ? 'Online' : 'Offline';
-  }
+	$: isAuthenticated = pocketbaseService.isAuthenticated;
+	let showLoginForm = false;
 
-  // Add event listeners for online/offline status
-  if (typeof window !== 'undefined') {
-    window.addEventListener('online', updateOnlineStatus);
-    window.addEventListener('offline', updateOnlineStatus);
-  }
+	// Update online status based on network connectivity
+	let online = true;
+	let status = 'Online';
 
-  function handleLogout() {
-    pocketbaseService.logout();
-    goto('/');
-    
-    
-  }
-  
+	function updateOnlineStatus() {
+		online = navigator.onLine;
+		status = online ? 'Online' : 'Offline';
+	}
+
+	// Add event listeners for online/offline status
+	if (typeof window !== 'undefined') {
+		window.addEventListener('online', updateOnlineStatus);
+		window.addEventListener('offline', updateOnlineStatus);
+	}
+
+	function handleLogout() {
+		pocketbaseService.logout();
+		goto('/');
+	}
 </script>
 
-
-
-<style>
-    
-    .sync-indicator {
-        font-size: 0.625rem;
-        color: #ff4444;
-    }
-    
-    .sync-indicator.online {
-        color: #44ff44;
-    }
-</style>
-
-<div class="bg-gray-700 grid grid-cols-3 grid-rows-1 gap-2 text-white py-2 px-3">
-    
-  <!-- User info -->
-  <div class="text-sm">
-    <span class="font-medium">Welcome Back,</span>
-    <span class="font-semibold">{pocketbaseService.currentUser?.name}</span>
-  </div>
-
-  <!-- Status & sync time -->
-  <div class="flex flex-col items-center">
-    <span class="rounded-full bg-green-500 px-3 py-1 text-xs font-medium text-white">
-      {status}
-    </span>
-    <span class="mt-1 text-xs opacity-75">
-      <span class="sync-indicator" class:online={navigator.onLine}>⬤</span>
-      {syncTimeDisplay}
-    </span>
-  </div>
-
-  <!-- Logout button -->
-  <button
-    on:click={handleLogout}
-    class="rounded bg-gray-700 px-3 py-1 text-sm font-medium text-white hover:bg-gray-600"
-  >
-    Log Out
-  </button>
+<div class="flex items-center justify-between rounded-t-lg bg-gray-800 p-4">
+	<div class="flex items-center">
+		<div class="mr-2 rounded bg-white p-1">
+			<div class="text-xl font-bold text-gray-800">MMS</div>
+		</div>
+	</div>
+	<div class="flex flex-1 justify-between">
+		<div class="mr-2 text-sm text-white">
+			<span>User: {pocketbaseService.currentUser?.name}</span>
+			<div class="flex items-center">
+				<span
+					class="mr-1 inline-block h-2 w-2 rounded-full {online ? 'bg-green-500' : 'bg-red-500'}"
+				></span>
+				<span class="text-xs">{online ? 'Online' : 'Offline'}</span>
+			</div>
+			<div class="text-xs">Synced at {syncTimeDisplay}</div>
+		</div>
+		<button
+			class="rounded bg-gray-700 px-2 py-1 text-xs text-white transition duration-200 hover:bg-gray-600"
+			on:click={handleLogout}
+		>
+			Log Out
+		</button>
+	</div>
 </div>
+
+<style lang="postcss">
+	@reference "tailwindcss";
+	.sync-indicator {
+		font-size: 0.625rem;
+		color: #ff4444;
+	}
+
+	.online-status {
+		@apply bg-red-500;
+		&.Online {
+			@apply bg-green-500;
+		}
+	}
+	.sync-indicator.Online {
+		color: #44ff44;
+	}
+</style>

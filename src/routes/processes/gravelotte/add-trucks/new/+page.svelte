@@ -13,7 +13,7 @@
 	let felWeight = '';
 	let samplingStatus: 'Yes' | 'No' = 'No';
 	let loadingLocation = '';
-	let loadingHour= '';
+	let loadingHour = '';
 	let availableTrucks: Truck[] = [];
 	let error = '';
 	let isLoading = true;
@@ -30,7 +30,7 @@
 
 			// Load available trucks
 			const trucks = await indexedDBService.getAllRecords('trucks');
-			availableTrucks = trucks; 
+			availableTrucks = trucks;
 		} catch (err) {
 			error = 'Failed to load data';
 			console.error(err);
@@ -46,7 +46,6 @@
 	});
 
 	const loadingLocations = ['West Load Out', 'East Load Out', 'Gravelotte', 'TLO'];
-
 
 	// Add validation function at the top of the script
 	function validateLoadingHour(value: string) {
@@ -82,11 +81,13 @@
 			const updatedAssay: Assay = {
 				...assay,
 				syncStatus: 'pending',
-				linkedTruckLoadIds: [...(assay.linkedTruckLoadIds || []), truckLoad.id].filter((id): id is string => id !== undefined),
+				linkedTruckLoadIds: [...(assay.linkedTruckLoadIds || []), truckLoad.id].filter(
+					(id): id is string => id !== undefined
+				),
 				updated: new Date().toISOString()
 			};
 			await indexedDBService.saveRecord('assays', updatedAssay);
-			
+
 			goto(`/processes/gravelotte/add-trucks?assayId=${assay.id}`);
 		} catch (err) {
 			error = 'Failed to submit truck data';
@@ -149,7 +150,6 @@
 			</div>
 
 			<div class="input-group">
-
 				<label for="loadingLocation">Loading Location</label>
 				<select id="loadingLocation" bind:value={loadingLocation} required>
 					<option value="">Select Loading Location</option>

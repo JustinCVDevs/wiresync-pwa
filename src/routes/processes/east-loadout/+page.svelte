@@ -1,18 +1,115 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-
+	import { onMount } from 'svelte';
+	import FormField from '$lib/components/FormField.svelte';
+	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
+	import { formPersistenceService } from '$lib/services/formPersistenceService';
 	import type { Assay } from '$lib/types/assay';
 	import { syncService } from '$lib/services/syncService';
+	import { SamplingStatusEnum } from '$lib/types/enums';
+	import type { ID } from '$lib';
 
+	let samplingStatus: SamplingStatusEnum = SamplingStatusEnum.No;
+	let wagonId: ID = '';
 	let sampleId = '';
 	let productGrade = '';
-	let error = '';
+	let isSubmitting = false;
+	let currentStep = 1;
+
+	// Process steps
+	const processSteps = ['Train Details', 'Wagon Capturing', 'Verification', 'Review'];
+
+	const samplingStatusOptions = [
+		{ value: SamplingStatusEnum.Yes, label: 'Yes' },
+		{ value: SamplingStatusEnum.No, label: 'No' }
+	];
+
+	// Reference to the ProcessLayout component
+	let processLayout: ProcessLayout;
+
+	// Form errors
+	let formErrors = {
+		sampleId: '',
+		productGrade: ''
+	};
+
+	onMount(() => {
+		// Load persisted form data
+		loadPersistedData();
+	});
+
+	// Save form data when component is unmounted
+	onMount(() => {
+		return () => {
+			if (sampleId || productGrade) {
+				formPersistenceService.saveForm('east_loadout', {
+					sampleId,
+					productGrade,
+					wagonId,
+					samplingStatus
+				});
+			}
+		};
+	});
+
+	function loadPersistedData() {
+		const savedData = formPersistenceService.loadForm<{
+			sampleId: string;
+			productGrade: string;
+		}>('east_loadout');
+
+		if (savedData) {
+			sampleId = savedData.sampleId || '';
+			productGrade = savedData.productGrade || '';
+		}
+	}
+
+	function validateStep() {
+		switch (currentStep) {
+			case 1:
+				return !!sampleId && !!productGrade;
+			case 3:
+				return !!wagonId && !!sampleId;
+			default:
+				return true;
+		}
+	}
+
+	function validateForm() {
+		let isValid = true;
+		formErrors = {
+			sampleId: '',
+			productGrade: '',
+			wagonId: '',
+			samplingStatus: ''
+		};
+
+		if (!sampleId) {
+			formErrors.sampleId = 'Sample ID is required';
+			isValid = false;
+		}
+
+		if (!productGrade) {
+			formErrors.productGrade = 'Product grade is required';
+			isValid = false;
+		}
+
+		return isValid;
+	}
 
 	const productGrades = ['Iron Oxide', 'Magnetite', 'Mag-64', 'Mag-65'];
 
 	async function handleSubmit() {
+		if (!validateForm()) {
+			return;
+		}
+
 		try {
+			isSubmitting = true;
+			processLayout.setError('');
+			processLayout.setSuccess('');
+
 			// Create the assay object according to the Assay interface
 			const assay: Assay = {
 				id: crypto.randomUUID(),
@@ -24,7 +121,7 @@
 				linkedWagonIds: [],
 				linkedTruckIds: [],
 				syncStatus: 'pending',
-				process: 'East Loadout',
+				process: 'East Loadout'
 			};
 
 			// Save to IndexedDB
@@ -33,54 +130,93 @@
 			// Try to sync using the sync service
 			await syncService.syncAssay(assay);
 
-			// Navigate to review page
-			goto('/processes/east-loadout/review?sampleId=' + assay.id);
-		} catch (err) {
-			error = 'Failed to save assay data';
-			console.error(err);
-		}
-	}
+			// Store wagon linkage
+			assay.linkedWagonIds.push(wagonId);
+			await indexedDBService.saveRecord('assays', assay);
 
-	function handleCancel() {
-		goto('/processes');
+			// Clear persisted form data
+			formPersistenceService.clearForm('east_loadout');
+
+			processLayout.setSuccess('Data saved successfully');
+			currentStep++;
+			setTimeout(() => {
+				// Navigate to next step
+				goto(
+					`/processes/east-loadout/${currentStep === 2 ? 'wagon-details' : currentStep === 3 ? 'verification' : 'review'}?sampleId=${assay.id}`
+				);
+			}, 1000);
+		} catch (err) {
+			if (currentStep < 4) {
+				currentStep++;
+			} else {
+				processLayout.setError('Failed to save assay data');
+			}
+			console.error(err);
+		} finally {
+			isSubmitting = false;
+		}
 	}
 </script>
 
-<div class="container">
-	<h1>East Loadout - Train Details</h1>
+<ProcessLayout
+	title="East Loadout - Train Details"
+	processKey="east_loadout"
+	steps={processSteps}
+	{currentStep}
+	{isSubmitting}
+	bind:this={processLayout}
+	on:submit={handleSubmit}
+>
+	<div slot="header">
+		<h5 class="text-xl font-bold ">Train Loading Details</h5>
+		<p class="text-sm text-gray-600">Please enter the sample and product details</p>
+	</div>
 
-	{#if error}
-		<div class="error">{error}</div>
-	{/if}
-
-	<div class="form">
-		<div class="input-group">
-			<label for="sampleId">Sample ID</label>
-			<input
+	<div class="space-y-4">
+		{#if currentStep === 1}
+			<FormField
 				id="sampleId"
-				type="text"
+				label="Sample ID"
 				bind:value={sampleId}
 				placeholder="Enter Sample ID"
-				required
+				required={true}
+				error={formErrors.sampleId}
 			/>
-		</div>
 
-		<div class="input-group">
-			<label for="productGrade">Product Grade</label>
-			<select id="productGrade" bind:value={productGrade} required>
-				<option value="">Select Product Grade</option>
-				{#each productGrades as grade}
-					<option value={grade}>{grade}</option>
-				{/each}
-			</select>
-		</div>
+			<FormField
+				id="productGrade"
+				label="Product Grade"
+				bind:value={productGrade}
+				placeholder="Select Product Grade"
+				isSelect={true}
+				options={productGrades.map((grade) => ({ value: grade, label: grade }))}
+				required={true}
+				error={formErrors.productGrade}
+			/>
+		{/if}
 
-		<div class="button-group">
-			<button class="cancel-button" on:click={handleCancel}>Cancel</button>
-			<button class="submit-button" on:click={handleSubmit}>Submit</button>
-		</div>
+		{#if currentStep === 3}
+			<FormField
+				id="wagonId"
+				label="Wagon ID"
+				bind:value={wagonId}
+				placeholder="Scan RFID or enter manually"
+				required={true}
+				error={formErrors.wagonId}
+			/>
+
+			<FormField
+				id="samplingStatus"
+				label="Sampling Completed"
+				bind:value={samplingStatus}
+				isSelect={true}
+				options={samplingStatusOptions}
+				required={true}
+				error={formErrors.samplingStatus}
+			/>
+		{/if}
 	</div>
-</div>
+</ProcessLayout>
 
 <style>
 	.container {

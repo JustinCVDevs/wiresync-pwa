@@ -1,10 +1,22 @@
-import PocketBase, { ClientResponseError, type AuthRecord, type RecordSubscription } from 'pocketbase';
+import PocketBase, {
+	ClientResponseError,
+	type AuthRecord,
+	type RecordSubscription
+} from 'pocketbase';
 import { indexedDBService } from './indexedDBService';
 import type { Train, Wagon, Sample, Assay, Consignment, TrainDispatch, TruckLoad } from '$lib';
 
 const POCKETBASE_URL = import.meta.env.VITE_POCKETBASE_URL;
 // make sure you have VITE_POCKETBASE_URL set in your .env
-type PBCollection = 'trains' | 'wagons' | 'samples' | 'assays' | 'trucks' | 'consignments' | 'trainDispatches' | 'truckLoads';
+type PBCollection =
+	| 'trains'
+	| 'wagons'
+	| 'samples'
+	| 'assays'
+	| 'trucks'
+	| 'consignments'
+	| 'trainDispatches'
+	| 'truckLoads';
 // add others here...
 
 type PBModelMap = {
@@ -50,14 +62,13 @@ class PocketBaseService {
 	async login(email: string, password: string): Promise<AuthRecord> {
 		try {
 			await this.pb.collection('users').authWithPassword(email, password);
-			return this.currentUser!;	
+			return this.currentUser!;
 		} catch (e: any) {
 			if (e instanceof ClientResponseError) {
 				throw new Error(e.data.message);
 			}
 			throw e;
 		}
-
 	}
 
 	logout() {

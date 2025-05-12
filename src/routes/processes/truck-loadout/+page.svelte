@@ -31,7 +31,7 @@
 
 			// Save assay to IndexedDB
 			await indexedDBService.saveRecord('assays', assay);
-			
+
 			goto(`/processes/truck-loadout/add-trucks?assayId=${assay.id}`);
 		} catch (err) {
 			error = 'Failed to submit data';

@@ -8,12 +8,13 @@
 	export let onScan: (tagId: string, assetName?: string) => void;
 	export let targetFieldId: string;
 	export let label: string = 'Scan RFID Tag';
+	export let defaultValue: string = '';
 
 	let nfcAvailable = rfidService.isNFCAvailable();
 	let nfcEnabled = rfidService.isNFCEnabled();
-	let lastScanned: string | null = null;
+	let lastScanned: string | null = defaultValue || null;
 	let assetName: string | null = null;
-	let manualTagId = '';
+	let manualTagId = defaultValue;
 	let unregister: () => void;
 
 	async function handleTagScanned(tagId: string) {
@@ -39,6 +40,10 @@
 
 	onMount(() => {
 		unregister = rfidService.registerScanner(targetFieldId, handleTagScanned);
+		if (defaultValue) {
+			handleTagScanned(defaultValue);
+			onScan(defaultValue);
+		}
 	});
 
 	onDestroy(() => {
@@ -55,23 +60,21 @@
 	}
 </script>
 
-<div class="bg-muted/30 mb-4 rounded-md border p-4">
-	<div class="mb-4 flex items-center justify-between">
-		<h3 class="text-sm font-medium">{label}</h3>
+<h3 class="text-sm font-medium">{label}</h3>
 
+<div class="bg-muted/30 mb-4 rounded-md">
+	<div class="mb-4 flex items-center justify-between">
 		{#if !nfcAvailable}
-			<div class="space-y-2">
-				<input
-					type="text"
-					class="w-full rounded border px-2 py-1 text-sm"
-					placeholder="Enter RFID tag manually"
-					bind:value={manualTagId}
-					on:input={handleManualInput}
-				/>
-				<div class="text-alert-amber flex items-center text-xs">
-					<AlertTriangle class="mr-1 h-3 w-3" />
-					NFC unavailable - manual entry enabled
-				</div>
+			<input
+				type="text"
+				class="w-full rounded border px-4 py-2 text-sm"
+				placeholder="Enter RFID tag manually"
+				bind:value={manualTagId}
+				on:input={handleManualInput}
+			/>
+			<div class="text-alert-amber flex flex-1 items-center text-xs">
+				<AlertTriangle class="mr-1 h-3 w-3" />
+				NFC unavailable
 			</div>
 		{:else if !nfcEnabled}
 			<Button variant="outline" size="sm" class="text-xs" on:click={requestNFCPermission}>

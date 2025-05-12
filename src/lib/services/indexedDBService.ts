@@ -1,8 +1,29 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
-import type { Assay, Wagon, Sample, Train, BaseRecord, Truck, Consignment, TrainDispatch, TruckLoad } from '$lib';
+import type {
+	Assay,
+	Wagon,
+	Sample,
+	Train,
+	BaseRecord,
+	Truck,
+	Consignment,
+	TrainDispatch,
+	TruckLoad
+} from '$lib';
 
 // concretely list your stores so TS sees them as literals
-const STORE_NAMES = ['trains', 'wagons', 'samples', 'assays', 'operationQueue', 'tags', 'trucks', 'consignments', 'trainDispatches', 'truckLoads'] as const;
+const STORE_NAMES = [
+	'trains',
+	'wagons',
+	'samples',
+	'assays',
+	'operationQueue',
+	'tags',
+	'trucks',
+	'consignments',
+	'trainDispatches',
+	'truckLoads'
+] as const;
 type StoreName = (typeof STORE_NAMES)[number];
 
 interface AppDB extends DBSchema {
@@ -22,7 +43,6 @@ interface Tag extends BaseRecord {
 	asset_name: string;
 }
 class IndexedDBService {
-
 	private dbName = 'wiresync-db';
 	private version = 6; // Increment version to trigger upgrade
 	private db: IDBPDatabase<AppDB> | null = null;
@@ -58,16 +78,16 @@ class IndexedDBService {
 	}
 
 	/**
-   * Get records from a store filtered by an optional predicate.
-   */
+	 * Get records from a store filtered by an optional predicate.
+	 */
 	async getRecords<K extends StoreName>(
 		store: K,
 		predicate?: (record: AppDB[K]['value']) => boolean
-	  ): Promise<AppDB[K]['value'][]> {
+	): Promise<AppDB[K]['value'][]> {
 		// Fetch all and then apply filter
 		const all = await this.getAllRecords(store);
 		return predicate ? all.filter(predicate) : all;
-	  }
+	}
 
 	async getAllRecords<K extends StoreName>(store: K): Promise<AppDB[K]['value'][]> {
 		await this.initDB();

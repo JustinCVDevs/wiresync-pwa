@@ -2,7 +2,10 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import Camera from '$lib/components/Camera.svelte';
+	import FormField from '$lib/components/FormField.svelte';
+	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
+	import { formPersistenceService } from '$lib/services/formPersistenceService';
 
 	import type { Assay } from '$lib/types/assay';
 	import type { TruckLoad } from '$lib/types/truckLoad';
@@ -12,9 +15,22 @@
 	let tankLocation = '';
 	let acidType = '';
 	let sampleId = '';
-	let showCamera = false;
-	let error = '';
 	let capturedImage = '';
+	let isSubmitting = false;
+	let currentStep = 1;
+
+	// Process steps
+	const processSteps = ['Truck Details', 'Review'];
+
+	// Reference to the ProcessLayout component
+	let processLayout: ProcessLayout;
+
+	// Form errors
+	let formErrors = {
+		truckServerId: '',
+		tankLocation: '',
+		acidType: ''
+	};
 
 	const tankLocations = ['Tank 1', 'Tank 2', 'Tank 3', 'Tank 4'];
 	const acidTypes = ['Weak Acid', 'Strong Acid'];
@@ -23,13 +39,82 @@
 		// Fetch trucks from IndexedDB
 		const trucks = await indexedDBService.getRecords('trucks');
 		availableTrucks = trucks;
+
+		// Load persisted form data
+		loadPersistedData();
 	});
 
+	// Save form data when component is unmounted
+	onMount(() => {
+		return async () => {
+			if (truckServerId || tankLocation || acidType || sampleId || capturedImage) {
+				formPersistenceService.saveForm('acid_truck', {
+					truckServerId,
+					tankLocation,
+					acidType,
+					sampleId,
+					capturedImage
+				});
+			}
+		};
+	});
+
+	function loadPersistedData() {
+		const savedData = formPersistenceService.loadForm<{
+			truckServerId: string;
+			tankLocation: string;
+			acidType: string;
+			sampleId: string;
+			capturedImage: string;
+		}>('acid_truck');
+
+		if (savedData) {
+			truckServerId = savedData.truckServerId || '';
+			tankLocation = savedData.tankLocation || '';
+			acidType = savedData.acidType || '';
+			sampleId = savedData.sampleId || '';
+			capturedImage = savedData.capturedImage || '';
+		}
+	}
+
+	function validateForm() {
+		let isValid = true;
+		formErrors = {
+			truckServerId: '',
+			tankLocation: '',
+			acidType: ''
+		};
+
+		if (!truckServerId) {
+			formErrors.truckServerId = 'Truck is required';
+			isValid = false;
+		}
+
+		if (!tankLocation) {
+			formErrors.tankLocation = 'Tank location is required';
+			isValid = false;
+		}
+
+		if (!acidType) {
+			formErrors.acidType = 'Acid type is required';
+			isValid = false;
+		}
+
+		return isValid;
+	}
 
 	async function handleSubmit() {
+		if (!validateForm()) {
+			return;
+		}
+
 		try {
+			isSubmitting = true;
+			processLayout.setError('');
+			processLayout.setSuccess('');
+
 			const truckLoadId = crypto.randomUUID();
-			
+
 			// Create truck load record
 			const truckLoad: TruckLoad = {
 				id: truckLoadId,
@@ -59,10 +144,18 @@
 				indexedDBService.saveRecord('assays', assay)
 			]);
 
-			goto(`/processes/acid-truck/review?assayId=${assay.id}`);
+			// Clear persisted form data
+			formPersistenceService.clearForm('acid_truck');
+
+			processLayout.setSuccess('Data saved successfully');
+			setTimeout(() => {
+				goto(`/processes/acid-truck/review?assayId=${assay.id}`);
+			}, 1000);
 		} catch (err) {
-			error = 'Failed to submit data';
+			processLayout.setError('Failed to submit data');
 			console.error(err);
+		} finally {
+			isSubmitting = false;
 		}
 	}
 
@@ -76,69 +169,85 @@
 	}
 </script>
 
-<div class="container">
-	<h1>Acid Truck Details</h1>
+<ProcessLayout
+	title="Acid Truck Details"
+	processKey="acid_truck"
+	steps={processSteps}
+	{currentStep}
+	{isSubmitting}
+	bind:this={processLayout}
+	on:submit={handleSubmit}
+>
+	<div slot="header">
+		<h5 class="text-xl font-bold ">Acid Truck Loading Details</h5>
+		<p class="text-sm text-gray-600">Please enter the truck and loading details</p>
+	</div>
 
-	{#if error}
-		<div class="error">{error}</div>
-	{/if}
-
-	<div class="form">
-		<div class="input-group">
-			<label for="truckRegistration">Truck Registration</label>
-			<!-- Update the select element to use truck objects -->
-			<select id="truckRegistration" bind:value={truckServerId} required>
+	<div class="space-y-4">
+		<div class="space-y-1">
+			<label for="truckRegistration" class="block font-medium text-gray-700"
+				>Truck Registration</label
+			>
+			<select
+				id="truckRegistration"
+				bind:value={truckServerId}
+				class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-gray-400 focus:outline-none {formErrors.truckServerId
+					? 'border-red-500'
+					: ''}"
+				required
+			>
 				<option value="">Select Truck Registration</option>
 				{#each availableTrucks as truck}
 					<option value={truck.id}>{truck.registration}</option>
 				{/each}
 			</select>
-			<button class="camera-button" on:click={() => (showCamera = true)}> Open Camera </button>
+			{#if formErrors.truckServerId}
+				<p class="text-sm text-red-600">{formErrors.truckServerId}</p>
+			{/if}
+		</div>
+
+		<div class="space-y-1">
+			<label for="camera" class="block font-medium text-gray-700"
+				>Capture a photo of the truck:</label
+			>
+			<Camera onPhotoSelected={(file) => (capturedImage = file ? URL.createObjectURL(file) : '')} />
 			{#if capturedImage}
-				<div class="captured-image">
-					<img src={capturedImage} alt="Captured truck registration" />
+				<div class="mt-2 overflow-hidden rounded-lg border border-gray-300">
+					<img src={capturedImage} alt="Captured truck registration" class="h-auto w-full" />
 				</div>
 			{/if}
 		</div>
 
-		<Camera {showCamera} on:capture={handleCapture} on:close={() => (showCamera = false)} />
+		<FormField
+			id="tankLocation"
+			label="Tank Location"
+			bind:value={tankLocation}
+			placeholder="Select Tank Location"
+			isSelect={true}
+			options={tankLocations.map((location) => ({ value: location, label: location }))}
+			required={true}
+			error={formErrors.tankLocation}
+		/>
 
-		<div class="input-group">
-			<label for="tankLocation">Tank Loaded From</label>
-			<select id="tankLocation" bind:value={tankLocation} required>
-				<option value="">Select Tank</option>
-				{#each tankLocations as tank}
-					<option value={tank}>{tank}</option>
-				{/each}
-			</select>
-		</div>
+		<FormField
+			id="acidType"
+			label="Acid Type"
+			bind:value={acidType}
+			placeholder="Select Acid Type"
+			isSelect={true}
+			options={acidTypes.map((type) => ({ value: type, label: type }))}
+			required={true}
+			error={formErrors.acidType}
+		/>
 
-		<div class="input-group">
-			<label for="acidType">Acid Type</label>
-			<select id="acidType" bind:value={acidType} required>
-				<option value="">Select Acid Type</option>
-				{#each acidTypes as type}
-					<option value={type}>{type}</option>
-				{/each}
-			</select>
-		</div>
-
-		<div class="input-group">
-			<label for="sampleId">Sample ID (Optional)</label>
-			<input
-				id="sampleId"
-				type="text"
-				bind:value={sampleId}
-				placeholder="Enter Sample ID if applicable"
-			/>
-		</div>
-
-		<div class="button-group">
-			<button class="cancel-button" on:click={handleCancel}>Cancel</button>
-			<button class="submit-button" on:click={handleSubmit}>Submit</button>
-		</div>
+		<FormField
+			id="sampleId"
+			label="Sample ID (Optional)"
+			bind:value={sampleId}
+			placeholder="Enter Sample ID"
+		/>
 	</div>
-</div>
+</ProcessLayout>
 
 <style>
 	.container {

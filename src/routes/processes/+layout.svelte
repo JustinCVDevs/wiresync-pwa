@@ -5,13 +5,16 @@
 	import { onMount } from 'svelte';
 	import { syncService } from '$lib/services/syncService';
 	import { writable } from 'svelte/store';
-	import '../../app.scss';
+
+	import Breadcrumbs from '$lib/components/Breadcrumbs.svelte';
+	import { goto } from '$app/navigation';
 
 	let { children } = $props();
 	const message = $derived($page.url.searchParams.get('error'));
 	const lastSyncTime = writable<Date | null>(null);
 
 	async function syncData() {
+		console.log('Syncing Data');
 		if (navigator.onLine) {
 			try {
 				await Promise.all([
@@ -22,6 +25,7 @@
 				]);
 				lastSyncTime.set(new Date());
 			} catch (error) {
+				goto(`/processes?error=Sync failed: Unable to sync`);
 				console.warn('Sync failed:', error);
 			}
 		}
@@ -35,7 +39,10 @@
 </script>
 
 <Header {lastSyncTime} />
+<Breadcrumbs />
 {#if message != null}
-    <Toaster title={message} />
+	<Toaster title={message} />
 {/if}
-{@render children()}
+<div class="p-4">
+	{@render children()}
+</div>
