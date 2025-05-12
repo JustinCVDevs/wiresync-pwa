@@ -56,7 +56,7 @@
 	}
 </script>
 
-<div class="mx-auto max-w-md rounded-lg bg-white p-6 shadow-lg">
+<div class="mx-auto max-w-md rounded-lg bg-white p-6 shadow-lg dark:text-gray-800">
 	<h1 class="mb-6 text-center text-2xl font-bold">Review Dispatch Details</h1>
 
 	{#if error}

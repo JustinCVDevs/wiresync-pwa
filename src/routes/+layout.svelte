@@ -1,12 +1,13 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import Button from '$lib/components/ui/button/button.svelte';
-	import '../app.css';
-	import { page } from '$app/stores';
-
-	let { children } = $props();
-	const message = $derived($page.url.searchParams.get('error'));
-</script>
-
-{message}
-{@render children()}
+	// static UI, no data-fetch here
+	import '../app.css'
+  </script>
+  
+  <main>
+	<slot />    <!-- dynamic pages render here -->
+  </main>
+  
+  <footer>
+	<!-- static footer -->
+  </footer>
+  

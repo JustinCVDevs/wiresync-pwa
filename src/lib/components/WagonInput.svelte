@@ -28,13 +28,13 @@
 
 <div class="wagon-input">
 	<div class="input-group">
-		<label for="rfidTag">RFID Tag</label>
-		<input id="rfidTag" type="text" bind:value={rfidTag} placeholder="Scan or enter RFID tag" />
+		<label for="rfidTag" class="dark:text-gray-800">RFID Tag</label>
+		<input id="rfidTag" class="dark:text-gray-800" type="text" bind:value={rfidTag} placeholder="Scan or enter RFID tag" />
 	</div>
 
 	<div class="input-group">
-		<label for="wagonId">Wagon ID</label>
-		<input id="wagonId" type="text" bind:value={wagonId} placeholder="Enter Wagon ID" />
+		<label for="wagonId" class="dark:text-gray-800">Wagon ID</label>
+		<input id="wagonId" type="text" bind:value={wagonId} placeholder="Enter Wagon ID" class="dark:text-gray-800"/>
 	</div>
 
 	<Camera {showCamera} on:capture={handleCapture} on:close={() => (showCamera = false)} />
@@ -44,8 +44,7 @@
 			<img src={capturedImage} alt="Captured wagon" />
 			<button class="camera-button" on:click={() => (showCamera = true)}> Retake Photo </button>
 		</div>
-	{:else}
-		<button class="camera-button" on:click={() => (showCamera = true)}> Open Camera </button>
+
 	{/if}
 
 	<div class="button-group">

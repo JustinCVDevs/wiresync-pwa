@@ -8,7 +8,20 @@ export default defineConfig({
 	VitePWA({
 		registerType: 'autoUpdate',
 		workbox: {
-			globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,jpg,jpeg,json}']
+			// Precache everything in `build`
+			globPatterns: ['**/*.{js,css,html,svg,png}'],
+			runtimeCaching: [
+				{
+					urlPattern: /^\/api\/.*\.(json)$/,
+					handler: 'NetworkFirst',
+					options: { cacheName: 'api-cache', expiration: { maxEntries: 50 } }
+				},
+				{
+					urlPattern: /\.(?:png|jpg|jpeg|svg|gif)$/,
+					handler: 'CacheFirst',
+					options: { cacheName: 'image-cache', expiration: { maxEntries: 100, maxAgeSeconds: 604800 } }
+				}
+			]
 		},
 		manifest: {
 			name: 'WirewSync',
