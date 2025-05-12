@@ -1,40 +1,169 @@
-[![BUN CI](https://github.com/Claer-Volker/wiresync-pwa/actions/workflows/node.js.yml/badge.svg)](https://github.com/Claer-Volker/wiresync-pwa/actions/workflows/node.js.yml)
-[![Netlify Status](https://api.netlify.com/api/v1/badges/b6972c29-66ed-4c25-9c31-774741ce17ec/deploy-status)](https://app.netlify.com/sites/wiresync/deploys)
-# sv
+# PMC Offline Application
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+## Overview
 
-## Creating a project
+The PMC Offline Application is a robust tool designed to streamline and digitize operational processes for the Palabora Mining Company (PMC) and associated locations. It enables efficient data capture, validation, and linking of components such as wagons, trucks, consignments, and samples. The application operates offline, ensuring uninterrupted functionality in remote areas, with data synchronization to the central database (WIRE) when connectivity is restored.
 
-If you're seeing this, you've probably already done this step. Congrats!
+## Purpose
+
+- **Enhance Operational Efficiency**
+  Automate data entry and validation processes, reducing manual errors and improving accuracy.
+- **Enable Offline Functionality**
+  Allow users to perform tasks in areas with limited connectivity.
+- **Standardize Processes**
+  Provide a consistent interface for managing operations across multiple locations.
+- **Improve Data Management**
+  Facilitate the creation, linking, and storage of transactions for components like wagons, trucks, consignments, and samples.
+- **Support Decision-Making**
+  Deliver accurate and up-to-date data for operational analysis and reporting.
+
+## Features
+
+1. **User Login and Navigation**
+
+   - Secure login with username and password
+   - Location-based process selection (PMC, Bosveld, Richards Bay)
+
+2. **Process-Specific Interfaces**
+
+   - Marshaling Receival
+   - Marshaling Dispatch
+   - West Loadout
+   - East Loadout
+   - Gravelotte & Truck Loadout
+   - Copper Truck Loadout
+   - Acid Truck
+
+3. **Data Capture and Validation**
+
+   - RFID scanning, manual data entry, dropdown selections
+   - Camera integration for photographs
+   - Real-time validation and linking of components
+
+4. **Transaction Creation**
+
+   - Automatic creation of transactions in WIRE for wagons, trucks, consignments, samples
+
+5. **Relationships and Linking**
+
+   - Link multiple wagons to trains and consignments
+   - Reuse RFID tags across wagons and trucks
+
+6. **Offline Functionality**
+
+   - Seamless operation in offline mode, with background sync when online
+
+## Processes
+
+### 1. General Login and Navigation
+
+- **Inputs:** Username, Password, Location
+- **Result:** Directs user to “Select a Location” or shows login error
+
+### 2. PMC Marshaling Receival
+
+- **Inputs:** RFID Tag, Wagon ID, Photograph of Wagon
+- **Result:** Creates a WAGON transaction in WIRE
+
+### 3. PMC Marshaling Dispatch
+
+- **Inputs:**
+
+  - Train Reference Number
+  - Consignment Number
+  - Train RFID Number
+  - Wagon RFID Tag
+  - Wagon ID
+  - Photograph of Train RFID
+
+- **Result:**
+
+  - Links wagons to TRAIN & CONSIGNMENT
+  - Allocates timestamp
+  - Links CONSIGNMENT to TRAIN
+
+### 4. West Loadout
+
+- **Inputs:**
+  Sample ID, Product Grade, Consignment Number, Loading Location, Wagon ID, Wagon Weight, Wagon Sampling Status
+- **Result:**
+  Creates an ASSAY transaction and links wagons to the Sample ID
+
+### 5. East Loadout
+
+- **Inputs:** Sample ID, Product Grade, Wagon ID, Wagon Sampling Status
+- **Result:** Creates an ASSAY transaction and links wagons to the Sample ID
+
+### 6. Gravelotte & Truck Loadout
+
+- **Dedicated Fleet: NO**
+
+  - **Inputs:** Sample ID, Sample Size, Commodity, Product Type, Truck Registration, FEL Weight, Sample Status, Loading Location
+  - **Result:** ASSAY transaction; links trucks to Sample ID
+
+- **Dedicated Fleet: YES**
+
+  - **Inputs:** Sample ID, Sample Size, Commodity, Product Type, Truck Registration, FEL Weight, Sample Status, Loading Location, Loading Hour
+  - **Result:** FLEET transaction; links trucks to Sample ID
+
+### 7. Copper Truck Loadout
+
+- **Inputs:** Truck Registration, Photograph of Truck, Material Type, Loaded Weight, Sample ID
+- **Result:** ASSAY transaction; links Sample ID to truck
+
+### 8. Acid Truck
+
+- **Inputs:** Truck Registration, Photograph of Truck, Tank Loaded From, Acid Type, Sample ID
+- **Result:** ASSAY transaction; links Sample ID to truck
+
+## Relationships and Linking
+
+- Multiple wagons → one train & one consignment
+- Multiple consignments → one train
+- Batch assignment of Sample ID, Product Grade, Consignment Number & Loading Location upon “Complete Loading”
+- RFID tags reused across wagons and trucks
+
+## Installation
 
 ```bash
-# create a new project in the current directory
-npx sv create
+# Clone the repository
+git clone <REPO_URL>
 
-# create a new project in my-app
-npx sv create my-app
+# Install dependencies
+npm install
+
+# Run the application
+npm run start
 ```
 
-## Developing
+_(Replace `<REPO_URL>` with the actual repository URL.)_
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+## Usage
 
-```bash
-npm run dev
+1. **Login:** Enter your username & password
+2. **Select Location:** PMC, Bosveld, or Richards Bay
+3. **Select Process:** Choose from Marshaling Receival, West Loadout, etc.
+4. **Enter Data:** RFID tags, IDs, weights, sample details
+5. **Submit:** Transactions are created and components linked
+6. **Complete Loading:** Finalize the workflow and return to home
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
+## Contributing
 
-## Building
+1. Fork the repository
+2. Create a new branch: `git checkout -b feature/your-feature`
+3. Make changes & commit: `git commit -m "Add feature"`
+4. Push branch: `git push origin feature/your-feature`
+5. Submit a Pull Request
 
-To create a production version of your app:
+## License
 
-```bash
-npm run build
-```
+This project is proprietary and contains confidential information belonging to Metal Management Solutions (MMS). Redistribution or modification is prohibited without prior written permission.
 
-You can preview the production build with `npm run preview`.
+## Contact
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+- **Project Lead:** Philip Mare – [philip.mare@metalmanagementsolutions.com](mailto:philip.mare@metalmanagementsolutions.com)
+- **Project Manager:** Rouxne Prinsloo – [rouxne@metalmanagementsolutions.com](mailto:rouxne@metalmanagementsolutions.com)
+
+## Acknowledgments
+
+Special thanks to the development team and stakeholders for their contributions.

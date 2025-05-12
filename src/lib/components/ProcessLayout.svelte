@@ -63,7 +63,7 @@
 	}
 </script>
 
-<section class="container mx-auto px-4 py-6">
+<section class="container mx-auto px-4 py-6 bg-white rounded-xl">
 	<h1 class="text-center text-2xl font-semibold text-gray-900">{title}</h1>
 
 	<!-- Progress Steps -->
@@ -72,13 +72,13 @@
 			{#each steps as step, i}
 				<div class="flex flex-col items-center">
 					<div
-						class="flex h-8 w-8 items-center justify-center rounded-full {currentStep >= i + 1
+						class="flex h-8 w-8 items-center justify-center  rounded-full {currentStep >= i + 1
 							? 'bg-green-500 text-white'
 							: 'bg-gray-300'}"
 					>
 						{i + 1}
 					</div>
-					<span class="mt-1 text-xs">{step}</span>
+					<span class="mt-1 text-xs  dark:text-gray-800">{step}</span>
 				</div>
 				{#if i < steps.length - 1}
 					<div
@@ -99,7 +99,7 @@
 
 	{#if success}
 		<div
-			class="mt-4 flex items-center gap-2 rounded-lg bg-green-100 p-4 text-green-700"
+			class="mt-4 flex items-center gap-2 rounded-lg bg-green-100 p-4 text-green-700 "
 			role="alert"
 		>
 			<CheckCircle size={20} />

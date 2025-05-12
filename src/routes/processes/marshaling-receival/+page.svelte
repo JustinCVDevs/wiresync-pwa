@@ -33,7 +33,7 @@
 	// Save form data when component is unmounted
 	onMount(() => {
 		return async () => {
-			if (transcoreTag || wagonId || selectedPhoto) {
+			if (transcoreTag && wagonId && selectedPhoto) {
 				let dataUrl = null;
 				if (selectedPhoto) {
 					dataUrl = await formPersistenceService.fileToDataURL(selectedPhoto);
@@ -71,6 +71,7 @@
 		if (!validateForm()) {
 			return;
 		}
+		formPersistenceService.clearForm('marshaling_receival');
 
 		try {
 			isSubmitting = true;
@@ -90,7 +91,6 @@
 			};
 
 			await indexedDBService.saveRecord('wagons', receivalData);
-			formPersistenceService.clearForm('marshaling_receival');
 
 			processLayout.setSuccess('Data saved successfully');
 			setTimeout(() => {
@@ -122,31 +122,7 @@
 		}
 
 		// Also check the old storage key for backward compatibility
-		if (!savedData) {
-			const oldSavedData = localStorage.getItem('currentMarshalingReceival');
-			if (oldSavedData) {
-				try {
-					const data = JSON.parse(oldSavedData);
-					transcoreTag = data.transcoreTag || '';
-					wagonId = data.wagonId || '';
-					if (data.capturedImage) {
-						selectedPhoto = formPersistenceService.dataURLtoFile(
-							data.capturedImage,
-							'wagonPhoto.png'
-						);
-					}
-					// Migrate to new storage format
-					formPersistenceService.saveForm('marshaling_receival', {
-						transcoreTag,
-						wagonId,
-						capturedImage: data.capturedImage
-					});
-					localStorage.removeItem('currentMarshalingReceival');
-				} catch (e) {
-					console.error('Error parsing old saved data:', e);
-				}
-			}
-		}
+	
 	}
 </script>
 
@@ -160,7 +136,7 @@
 	on:submit={handleSubmit}
 >
 	<div slot="header">
-		<h5 class="text-xl font-bold ">RFID Tag & Wagon Number</h5>
+		<h5 class="text-xl font-bold  dark:text-gray-800 ">RFID Tag & Wagon Number</h5>
 		<p class="text-sm text-gray-600">
 			Please place the RFID tag on the wagon in the appropriate position
 		</p>

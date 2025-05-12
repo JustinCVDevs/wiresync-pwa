@@ -39,7 +39,7 @@
 {:else}
 	<div class="flex h-screen flex-col items-center justify-center">
 		<img src="./icons/logo-512.png" alt="Wire Sync Logo" class="mb-6 inline-block h-32" />
-		<div class="mb-4 text-center text-3xl font-bold text-gray-800">Welcome back</div>
+		<div class="mb-4 text-center text-3xl font-bold text-black-800">Welcome back</div>
 
 		<div class="w-96 rounded-lg bg-white p-8 shadow-md">
 			<h1 class="mb-6 text-center text-2xl font-bold">Login to your account</h1>
@@ -57,7 +57,7 @@
 						type="email"
 						id="email"
 						bind:value={email}
-						class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+						class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
 						required
 					/>
 				</div>
@@ -68,7 +68,7 @@
 						type="password"
 						id="password"
 						bind:value={password}
-						class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+						class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
 						required
 					/>
 				</div>

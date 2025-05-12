@@ -124,7 +124,7 @@
 		const rfid = selectedRfid || manualRfid;
 
 		const dispatchId = trainDispatchRecord.id;
-		goto(`/processes/marshaling-dispatch/review?dispatchId=${dispatchId}`);
+		goto(`/processes/marshaling-dispatch/wagon-linkage?dispatchId=${dispatchId}`);
 	}
 
 	onMount(() => {
