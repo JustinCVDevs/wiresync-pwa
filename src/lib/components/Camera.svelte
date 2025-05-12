@@ -26,18 +26,50 @@
 	});
 
 	// Check if camera is available
+	let availableCameras: MediaDeviceInfo[] = [];
+	let selectedCameraId: string = '';
+	let isTorchOn = false;
+	let isDesktop = !navigator.userAgent.match(/Mobi/i);
+
 	async function checkCamera() {
 		try {
 			const devices = await navigator.mediaDevices.enumerateDevices();
-			hasCamera = devices.some((device) => device.kind === 'videoinput');
+			availableCameras = devices.filter(device => device.kind === 'videoinput');
+			hasCamera = availableCameras.length > 0;
+			selectedCameraId = availableCameras[0]?.deviceId || '';
 		} catch (error) {
-			console.error('Failed to check camera availability:', error);
-			hasCamera = false;
+			console.error('Camera enumeration failed:', error);
 		}
 	}
 
-	// Initialize camera check
-	checkCamera();
+	async function openCamera(deviceId?: string) {
+		try {
+			const constraints: MediaStreamConstraints = {
+				video: {
+					deviceId: deviceId ? { exact: deviceId } : undefined,
+					advanced: [{ torch: isTorchOn } as any]
+				}
+			};
+			
+			stream = await navigator.mediaDevices.getUserMedia(constraints);
+			videoEl.srcObject = stream;
+		} catch (error) {
+			console.error('Camera access failed:', error);
+		}
+	}
+
+	function toggleTorch() {
+		if (stream) {
+			isTorchOn = !isTorchOn;
+			const track = stream.getVideoTracks()[0];
+			track.applyConstraints({ advanced: [{ torch: isTorchOn } as any] });
+		}
+	}
+
+	function switchCamera(deviceId: string) {
+		stopCamera();
+		openCamera(deviceId);
+	}
 
 	// Handle file selection
 	function handleFileSelect(event: Event) {
@@ -56,19 +88,6 @@
 		}
 	}
 
-	// Open device camera with error handling
-	export async function openCamera() {
-		try {
-			// Try to get the camera stream without forcing environment mode
-			stream = await navigator.mediaDevices.getUserMedia({
-				video: true
-			});
-			videoEl.srcObject = stream;
-		} catch (error) {
-			console.error('Failed to access camera:', error);
-			alert('Unable to access camera. Please ensure camera permissions are granted.');
-		}
-	}
 
 	// Capture a frame, stop camera, set preview + notify parent
 	export function capturePhoto() {
@@ -101,15 +120,26 @@
 </script>
 
 <div class="space-y-4">
-	<!-- 1) Camera/Upload options -->
-	{#if hasCamera}
-		<button
+	{#if hasCamera && !isDesktop}
+		<button 
 			type="button"
 			class="w-full rounded bg-gray-800 px-4 py-2 text-white hover:bg-blue-700"
-			on:click={openCamera}
+			on:click={() => openCamera(selectedCameraId)}
 		>
 			Take Photo
 		</button>
+		
+		{#if availableCameras.length > 1}
+			<select 
+				bind:value={selectedCameraId}
+				on:change={() => switchCamera(selectedCameraId)}
+				class="w-full rounded bg-gray-700 p-2 text-white"
+			>
+				{#each availableCameras as camera, $index}
+					<option value={camera.deviceId}>{camera.label || 'Camera ' + ($index + 1)}</option>
+				{/each}
+			</select>
+		{/if}
 	{:else}
 		<input
 			type="file"
@@ -127,28 +157,35 @@
 		</button>
 	{/if}
 
-	<!-- 2) Live video while streaming -->
 	{#if stream}
-		<video bind:this={videoEl} autoplay playsinline class="w-full max-w-xs rounded shadow-md" />
-		<div class="flex gap-2">
-			<button
-				type="button"
-				class="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700"
-				on:click={capturePhoto}
-			>
-				Capture
-			</button>
-			<button
-				type="button"
-				class="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700"
-				on:click={stopCamera}
-			>
-				Cancel
-			</button>
+		<div class="space-y-2">
+			<video bind:this={videoEl} autoplay playsinline class="w-full max-w-xs rounded shadow-md" />
+			<div class="flex gap-2">
+				<button
+					type="button"
+					class="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+					on:click={capturePhoto}
+				>
+					Capture
+				</button>
+				<button
+					type="button"
+					class="rounded bg-yellow-600 px-4 py-2 text-white hover:bg-yellow-700"
+					on:click={toggleTorch}
+				>
+					{isTorchOn ? 'Flash Off' : 'Flash On'}
+				</button>
+				<button
+					type="button"
+					class="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+					on:click={stopCamera}
+				>
+					Cancel
+				</button>
+			</div>
 		</div>
 	{/if}
 
-	<!-- 3) Show preview if captured -->
 	{#if previewUrl}
 		<img
 			src={previewUrl}

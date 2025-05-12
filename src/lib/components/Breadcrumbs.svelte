@@ -25,7 +25,7 @@
 	});
 </script>
 
-<nav aria-label="Breadcrumb" class="text-center text-sm text-gray-500">
+<nav aria-label="Breadcrumb" class="text-center text-sm text-gray-500 mt-4">
 	<ol class="flex items-center justify-center space-x-2">
 		{#each $crumbs as crumb, i}
 			<li class="flex items-center">
@@ -45,7 +45,7 @@
 						/>
 					</svg>
 				{/if}
-				<a href={crumb.href} class="hover:text-gray-700">
+				<a href={crumb.href} class="hover:text-gray-700 ml-2">
 					{crumb.name}
 				</a>
 			</li>
