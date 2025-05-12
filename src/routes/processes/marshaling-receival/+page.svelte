@@ -31,21 +31,7 @@
 	});
 
 	// Save form data when component is unmounted
-	onMount(() => {
-		return async () => {
-			if (transcoreTag && wagonId && selectedPhoto) {
-				let dataUrl = null;
-				if (selectedPhoto) {
-					dataUrl = await formPersistenceService.fileToDataURL(selectedPhoto);
-				}
-				formPersistenceService.saveForm('marshaling_receival', {
-					transcoreTag,
-					wagonId,
-					capturedImage: dataUrl
-				});
-			}
-		};
-	});
+	
 
 	function validateForm() {
 		let isValid = true;

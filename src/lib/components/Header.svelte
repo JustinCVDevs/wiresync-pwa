@@ -37,7 +37,7 @@
 <div class="flex items-center justify-between rounded-t-lg bg-gray-800 p-4">
 	<div class="flex items-center">
 		<div class="mr-2 rounded bg-white p-1">
-			<div class="text-xl font-bold text-gray-800">MMS</div>
+			<img src="./icons/logo-512.png" alt="Wire Sync Logo" class=" inline-block h-16 w16-16" />
 		</div>
 	</div>
 	<div class="flex flex-1 justify-between">
