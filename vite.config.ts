@@ -28,6 +28,14 @@ export default defineConfig({
 					sizes: '512x512',
 					type: 'image/png'
 				}
+			],
+			screenshots: [
+				{
+					src: '/screenshots/app-399x865.png',
+					sizes: '399x865',
+					type: 'image/png',
+					platform: 'narrow'    // tall form factor
+				}
 			]
 		}
 	})

@@ -37,8 +37,8 @@
 		<div class="h-12 w-12 animate-spin rounded-full border-t-2 border-b-2 border-blue-500"></div>
 	</div>
 {:else}
-	<div class="flex flex-col items-center justify-center">
-		<img src="./wire sync.png" alt="Wire Sync Logo" class="mb-6 inline-block h-32" />
+	<div class="flex h-screen flex-col items-center justify-center">
+		<img src="./icons/logo-512.png" alt="Wire Sync Logo" class="mb-6 inline-block h-32" />
 		<div class="mb-4 text-center text-3xl font-bold text-gray-800">Welcome back</div>
 
 		<div class="w-96 rounded-lg bg-white p-8 shadow-md">
