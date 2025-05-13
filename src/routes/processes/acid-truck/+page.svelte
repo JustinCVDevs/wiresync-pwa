@@ -211,11 +211,7 @@
 				>Capture a photo of the truck:</label
 			>
 			<Camera onPhotoSelected={(file) => (capturedImage = file ? URL.createObjectURL(file) : '')} />
-			{#if capturedImage}
-				<div class="mt-2 overflow-hidden rounded-lg border border-gray-300">
-					<img src={capturedImage} alt="Captured truck registration" class="h-auto w-full" />
-				</div>
-			{/if}
+			
 		</div>
 
 		<FormField

@@ -92,12 +92,7 @@
 					<option value={truck.serverId}>{truck.registration}</option>
 				{/each}
 			</select>
-			<button class="camera-button" on:click={() => (showCamera = true)}> Open Camera </button>
-			{#if capturedImage}
-				<div class="captured-image">
-					<img src={capturedImage} alt="Captured truck registration" />
-				</div>
-			{/if}
+	
 		</div>
 
 		<Camera {showCamera} on:capture={handleCapture} on:close={() => (showCamera = false)} />
