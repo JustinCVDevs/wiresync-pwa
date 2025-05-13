@@ -6,10 +6,10 @@
 	export let rfidTag = '';
 
 	let showCamera = false;
-	let capturedImage: string | null = null;
+	let capturedImage: File | null = null;
 
 	const dispatch = createEventDispatcher<{
-		submit: { wagonId: string; rfidTag: string; image: string | null };
+		submit: { wagonId: string; rfidTag: string; image: File | null };
 		cancel: void;
 	}>();
 
@@ -21,7 +21,7 @@
 		dispatch('cancel');
 	}
 
-	function handleCapture(event: CustomEvent<string>) {
+	function handleCapture(event: CustomEvent<File>) {
 		capturedImage = event.detail;
 	}
 </script>
@@ -41,7 +41,7 @@
 
 	{#if capturedImage}
 		<div class="image-preview">
-			<img src={capturedImage} alt="Captured wagon" />
+			<img src={capturedImage.arrayBuffer} alt="Captured wagon" />
 			<button class="camera-button" on:click={() => (showCamera = true)}> Retake Photo </button>
 		</div>
 
