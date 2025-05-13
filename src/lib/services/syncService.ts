@@ -264,7 +264,7 @@ export const syncService = {
 					const wagons = await Promise.all(
 						trainDispatch.linkedWagonIds.map((id) => indexedDBService.getRecord('wagons', id))
 					);
-
+					console.log(wagons)
 					// Check if all wagons have server IDs
 					const allWagonsHaveServerId = wagons.every((wagon) => wagon?.serverId);
 					if (!allWagonsHaveServerId) {
@@ -311,14 +311,60 @@ export const syncService = {
 			await this.syncTrainDispatch(trainDispatch);
 		}
 	},
+	/**
+	  * Remove any local records whose serverId
+	  * no longer exists in PocketBase.
+	  */
+	async syncDeletedRecords(collectionName: any) {
+		try {
+			const serverIds = new Set<string>()
+			const perPage = 50
+			let page = 1
+			let items: { id: string }[] = []
 
+			// page through PocketBase
+			do {
+				const res = await pocketbaseService.list(collectionName, { page, perPage })
+				items = res.items
+				for (const it of items) serverIds.add(it.id)
+				page++
+			} while (items.length === perPage)
+
+			// pull all local records that have a serverId
+			const local = await indexedDBService.getRecords(
+				collectionName,
+				(rec: { serverId?: string }) => !!rec.serverId
+			)
+
+			// delete any local whose serverId isn't on the server
+			for (const rec of local) {
+				if (!serverIds.has(rec.serverId!)) {
+					await indexedDBService.deleteRecord(collectionName, rec.id)
+				}
+			}
+
+			return true
+		} catch (err) {
+			console.warn(
+				`Failed to reconcile deletions for ${collectionName}:`,
+				err
+			)
+			return false
+		}
+	}, 
 	// Update syncAllPending to include train dispatches
 	async syncAllPending() {
 		await Promise.all([
 			this.syncPendingAssays(),
 			this.syncPendingWagons(),
 			this.syncPendingTruckLoads(),
-			this.syncPendingTrainDispatches()
+			this.syncPendingTrainDispatches(),
+			this.syncDeletedRecords('assays'),
+			this.syncDeletedRecords('wagons'),
+			this.syncDeletedRecords('truckLoads'),
+			this.syncDeletedRecords('trainDispatches')
+
 		]);
+
 	}
 };

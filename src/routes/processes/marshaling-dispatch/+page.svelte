@@ -23,15 +23,23 @@
 	
 	const steps = ['Train & Consignment Details', 'Wagon Linkage', 'Complete'];
 	let currentStep = 1;
-  
+  	let train : Train;
 	async function loadTrainsAndConsignments() {
 	  try {
 		const trainRecords = await indexedDBService.getRecords(
 		  'trains', rec => rec.syncStatus === 'synced'
 		);
 		trains = trainRecords;
+		
 		if (selectedTrainRef) {
-		  const train = trains.find(t => t.refNr === selectedTrainRef);
+		  train = trains.find(t => t.refNr === selectedTrainRef);
+		  manualConsignment = '';
+		  selectedConsignment = '';
+		  selectedRfid = '';
+		  manualRfid = '';
+		  capturedImage = null;
+		  showCamera = false;
+		  error = '';
 		  if (train) {
 			consignments = await indexedDBService.getRecords(
 			  'consignments', rec =>
@@ -67,24 +75,27 @@
 		error = 'Please select or enter a consignment number';
 		return;
 	  }
-	  const train = trains.find(t => t.refNr === selectedTrainRef);
 	  if (!train?.serverId) return;
   
 	  const dispatchId = crypto.randomUUID();
 	  const trainDispatch: TrainDispatch = {
 		id: dispatchId,
 		linkedTrainId: train.serverId,
-		linkedConsignmentId: selectedConsignment || undefined,
+		linkedConsignmentId:  selectedConsignment || undefined,
 		process: 'MarshalingDispatch',
 		syncStatus: 'pending',
 		created: new Date().toISOString(),
 		updated: new Date().toISOString()
 	  };
-  
+	  function genId(len = 15) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const bytes = crypto.getRandomValues(new Uint8Array(len));
+  return Array.from(bytes, b => chars[b % chars.length]).join('');
+}
 	  try {
-		await indexedDBService.saveRecord('trainDispatches', trainDispatch);
 		if (manualConsignment) {
 		  await indexedDBService.saveRecord('consignments', {
+			id: genId(),
 			name: manualConsignment,
 			linkedTrainId: train.serverId,
 			syncStatus: 'pending',
@@ -100,11 +111,13 @@
 			updated: new Date().toISOString()
 		  });
 		}
+		await indexedDBService.saveRecord('trainDispatches', trainDispatch);
+
 		success = 'Dispatch initialized';
 		goto(`/processes/marshaling-dispatch/wagon-linkage?dispatchId=${dispatchId}`);
-	  } catch (e) {
+	  } catch (e: any) {
 		console.error(e);
-		error = 'Failed to initialize dispatch';
+		error = 'Failed to initialize dispatch' + e?.data?.toJson();
 	  }
 	}
   </script>
@@ -141,38 +154,44 @@
 		  </select>
 
 		  {#if consignments.length}
-			<select bind:value={selectedConsignment} disabled={!!manualConsignment} class="w-full rounded-md border p-2  dark:text-gray-800">
+			<select bind:value={selectedConsignment}  class="w-full rounded-md border p-2  dark:text-gray-800">
 			  <option value="">Select Consignment</option>
 			  {#each consignments as c}
-				<option value={c.name}>{c.name}</option>
+				<option value={c.serverId}>{c.name}</option>
 			  {/each}
 			</select>
-		  {/if}
+			{:else}
+		  
 		  <input
 			type="text"
 			placeholder="Enter Consignment Number"
 			bind:value={manualConsignment}
-			disabled={!!selectedConsignment}
+			
 			class="w-full rounded-md border p-2 dark:text-gray-800"
 		  />
+		  
+		  {/if}
   
-		<FormField label="Train RFID Number" id="trainRfid">
+		<!-- <FormField label="Train RFID Number" id="trainRfid"> -->
 		  {#if trains.find(t => t.refNr === selectedTrainRef)?.rfidNr}
-			<select bind:value={selectedRfid} disabled={!!manualRfid} class="w-full rounded-md border p-2">
+			<select bind:value={selectedRfid}  class="w-full rounded-md border p-2 dark:text-gray-800">
 			  <option value="">Select RFID</option>
 			  <option value={trains.find(t => t.refNr === selectedTrainRef)?.rfidNr}>
 				{trains.find(t => t.refNr === selectedTrainRef)?.rfidNr}
 			  </option>
 			</select>
 		  {/if}
+		  {#if !train?.rfidNr?.length || !train}
 		  <input
 			type="text"
-			placeholder="Enter Train RFID Number"
+			
+			placeholder="Train RFID Number"
 			bind:value={manualRfid}
-			disabled={!!selectedRfid}
-			class="w-full rounded-md border p-2"
+			
+			class="w-full rounded-md border p-2 dark:text-gray-800"
 		  />
-		</FormField>
+		  {/if}
+		<!-- </FormField> -->
   
 		<Camera {showCamera} on:capture={handleCapture} on:close={handleCameraClose} />
   

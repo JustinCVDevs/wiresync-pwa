@@ -17,7 +17,7 @@
 	let productGrade = '';
 	let consignment = '';
 	let loadingLocation = 'West Load Out';
-	let consignments: string[] = [];
+	let consignments: Consignment[] = [];
 	let isSubmitting = false;
 	let currentStep = 1;
 
@@ -39,15 +39,8 @@
 	const loadingLocations = ['East Load Out', 'West Load Out', 'Bosveld'];
 
 	onMount(async () => {
-		try {
-			const response = await fetch('/api/wire/consignments');
-			const data: Consignment[] = await response.json();
-			consignments = data.map((c) => c.name);
-		} catch (err) {
-			if (processLayout) {
-				processLayout.setError('Failed to load consignments');
-			}
-		}
+		consignments = await indexedDBService.getRecords(
+			  'consignments', )
 
 		// Load persisted form data
 		loadPersistedData();
@@ -198,7 +191,7 @@
 			bind:value={consignment}
 			placeholder="Select Consignment"
 			isSelect={true}
-			options={consignments.map((number) => ({ value: number, label: number }))}
+			options={consignments.map((con) => ({ value: con.name, label: con.name }))}
 			required={true}
 			error={formErrors.consignment}
 		/>

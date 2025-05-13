@@ -6,6 +6,7 @@
 	import WagonInput from '$lib/components/WagonInput.svelte';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import type { TrainDispatch } from '$lib/types/trainDispatch';
+	import type { Wagon } from '$lib';
   
 	let dispatchId = '';
 	$: dispatchId = $page.url.searchParams.get('dispatchId') || '';
@@ -42,15 +43,31 @@
   
 	onMount(() => {
 	  if (dispatchId) loadDispatch();
+	 
 	});
   
 	$: if (dispatchId) loadDispatch();
   
-	async function handleWagonSubmit(event: CustomEvent<{ wagonId: string; rfidTag: string; image: string | null }>) {
+	async function handleWagonSubmit(event: CustomEvent<{ wagonId: string; rfidTag: string; image: File | null }>) {
 	  if (!trainDispatch) return;
 	  error = '';
 	  try {
-		const updatedIds = [...(trainDispatch.linkedWagonIds || []), event.detail.wagonId];
+		let wagonIndexId =  crypto.randomUUID();
+		const receivalData: Wagon = {
+				transcoreTag: event.detail.rfidTag,
+				wagonIdSimple: event.detail.wagonId,
+				wagonPhotoUrl: event.detail.image,
+				created: new Date().toISOString(),
+				componentType: 'MARSHALING_DISPATCH',
+				id:wagonIndexId,
+				updated: new Date().toISOString(),
+				syncStatus: 'pending',
+				process: 'Marshaling_Dispatch'
+			};
+
+			await indexedDBService.saveRecord('wagons', receivalData);
+
+		const updatedIds = [...(trainDispatch.linkedWagonIds || []), wagonIndexId];
 		await indexedDBService.updateRecord('trainDispatches', dispatchId, {
 		  ...trainDispatch,
 		  linkedWagonIds: updatedIds,
@@ -72,6 +89,7 @@
 	function handleReview() {
 	  goto(`/processes/marshaling-dispatch/review?dispatchId=${dispatchId}`);
 	}
+
   </script>
   
   <ProcessLayout
@@ -80,6 +98,7 @@
 	{steps}
 	{currentStep}
 	isSubmitting={isLoading}
+	on:submit={handleReview}
 	cancelPath="/processes"
 	on:cancel={() => goto('/processes')}
   >
@@ -132,7 +151,7 @@
 	  {/if}
   
 	  <!-- Navigation Buttons -->
-	  <div class="flex gap-4 mt-8">
+	  <!-- <div class="flex gap-4 mt-8">
 		<button
 		  class="flex-1 rounded-md bg-gray-300 py-3 text-gray-700 font-semibold hover:bg-gray-400"
 		  on:click={() => goto(`/processes/marshaling-dispatch?dispatchId=${dispatchId}`)}
@@ -141,7 +160,7 @@
 		  class="flex-1 rounded-md bg-green-600 py-3 text-white font-semibold hover:bg-green-700"
 		  on:click={handleReview}
 		>Next</button>
-	  </div>
+	  </div> -->
 	{/if}
   </ProcessLayout>
   

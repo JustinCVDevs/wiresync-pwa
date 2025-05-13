@@ -33,7 +33,7 @@
 
 	onMount(() => {
 		syncData();
-		const syncInterval = setInterval(syncData, 30000);
+		const syncInterval = setInterval(syncData, 15000);
 		return () => clearInterval(syncInterval);
 	});
 </script>

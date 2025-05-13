@@ -63,7 +63,7 @@
 	}
 </script>
 
-<section class="container mx-auto px-4 py-6 bg-white rounded-xl">
+<section class="container mx-auto px-4 py-6 bg-white rounded-xl dark:text-gray-800">
 	<h1 class="text-center text-2xl font-semibold text-gray-900">{title}</h1>
 
 	<!-- Progress Steps -->

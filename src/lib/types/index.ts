@@ -5,3 +5,7 @@ export * from './train';
 export * from './truck';
 export * from './wagon';
 export * from './location';
+export * from './trainDispatch';
+export * from './sample';
+export * from './truckLoad';
+export * from './fleet';
