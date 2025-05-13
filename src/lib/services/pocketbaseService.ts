@@ -6,7 +6,7 @@ import PocketBase, {
 import { indexedDBService } from './indexedDBService';
 import type { Train, Wagon, Sample, Assay, Consignment, TrainDispatch, TruckLoad } from '$lib';
 
-const POCKETBASE_URL = import.meta.env.VITE_POCKETBASE_URL;
+const POCKETBASE_URL = "https://pb.claervolker.com";
 // make sure you have VITE_POCKETBASE_URL set in your .env
 type PBCollection =
 	| 'trains'

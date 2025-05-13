@@ -5,8 +5,8 @@
 
 	let pageLoading = true;
 	let isLoggingIn = false;
-	let email = '';
-	let password = '';
+	let email = "wiretech@mms.com";
+	let password = 'wiretech';
 	let error = '';
 
 	onMount(() => {
