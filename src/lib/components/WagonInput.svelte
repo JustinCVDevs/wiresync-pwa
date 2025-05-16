@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
 	import Camera from './Camera.svelte';
+	import RfidReader from './RFIDReader.svelte';
 
 	export let wagonId = '';
 	export let rfidTag = '';
@@ -26,18 +27,10 @@
 	}
 </script>
 
-<div class="wagon-input">
-	<div class="input-group">
-		<label for="rfidTag" class="dark:text-gray-800">RFID Tag</label>
-		<input id="rfidTag" class="dark:text-gray-800" type="text" bind:value={rfidTag} placeholder="Scan or enter RFID tag" />
-	</div>
+<div class="">
 
-	<div class="input-group">
-		<label for="wagonId" class="dark:text-gray-800">Wagon ID</label>
-		<input id="wagonId" type="text" bind:value={wagonId} placeholder="Enter Wagon ID" class="dark:text-gray-800"/>
-	</div>
-
-	<Camera {showCamera} on:capture={handleCapture} on:close={() => (showCamera = false)} />
+	<RfidReader label="Please Scan or Enter Wagon ID:" onScan={(tagId)=>{ rfidTag = tagId}} targetFieldId="rfidTag" defaultValue={rfidTag}/>
+	
 
 	{#if capturedImage}
 		<div class="image-preview">
@@ -47,59 +40,14 @@
 
 	{/if}
 
-	<div class="button-group">
-		<button class="cancel-button" on:click={handleCancel}>Cancel</button>
-		<button class="submit-button" on:click={handleSubmit}>Submit Wagon</button>
+	<div class="flex justify-between items-center pt-8">
+		<button class=" w-36 text-sm rounded-lg bg-red py-3 text-white transition hover:bg-red-700 active:bg-red-800 disabled:opacity-50 px-2" on:click={handleCancel}>Cancel</button>
+		<button
+		on:click={handleSubmit}
+		class="w-36 text-sm items-center justify-center rounded-lg bg-gray py-3 px-2  text-white transition hover:bg-green-700 active:bg-black disabled:opacity-50"
+		type="submit"
+	>
+			Submit Wagon</button>
 	</div>
 </div>
 
-<style>
-	.wagon-input {
-		margin: 1rem 0;
-	}
-
-	.input-group {
-		margin-bottom: 1rem;
-	}
-
-	label {
-		display: block;
-		margin-bottom: 0.5rem;
-		font-weight: bold;
-	}
-
-	input {
-		width: 100%;
-		padding: 0.75rem;
-		font-size: 1.1rem;
-		border: 1px solid #ccc;
-		border-radius: 4px;
-	}
-
-	.button-group {
-		display: flex;
-		gap: 1rem;
-		margin-top: 1rem;
-	}
-
-	button {
-		padding: 0.75rem 1.5rem;
-		font-size: 1rem;
-		border: none;
-		border-radius: 4px;
-		cursor: pointer;
-		color: white;
-	}
-
-	.submit-button {
-		background-color: #4caf50;
-	}
-
-	.cancel-button {
-		background-color: #f44336;
-	}
-
-	.camera-button {
-		background-color: #2196f3;
-	}
-</style>

@@ -13,19 +13,21 @@
 				.replace(/[-_]/g, ' ')
 				.replace(/\b\w/g, (c) => c.toUpperCase());
 			if (name === 'Processes') {
-				return { name: 'PMC Processes', href: '/processes' };
+				return { name: 'PMC Processes', href: '/pmc/processes' };
 			}
 			return { name, href };
 		});
 
-		if (list.length == 1) {
+		if (list.length > 2) {
+			list = list.slice(1);
+		}else{
 			list = [];
 		}
 		return [...list];
 	});
 </script>
-
-<nav aria-label="Breadcrumb" class="text-center text-sm text-gray-500 mt-4">
+{#if $crumbs.length > 0}
+<nav aria-label="Breadcrumb" class="text-center text-xs text-gray mb-4">
 	<ol class="flex items-center justify-center space-x-2">
 		{#each $crumbs as crumb, i}
 			<li class="flex items-center">
@@ -45,10 +47,11 @@
 						/>
 					</svg>
 				{/if}
-				<a href={crumb.href} class="hover:text-gray-700 ml-2">
+				<a href={crumb.href} class="hover:text-gray ml-2">
 					{crumb.name}
 				</a>
 			</li>
 		{/each}
 	</ol>
 </nav>
+{/if}

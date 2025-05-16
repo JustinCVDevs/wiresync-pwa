@@ -123,7 +123,8 @@
 	{#if hasCamera && !isDesktop}
 		<button 
 			type="button"
-			class="w-full rounded bg-gray-800 px-4 py-2 text-white hover:bg-blue-700"
+			class="w-full rounded px-4 py-2 text-white hover:bg-blue-700"
+			style="background-color: #444446;"
 			on:click={() => openCamera(selectedCameraId)}
 		>
 			Take Photo
@@ -150,7 +151,8 @@
 		/>
 		<button
 			type="button"
-			class="w-full rounded bg-gray-800 px-4 py-2 text-white hover:bg-blue-700"
+			class="w-full text-sm rounded bg-gray px-4 py-2 text-white font-semibold hover:bg-blue-700"
+			style="background: #444446"
 			on:click={() => fileInput.click()}
 		>
 			Upload Photo

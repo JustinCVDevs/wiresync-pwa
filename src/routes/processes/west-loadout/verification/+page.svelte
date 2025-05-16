@@ -6,13 +6,14 @@
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Assay } from '$lib/types/assay';
+	import { ScanBarcode, WashingMachine } from 'lucide-svelte';
 
 	const sampleId = $page.url.searchParams.get('sampleId') || '';
 	let assay: Assay | null = null;
 	let currentStep = 2;
 	
 	// Process steps
-	const processSteps = ['Train Details', 'Sample Details Verification', 'FEL Weight Capturing', 'Wagon Review'];
+	const processSteps = ['Sample Details', 'FEL Weight Capturing', 'Complete'];
 
 	onMount(async () => {
 		await loadAssayData();
@@ -25,25 +26,24 @@
 	}
 
 	function handleNewWagon() {
-		goto(`/processes/west-loadout/fel-weight-capturing?sampleId=${sampleId}`);
+		goto(`/pmc/processes/west-loadout/fel-weight-capturing?sampleId=${sampleId}`);
 	}
 
 	function handleCancel() {
-		goto('/processes');
+		goto(`/pmc/processes/west-loadout?sampleId=${sampleId}`);
 	}
 </script>
 
 <ProcessLayout
-	title="West Loadout - Sample Details Verification"
+	title="  Sample Details Verification"
 	processKey="west_loadout"
 	steps={processSteps}
 	{currentStep}
 	showActions={false}
+	on:cancel={handleCancel}
+	
 >
-	<div slot="header">
-		<h5 class="text-xl font-bold ">Sample Details Verification</h5>
-		<p class="text-sm text-gray-600">Please review the sample details</p>
-	</div>
+<!-- todo add linked count -->
 
 	<div class="space-y-4">
 		{#if assay}
@@ -51,21 +51,21 @@
 				<h6 class="text-lg font-semibold mb-2">Transaction Details</h6>
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<p class="text-sm text-gray-500">Sample ID</p>
+						<p class="text-sm text-gray-500 font-bold">Sample ID</p>
 						<p class="font-medium">{assay.name}</p>
 					</div>
 					<div>
-						<p class="text-sm text-gray-500">Product Grade</p>
+						<p class="text-sm text-gray-500 font-bold">Product Grade</p>
 						<p class="font-medium">{assay.productGrade}</p>
 					</div>
 					{#if assay.consignment}
 					<div>
-						<p class="text-sm text-gray-500">Consignment</p>
+						<p class="text-sm text-gray-500 font-bold">Consignment</p>
 						<p class="font-medium">{assay.consignment}</p>
 					</div>
 					{/if}
 					<div>
-						<p class="text-sm text-gray-500">Loading Location</p>
+						<p class="text-sm text-gray-500 font-bold">Loading Location</p>
 						<p class="font-medium">{assay.location}</p>
 					</div>
 				</div>
@@ -76,22 +76,18 @@
 			</div>
 		{/if}
 
-		<div class="flex justify-center mt-6">
-			<button 
-				class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md flex items-center"
-				on:click={handleNewWagon}
-			>
-				<span class="mr-2">+ NEW Wagon</span>
-			</button>
-		</div>
+		
 
 		<div class="flex justify-center mt-4">
+		
+		
 			<button 
-				class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-6 rounded-md"
-				on:click={handleCancel}
-			>
-				Cancel
-			</button>
+			class="new-button hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md flex items-center"
+			on:click={handleNewWagon}
+		>
+			<span class="mr-2">+ Add Wagon </span>
+			<ScanBarcode size="16"/> 
+		</button>
 		</div>
 	</div>
 </ProcessLayout>

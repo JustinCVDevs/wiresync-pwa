@@ -5,11 +5,10 @@
 
 	// Props for the component
 	export let title: string;
-	export let processKey: string;
 	export let steps: string[] = [];
 	export let currentStep: number = 1;
 	export let isSubmitting: boolean = false;
-	export let cancelPath: string = '/processes';
+	export let cancelPath: string = '/pmc/processes';
 
 	// State variables
 	let isOnline = navigator.onLine;
@@ -44,8 +43,8 @@
 
 	// Handle cancel button click
 	function handleCancel() {
-		dispatch('cancel');
-		goto(cancelPath);
+		// dispatch('cancel');
+		history.back();
 	}
 
 	// Handle submit button click
@@ -63,26 +62,26 @@
 	}
 </script>
 
-<section class="container mx-auto px-4 py-6 bg-white rounded-xl dark:text-gray-800">
-	<h1 class="text-center text-2xl font-semibold text-gray-900">{title}</h1>
+<section class="space-y-4 px-4 mb-4">
+	<h1 class="text-gray text-center text-2xl font-semibold">{title}</h1>
 
 	<!-- Progress Steps -->
 	{#if steps.length > 0}
-		<div class="flex justify-between px-6 pt-4">
+		<div class="grid auto-cols-fr grid-flow-col text-center text-[10px]">
 			{#each steps as step, i}
 				<div class="flex flex-col items-center">
 					<div
-						class="flex h-8 w-8 items-center justify-center  rounded-full {currentStep >= i + 1
-							? 'bg-green-500 text-white'
+						class="flex h-8 w-8 items-center justify-center rounded-full {currentStep >= i + 1
+							? 'bg-gray text-white'
 							: 'bg-gray-300'}"
 					>
 						{i + 1}
 					</div>
-					<span class="mt-1 text-xs  dark:text-gray-800">{step}</span>
+					<span class="dark:text-gray mt-1  font-light">{step}</span>
 				</div>
 				{#if i < steps.length - 1}
 					<div
-						class="h-1 flex-1 self-center {currentStep > i + 1 ? 'bg-green-500' : 'bg-gray-300'}"
+						class="h-1 flex-1 self-center {currentStep > i + 1 ? 'bg-gray' : 'bg-slate-200'}"
 					></div>
 				{/if}
 			{/each}
@@ -99,7 +98,7 @@
 
 	{#if success}
 		<div
-			class="mt-4 flex items-center gap-2 rounded-lg bg-green-100 p-4 text-green-700 "
+			class="mt-4 flex items-center gap-2 rounded-lg bg-green-100 p-4 text-green-700"
 			role="alert"
 		>
 			<CheckCircle size={20} />
@@ -115,9 +114,9 @@
 				<slot />
 			</div>
 
-			<div class="flex space-x-4 pt-4">
+			<div class="flex space-x-4 pt-4 button-group">
 				<button
-					class="flex-1 rounded-lg bg-red-600 py-3 font-medium text-white transition hover:bg-red-700 active:bg-red-800 disabled:opacity-50"
+					class="cancel-button flex-1 border-2 rounded-lg py-3 border border-gray-800 text-sm  text-white transition hover:bg-red-700 active:bg-red-800 disabled:opacity-50"
 					on:click={handleCancel}
 					type="button"
 					disabled={isSubmitting}
@@ -125,7 +124,7 @@
 					Cancel
 				</button>
 				<button
-					class="flex-1 items-center justify-center rounded-lg bg-green-600 py-3 font-medium text-white transition hover:bg-green-700 active:bg-green-800 disabled:opacity-50"
+					class="submit-button flex-1 items-center justify-center rounded-lg py-3 text-white transition hover:bg-green-700 active:bg-green-800 disabled:opacity-50"
 					type="submit"
 					disabled={isSubmitting}
 				>

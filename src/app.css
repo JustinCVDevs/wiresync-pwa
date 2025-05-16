@@ -1,82 +1,162 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
 @import 'tailwindcss';
 @import 'tailwindcss/utilities';
 @import 'tailwindcss/theme';
 
 @layer base {
 	:root {
-		--background: 0 0% 100%;
-		--foreground: 20 14.3% 4.1%;
-
-		--muted: 60 4.8% 95.9%;
-		--muted-foreground: 25 5.3% 44.7%;
-
-		--popover: 0 0% 100%;
-		--popover-foreground: 20 14.3% 4.1%;
-
-		--card: 0 0% 100%;
-		--card-foreground: 20 14.3% 4.1%;
-
-		--border: 20 5.9% 90%;
-		--input: 20 5.9% 90%;
-
-		--primary: 24 9.8% 10%;
-		--primary-foreground: 60 9.1% 97.8%;
-
-		--secondary: 60 4.8% 95.9%;
-		--secondary-foreground: 24 9.8% 10%;
-
-		--accent: 60 4.8% 95.9%;
-		--accent-foreground: 24 9.8% 10%;
-
-		--destructive: 0 72.2% 50.6%;
-		--destructive-foreground: 60 9.1% 97.8%;
-
-		--ring: 20 14.3% 4.1%;
-
-		--radius: 0.5rem;
+	  /* Color Palette */
+	  --background: 0 0% 100%;
+	  --foreground: 20 14.3% 4.1%;
+	  --muted: 60 4.8% 95.9%;
+	  --muted-foreground: 25 5.3% 44.7%;
+	  --popover: 0 0% 100%;
+	  --popover-foreground: 20 14.3% 4.1%;
+	  --card: 0 0% 100%;
+	  --card-foreground: 20 14.3% 4.1%;
+	  --border: 20 5.9% 90%;
+	  --input: 20 5.9% 90%;
+	  --primary: 24 9.8% 10%;
+	  --primary-foreground: 60 9.1% 97.8%;
+	  --secondary: 60 4.8% 95.9%;
+	  --secondary-foreground: 24 9.8% 10%;
+	  --accent: 60 4.8% 95.9%;
+	  --accent-foreground: 24 9.8% 10%;
+	  --destructive: 0 72.2% 50.6%;
+	  --destructive-foreground: 60 9.1% 97.8%;
+	  --ring: 20 14.3% 4.1%;
+  
+	  /* Shared */
+	  --radius: 0.5rem;
+	  --red: #e5492f;
+	  --green: #499d61;
+	  --gray: #444446;
+  
+	  /* Phone Frame */
+	  --phone-w: 375px;
+	  --phone-h: 767px;
 	}
-
-		.darks {
-		--background: 20 14.3% 4.1%;
-		--foreground: 60 9.1% 97.8%;
-
-		--muted: 12 6.5% 15.1%;
-		--muted-foreground: 24 5.4% 63.9%;
-
-		--popover: 20 14.3% 4.1%;
-		--popover-foreground: 60 9.1% 97.8%;
-
-		--card: 20 14.3% 4.1%;
-		--card-foreground: 60 9.1% 97.8%;
-
-		--border: 12 6.5% 15.1%;
-		--input: 12 6.5% 15.1%;
-
-		--primary: 60 9.1% 97.8%;
-		--primary-foreground: 24 9.8% 10%;
-
-		--secondary: 12 6.5% 15.1%;
-		--secondary-foreground: 60 9.1% 97.8%;
-
-		--accent: 12 6.5% 15.1%;
-		--accent-foreground: 60 9.1% 97.8%;
-
-		--destructive: 0 62.8% 30.6%;
-		--destructive-foreground: 60 9.1% 97.8%;
-
-		--ring: 24 5.7% 82.9%;
+  
+	/* Global Reset */
+	html, body {
+	  @apply m-0 p-0 h-full w-full;
+    
 	}
+  #app{
+    display: flex
+    ;
+        flex-direction: column;
+  }
+  html{
+      /* fallback for older WebKit */
+  padding-top: constant(safe-area-inset-top);
+  padding-right: constant(safe-area-inset-right);
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-left: constant(safe-area-inset-left);
 
-	body {
-		font-family:
-			'Inter',
-			system-ui,
-			-apple-system,
-			'Segoe UI',
-			Roboto,
-			sans-serif;
+  /* modern browsers */
+  padding-top: env(safe-area-inset-top);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
 
-		@apply bg-slate-100 dark:bg-slate-900 dark:text-white;
-	}
+  }
+  
+	
+  }
+  
+  /* Dark Theme Overrides */
+  .darks {
+	--background: 20 14.3% 4.1%;
+	--foreground: 60 9.1% 97.8%;
+	--muted: 12 6.5% 15.1%;
+	--muted-foreground: 24 5.4% 63.9%;
+	--popover: 20 14.3% 4.1%;
+	--popover-foreground: 60 9.1% 97.8%;
+	--card: 20 14.3% 4.1%;
+	--card-foreground: 60 9.1% 97.8%;
+	--border: 12 6.5% 15.1%;
+	--input: 12 6.5% 15.1%;
+	--primary: 60 9.1% 97.8%;
+	--primary-foreground: 24 9.8% 10%;
+	--secondary: 12 6.5% 15.1%;
+	--secondary-foreground: 60 9.1% 97.8%;
+	--accent: 12 6.5% 15.1%;
+	--accent-foreground: 60 9.1% 97.8%;
+	--destructive: 0 62.8% 30.6%;
+	--destructive-foreground: 60 9.1% 97.8%;
+	--ring: 24 5.7% 82.9%;
+  }
+  
+  /* Base Styles */
+  body {
+	background-color: #f9f9f9;
+	font-family: "Montserrat",Roboto, sans-serif;
+	color: var(--gray);
+  }
+  
+  /* Buttons */
+  .cancel-button {
+	@apply hover:bg-red-500 text-white text-sm py-2 px-4 rounded;
+	background-color: var(--red);
+  }
+  
+  .submit-button,
+  .new-button {
+	@apply text-white text-sm py-2 px-4 rounded;
+	background-color: var(--gray);
+  }
+  
+  .new-button {
+	@apply hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 hover:shadow-lg;
+  }
+  
+  /* Utility Classes */
+  .bg-gray {
+	background-color: var(--gray);
+  }
+  .border-gray {
+	border-color: var(--gray);
+  }
+  .bg-red {
+	background-color: var(--red);
+  }
+  
+  .text-gray {
+	color: var(--gray);
+  }
+  
+  .button-group {
+	@apply flex justify-end gap-2 mt-4 font-semibold;
+  }
+  
+  input[type="number"],
+  input[type="text"] {
+	@apply w-full border border-gray-300 rounded-md p-2 cursor-pointer hover:border-gray-400 focus:outline-none focus:ring focus:border-blue-300;
+  }
+  .detail-item label{
+	@apply font-bold;
+  }
+
+  .mms-label{
+
+  }
+  .mms-title{
+	@apply text-center font-bold text-2xl;
+  }
+ .mms-input{
+ 	/* @apply w-full border rounded-md p-2 cursor-pointer hover:border-red-950 focus:outline-none focus:ring focus:border-red-300; */
+
+ }
+ .mms-subtitle{
+ 	
+ }
+button{
+  @apply  rounded-md cursor-pointer text-white  hover:bg-gray-700 focus:outline-none focus:ring focus:border-amber-300;
+  background: var(--gray);
 }
+ @media all and (min-width: 768px) {
+	body {
+	  width: 360px;
+  }
+ }
