@@ -264,7 +264,7 @@ export const syncService = {
 					const wagons = await Promise.all(
 						trainDispatch.linkedWagonIds.map((id) => indexedDBService.getRecord('wagons', id))
 					);
-					console.log(wagons)
+
 					// Check if all wagons have server IDs
 					const allWagonsHaveServerId = wagons.every((wagon) => wagon?.serverId);
 					if (!allWagonsHaveServerId) {
@@ -358,6 +358,7 @@ export const syncService = {
 			this.syncPendingAssays(),
 			this.syncPendingWagons(),
 			this.syncPendingTruckLoads(),
+			this.syncConsignmentList(),
 			this.syncPendingTrainDispatches(),
 			this.syncDeletedRecords('assays'),
 			this.syncDeletedRecords('wagons'),

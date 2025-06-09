@@ -7,8 +7,8 @@
 	export let lastSyncTime: Writable<Date | null>;
 
 	$: syncTimeDisplay = $lastSyncTime
-		? `Last sync: ${$lastSyncTime.toLocaleTimeString()}`
-		: 'Never synced';
+		? ` ${$lastSyncTime.toLocaleTimeString()}`
+		: 'false';
 
 	$: isAuthenticated = pocketbaseService.isAuthenticated;
 	let showLoginForm = false;
@@ -34,7 +34,7 @@
 	}
 </script>
 
-<div class="flex items-center justify-between rounded-t-lg bg-gray-800 p-4">
+<header class="flex items-center justify-between rounded-t-lg bg-gray p-4 mb-4">
 	<div class="flex items-center">
 		<div class="mr-2 rounded bg-white p-1">
 			<img src="/icons/logo-512.png" alt="Wire Sync Logo" class=" inline-block h-16 w-16" />
@@ -45,35 +45,37 @@
 			<span>User: {pocketbaseService.currentUser?.name}</span>
 			<div class="flex items-center">
 				<span
-					class="mr-1 inline-block h-2 w-2 rounded-full {online ? 'bg-green-500' : 'bg-red-500'}"
+					class="mr-1 inline-block h-2 w-2 rounded-full sync-indicator {online ? "Online": "Offline"}"
 				></span>
 				<span class="text-xs">{online ? 'Online' : 'Offline'}</span>
 			</div>
-			<div class="text-xs">Synced at {syncTimeDisplay}</div>
+			{#if syncTimeDisplay !== 'false'}
+			<div class="text-xs">Synced: {syncTimeDisplay}</div>
+			{/if}
 		</div>
 		<button
-			class="rounded bg-gray-700 px-2 py-1 text-xs text-white transition duration-200 hover:bg-gray-600"
+			class="rounded  px-2 py-1 text-xs text-white transition duration-200 hover:bg-gray-600"
 			on:click={handleLogout}
 		>
 			Log Out
 		</button>
 	</div>
-</div>
+</header>
 
 <style lang="postcss">
 	@reference "tailwindcss";
 	.sync-indicator {
 		font-size: 0.625rem;
-		color: #ff4444;
+		background: var(--red);
 	}
 
 	.online-status {
 		@apply bg-red-500;
 		&.Online {
-			@apply bg-green-500;
+			background-color: var(--green);
 		}
 	}
 	.sync-indicator.Online {
-		color: #44ff44;
+		background:  var(--green);
 	}
 </style>

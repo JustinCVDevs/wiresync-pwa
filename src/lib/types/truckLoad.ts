@@ -5,6 +5,7 @@ export interface TruckLoad extends BaseRecord {
 	truckId?: string;
 	felWeight?: string;
 	samplingStatus?: boolean;
+	sampleId?: string;
 	loadingLocation?: string;
 	loadingHour?: string;
 	process?: string; // e.g. "Loading" / "Unloading" / "Transferring"

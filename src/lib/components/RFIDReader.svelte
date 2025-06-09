@@ -60,28 +60,30 @@
 	}
 </script>
 
-<h3 class="text-sm font-medium dark:text-gray-800">{label}</h3>
+<h3 class="text-sm font-medium dark:text-gray">{label} *</h3>
 
 <div class="bg-muted/30 mb-4 rounded-md ">
-	<div class="mb-4 flex items-center justify-between ">
+	<div class="flex items-center justify-between ">
 		{#if !nfcAvailable}
 			<input
 				type="text"
-				class="w-full rounded border px-4 py-2 text-sm border-gray-300 dark:text-gray-800"
-				placeholder="Enter RFID tag manually"
+				class="w-full rounded border px-4 py-2 text-sm border-gray-300 text-gray"
+				placeholder="Enter Tag ID Manually"
+				required={true}
 				bind:value={manualTagId}
 				on:input={handleManualInput}
 			/>
-			<div class="text-alert-amber dark:text-black flex flex-1 items-center text-xs">
-				<AlertTriangle class="mr-1 h-3 w-3" />
-				NFC unavailable
-			</div>
 		{:else if !nfcEnabled}
-			<Button variant="outline" size="sm" class="text-xs dark:text-gray-800" on:click={requestNFCPermission}>
+			<Button variant="outline" size="sm" class="text-xs dark:text-gray" on:click={requestNFCPermission}>
 				<Scan class="mr-1 h-3 w-3" />
 				Enable NFC
 			</Button>
 		{/if}
+	</div>
+	
+	<div class="text-alert-amber dark:text-black flex flex-1 items-center justify-end text-xs">
+		<AlertTriangle class="mr-1 h-3 w-3" />
+		NFC unavailable
 	</div>
 
 	<!-- <div
@@ -91,12 +93,12 @@
 			<div class="text-center">
 				<div class="font-mono text-sm  dark:text-black dark:border-gray-800">{lastScanned}</div>
 				{#if assetName}
-					<div class="text-muted-foreground mt-1 text-xs dark:text-gray-800">{assetName}</div>
+					<div class="text-muted-foreground mt-1 text-xs dark:text-gray">{assetName}</div>
 				{/if}
 			</div>
 		{:else}
 			<div class="text-muted-foreground text-center">
-				<Scan class="mx-auto mb-1 h-6 w-6 dark:text-gray-800" />
+				<Scan class="mx-auto mb-1 h-6 w-6 dark:text-gray" />
 				<span class="text-sm dark:text-black">Ready to scan</span>
 			</div>
 		{/if}

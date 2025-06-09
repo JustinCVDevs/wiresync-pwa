@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
 	import Camera from './Camera.svelte';
+	import YesNo from './YesNo.svelte';
 
 	export let wagonId = '';
 	export let rfidTag = '';
@@ -38,17 +39,7 @@
 		<input id="weight" type="number" bind:value={weight} placeholder="Enter wagon weight" />
 	</div>
 
-	<div class="input-group">
-		<label>Wagon Sampling Status</label>
-		<div class="radio-group">
-			<label>
-				<input type="radio" name="samplingStatus" value="Yes" bind:group={samplingStatus} /> Yes
-			</label>
-			<label>
-				<input type="radio" name="samplingStatus" value="No" bind:group={samplingStatus} /> No
-			</label>
-		</div>
-	</div>
+	<YesNo selected={samplingStatus} label="Wagon Sampling Status"/>
 
 	<div class="button-group">
 		<button class="cancel-button" on:click={handleCancel}>Cancel</button>

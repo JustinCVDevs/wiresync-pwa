@@ -4,7 +4,7 @@
 	import Button from './ui/button/button.svelte';
 
 	function selectLocation() {
-		goto('/processes');
+		goto('/pmc/processes');
 	}
 </script>
 
@@ -14,7 +14,7 @@
 		<div class="space-y-4">
 			<Button
 				on:click={selectLocation}
-				class="group relative block w-full overflow-hidden rounded-lg bg-gray-800 px-8 py-3 text-center font-medium text-white transition-transform hover:translate-x-0.5 hover:translate-y-0.5 focus:outline-none active:translate-x-0 active:translate-y-0"
+				class="group relative block w-full overflow-hidden rounded-lg bg-gray px-8 py-3 text-center font-medium text-white transition-transform hover:translate-x-0.5 hover:translate-y-0.5 focus:outline-none active:translate-x-0 active:translate-y-0"
 			>
 				<span
 					class="absolute inset-0 bg-gray-600 mix-blend-multiply transition-transform group-hover:translate-x-0.5 group-hover:translate-y-0.5"
