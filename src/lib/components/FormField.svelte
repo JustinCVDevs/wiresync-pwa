@@ -20,7 +20,7 @@
 		<select
 			{id}
 			bind:value
-			class="w-full rounded-lg border border-gray-300 px-2 py-2 focus:ring-2 focus:ring-gray-400 focus:outline-none {error
+			class="w-full rounded-lg border text-sm py-2 px-3 border-gray-300 text-gray focus:ring-2 focus:ring-gray-400 focus:outline-none {error
 				? 'border-red-500'
 				: ''}"
 			{disabled}
@@ -37,7 +37,7 @@
 			{type}
 			bind:value
 			{placeholder}
-			class="w-full rounded-lg text-sm border text-gray border-gray-300 px-2 py-2 focus:ring-2 focus:ring-gray-400 focus:outline-none {error
+			class="w-full rounded-lg text-sm border px-3 py-2 text-gray border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none {error
 				? 'border-red-500'
 				: ''}"
 			{disabled}

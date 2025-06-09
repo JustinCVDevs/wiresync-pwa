@@ -119,7 +119,8 @@
 			const truckLoad: TruckLoad = {
 				id: truckLoadId,
 				truckId: truckServerId,
-				created: new Date().toISOString(),
+				sampleId: sampleId || `ACID_${Date.now()}`,
+				created: new Date(),
 				samplingStatus: true,
 				syncStatus: 'pending',
 				process: 'Acid Truck',
@@ -149,7 +150,7 @@
 
 			processLayout.setSuccess('Data saved successfully');
 			setTimeout(() => {
-				goto(`/pmc/processes/acid-truck/review?assayId=${assay.id}`);
+				goto(`/pmc/processes/acid-truck/review?assayId=${assay.id}&truckLoadId=${truckLoadId}`);
 			}, 1000);
 		} catch (err) {
 			processLayout.setError('Failed to submit data');
@@ -184,35 +185,21 @@
 	</div>
 
 	<div class="space-y-4">
-		<div class="space-y-1">
-			<label for="truckRegistration" class="block font-medium text-gray"
-				>Truck Registration</label
-			>
-			<select
-				id="truckRegistration"
-				bind:value={truckServerId}
-				class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-gray-400 focus:outline-none {formErrors.truckServerId
-					? 'border-red-500'
-					: ''}"
-				required
-			>
-				<option value="">Select Truck Registration</option>
-				{#each availableTrucks as truck}
-					<option value={truck.id}>{truck.registration}</option>
-				{/each}
-			</select>
-			{#if formErrors.truckServerId}
-				<p class="text-sm text-red-600">{formErrors.truckServerId}</p>
-			{/if}
-		</div>
+		
 
-		<div class="space-y-1">
-			<label for="camera" class="block font-medium text-gray"
-				>Capture a photo of the truck:</label
-			>
-			<Camera onPhotoSelected={(file) => (capturedImage = file ? URL.createObjectURL(file) : '')} />
 			
-		</div>
+
+		<FormField
+			id="truckRegistration"
+			label="Truck Registration"
+			bind:value={truckServerId}
+			placeholder="Select Truck Registration"
+			isSelect={true}
+			options={availableTrucks.map((truck) => ({ value: truck.id, label: truck.registration  }))}
+			required={true}
+			error={formErrors.tankLocation}
+		/>
+		<Camera onPhotoSelected={(file) => (capturedImage = file ? URL.createObjectURL(file) : '')} />
 
 		<FormField
 			id="tankLocation"

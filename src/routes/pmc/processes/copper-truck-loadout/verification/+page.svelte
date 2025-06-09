@@ -8,7 +8,6 @@
     import { page } from '$app/stores';
 	import moment from 'moment';
 	import type { Truck } from '$lib';
-	import { formPersistenceService } from '$lib/services/formPersistenceService';
   
     const steps = ['Truck Details', 'Complete'];
     let currentStep = 2;
@@ -43,7 +42,6 @@
     });
   
     function handleComplete() {
-		formPersistenceService.clearForm('acid_truck')
       goto('/pmc/processes/complete');
     }
   </script>
@@ -61,27 +59,25 @@
       <div class="mb-6 rounded border text-xs p-4 bg-white">
         <div class="flex flex-col gap-2">
           <div class="flex justify-between  text-leftitems-center">
-            <span class="font-semibold">📄 Truck registration:</span>
+            <span class="font-semibold">📄 Trans Reference:</span>
             <span>{trucks?.find((t)=> t.id == truckLoad.truckId)?.registration}</span>
           </div>
           <div class="flex justify-between items-center">
-            <span class="font-semibold">🪣 Tank loaded from:</span>
-            <span>{truckLoad.loadingLocation}</span>
-          </div>
-		  <div class="flex justify-between items-center">
-            <span class="font-semibold">⚡️ Strong/Weak:</span>
-            <span>{truckLoad.acidType}</span>
+            <span class="font-semibold">✏️ FEL: Weight:</span>
+            <span>{truckLoad.felWeight}</span>
           </div>
           <div class="flex justify-between items-center">
             <span class="font-semibold">🔒 Sampling Time:</span>
             <span>{new Date(truckLoad.created).toLocaleString()}</span>
           </div>
-          {#if assay.name.indexOf("ACID") == -1}
           <div class="flex justify-between items-center">
             <span class="font-semibold">🔢 Sample ID:</span>
             <span>{assay.name}</span>
           </div>
-          {/if}
+          <div class="flex justify-between items-center">
+            <span class="font-semibold">✏️ Material type:</span>
+            <span>{assay.productType}</span>
+          </div>
         </div>
       </div>
   

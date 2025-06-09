@@ -40,7 +40,7 @@
 
 	function handleComplete() {
 		// Navigate back to west loadout page for new sample ID
-		goto('/pmc/processes/west-loadout');
+		goto('/pmc/processes/west-loadout/');
 	}
 
 	function handleCancel() {

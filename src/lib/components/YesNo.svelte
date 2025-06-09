@@ -4,7 +4,7 @@
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Assay } from '$lib/types';
 
-	let { selected, label, description } = $props();
+	let { selected = $bindable(), label, description = '' } = $props();
 	// TODO:
 	// The dedicatedFleet switch merely dictates what the resulting component type will be.
 	// If dedicatedFleet is true, the resulting component type will be Fleet.
@@ -13,13 +13,16 @@
 
 <div class="space-y-4">
 	<div>
-		<h4 class="text-sm font-medium text-gray block">Dedicated Fleet</h4>
-		<small>Please specify wether the truck is part of a fleet.</small>
+		<h4 class="text-sm font-medium text-gray block">{label}</h4>
+		{#if description}
+
+		<small>{description}</small>
+		{/if}
 	</div>
 
 	<div class="flex space-x-4">
 		<label
-			class="block flex w-full items-center justify-center rounded border border-1 p-4 px-5 {selected == 'Yes' ? 'bg-gray text-white': ''}">
+			class="block flex w-full text-sm font-medium items-center justify-center rounded border border-1 p-2  {selected == 'Yes' ? 'bg-gray text-white': ''}">
 			<input
 				type="radio"
 				hidden
@@ -31,7 +34,7 @@
 			<span>Yes</span>
 		</label>
 		<label
-			class="flex w-full items-center justify-center rounded border border-1 p-4 px-5 {selected == 'No' ? 'bg-gray text-white' : ''}">
+			class="flex w-full text-sm font-medium items-center justify-center rounded border border-1 p-2 {selected == 'No' ? 'bg-gray text-white' : ''}">
 			<input
 				type="radio"
 				name="dedicatedFleet"

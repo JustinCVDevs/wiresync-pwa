@@ -8,6 +8,8 @@
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import TruckRegistration from '$lib/components/TruckRegistration.svelte';
 	import { CheckCircle, TruckIcon } from 'lucide-svelte';
+	import YesNo from '$lib/components/YesNo.svelte';
+	import { Button } from '$lib/components/ui/button';
 
 	let assayId = $page.url.searchParams.get('assayId') || '';
 	let assay: Assay | undefined;
@@ -76,7 +78,7 @@
 	) {
 		try {
 			if (!assay) return;
-			if (!validateLoadingHour(loadingHour)) {
+			if (!validateLoadingHour(loadingHour) && assay?.dedicatedFleet) {
 				error = 'Loading hour must be between 00 and 23';
 				return;
 			}
@@ -115,7 +117,7 @@
 			await indexedDBService.saveRecord('assays', updatedAssay);
 
 			loadAssayData();
-			goto(`/pmc/processes/gravelotte/add-trucks?assayId=${assay.id}`);
+			goto(`/pmc/processes/truck-loadout/add-trucks?assayId=${assay.id}`);
 		} catch (err) {
 			error = 'Failed to submit truck data';
 			console.error(err);
@@ -124,6 +126,7 @@
 	let samplingStatus: string;
 	let felWeight: string | undefined;
 	$: message= '';
+	$: hasTrucks = assay?.linkedTruckLoadIds?.length > 0 || false;
 	let loadingLocation: any = 'Gravelotte';
 	let loadingHour: string;
 	const loadingLocations = ['West Load Out', 'East Load Out', 'Gravelotte', 'TLO'];
@@ -138,7 +141,7 @@
 	function handleSubmit(e: CustomEvent<void>): void {
 		message = 'Loading Completed Successfully';
 		setTimeout(() => {
-			goto('/pmc/processes')
+			goto('/pmc/processes/complete')
 		}, 2500);
 		
 	}
@@ -146,7 +149,7 @@
 {#if message}
 			<div class="bg-green-600 text-white border rounded-lg shadow-lg flex p-4" style="background: #91f1b5;color: #2f3c33;"><CheckCircle class="mr-4"/> {message}</div>
 			{:else}
-<ProcessLayout {steps} {currentStep} on:cancel={handleCancel} on:submit={handleSubmit}>
+<ProcessLayout {steps} {currentStep} on:cancel={handleCancel} on:submit={handleSubmit} showSubmit={hasTrucks}>
 	<div class="container">
 		<h1 class="text-2xl font-black ease-in">Adding Trucks to a Lot</h1>
 
@@ -229,68 +232,33 @@
 					</div>
 				</div>
 			{/if}
-			<div class="button-group mt-4 text-center">
 				{#if !addTruck}
-					<button class="new-button flex" on:click={handleNewTruck}
-						>Add Truck &nbsp; <TruckIcon size="18" /></button
+					<Button class="w-full mt-4" on:click={handleNewTruck}
+						>Add Truck &nbsp; <TruckIcon size="18" /></Button
 					>
 				{/if}
-			</div>
 		{/if}
 		<br />
 		{#if addTruck}
-		<form action="" on:submit|preventDefault={handleAddTruck}>
+		<form action="" on:submit|preventDefault={handleAddTruck} >
 
-			<div class="add-truck-form rounded border border-1 p-4">
+			<div class="add-truck-form rounded border border-1 p-4 space-y-4">
 				<h5 class="text-center text-2xl font-bold">Enter Truck Details</h5>
-				<TruckRegistration availableTrucks={trucks} bind:selectedValue={selectedTruck} />
+				<TruckRegistration availableTrucks={trucks} bind:selectedValue={selectedTruck} allowInput={false}/>
 
 				<div class="form-field mt-4">
 					<label for="felWeight" class="form-label block text-gray">FEL Weight (kg)</label>
 					<input
 						id="felWeight"
 						type="number"
-						class="form-input block border border-1 py-2 px-4 w-full rounded"
+						class="form-input block border border-1 p-4 px-5"
 						bind:value={felWeight}
 						placeholder="Enter FEL Weight"
 						required
 					/>
 				</div>
-				<br />
-				<label class="form-label">Sampling Status</label>
+				<YesNo selected={samplingStatus} label="Sampling Status" />
 
-				<div class="flex space-x-4">
-					<label
-						class="block flex items-center rounded border border-1 p-4 px-5 {samplingStatus == 'Yes'
-							? 'bg-gray text-white'
-							: ''}"
-					>
-						<input
-							type="radio"
-							hidden
-							name="samplingStatus"
-							value="Yes"
-							bind:group={samplingStatus}
-						/>
-						<span>Yes</span>
-					</label>
-					<label
-						class="flex items-center rounded border border-1 p-4 px-5 {samplingStatus == 'No'
-							? 'bg-gray text-white'
-							: ''}"
-					>
-						<input
-							type="radio"
-							name="samplingStatus"
-							value="No"
-							hidden
-							bind:group={samplingStatus}
-						/>
-						<span>No</span>
-					</label>
-				</div>
-
-				<br />
 				<div class="form-field mb-4">
 					<label for="loadingLocation" class="form-label block text-gray"
 						>Loading Location</label
@@ -307,8 +275,7 @@
 						{/each}
 					</select>
 				</div>
-{#if assay?.dedicatedFleet}
-
+				{#if assay?.dedicatedFleet }
 				<div class="form-field">
 					<label for="loadingHour" class="form-label">Loading Hour (00-23)</label>
 					<input

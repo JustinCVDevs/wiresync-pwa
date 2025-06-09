@@ -41,7 +41,7 @@
 	{currentStep}
 	showActions={false}
 	on:cancel={handleCancel}
-	
+	showSubmit={assay?.linkedWagonIds > 0}
 >
 <!-- t -->
 

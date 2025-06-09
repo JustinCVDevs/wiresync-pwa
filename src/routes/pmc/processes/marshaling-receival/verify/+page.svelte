@@ -64,7 +64,7 @@
 		  updated: new Date().toISOString()
 		});
 		success = 'Verified successfully';
-		setTimeout(() => goto('/pmc/processes'), 3000);
+		setTimeout(() => goto('/pmc/processes/complete'), 3000);
 	  } catch (e) {
 		console.error(e);
 		error = 'Failed to verify';

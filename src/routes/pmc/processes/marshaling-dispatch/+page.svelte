@@ -136,7 +136,13 @@
 	on:error={({ detail }) => (error = detail)}
 	on:success={({ detail }) => (success = detail)}
 >
-	<slot name="header" />
+<div slot="header">
+	<h5 class="text-xl font-bold text-gray ">Train & Consignment Linkage</h5>
+	<p class="text-sm text-gay">
+		Please select the train and consignment
+	</p>
+</div>
+
 
 	{#if error}
 		<div class="mb-4 rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">
@@ -192,60 +198,5 @@
 		/>
 		{/if}
 		<Camera {showCamera} on:capture={handleCapture} on:close={handleCameraClose} />
-		<div class="space-y-6">
-		
-
-			{#if consignments.length}
-				<select
-					bind:value={selectedConsignment}
-					class="w-full rounded-md border p-2 dark:text-gray"
-				>
-					<option value="">Select Consignment</option>
-					{#each consignments as c}
-						<option value={c.serverId}>{c.name}</option>
-					{/each}
-				</select>
-			{:else}
-				<input
-					type="text"
-					placeholder="Enter Consignment Number"
-					bind:value={manualConsignment}
-					class="w-full rounded-md border p-2 dark:text-gray"
-				/>
-			{/if}
-			<!-- <FormField label="Train RFID Number" id="trainRfid"> -->
-			{#if trains.find((t) => t.refNr === selectedTrainRef)?.rfidNr}
-				<select bind:value={selectedRfid} class="w-full rounded-md border p-2 dark:text-gray">
-					<option value="">Select RFID</option>
-					<option value={trains.find((t) => t.refNr === selectedTrainRef)?.rfidNr}>
-						{trains.find((t) => t.refNr === selectedTrainRef)?.rfidNr}
-					</option>
-				</select>
-			{/if}
-			{#if !train?.rfidNr?.length || !train}
-				<input
-					type="text"
-					placeholder="Train RFID Number"
-					bind:value={manualRfid}
-					class="w-full rounded-md border p-2 dark:text-gray"
-				/>
-			{/if}
-			<!-- </FormField> -->
-
-			<Camera {showCamera} on:capture={handleCapture} on:close={handleCameraClose} />
-
-			{#if capturedImage}
-				<div class="overflow-hidden rounded-lg border">
-					<img src={capturedImage} alt="Captured RFID" class="h-48 w-full object-cover" />
-					<button
-						type="button"
-						class="w-full bg-gray py-2 text-white"
-						on:click={() => (showCamera = true)}
-					>
-						Retake Photo
-					</button>
-				</div>
-			{/if}
-		</div>
 	{/if}
 </ProcessLayout>

@@ -66,7 +66,7 @@
 </script>
 
 <section class="space-y-4 px-4">
-<p class="mms-title">Select A Process</p>
+<p class="mms-title ">Select a Process</p>
 		{#each processes as { name, icon: Icon, color, href }}
 			<button
 				on:click={() => goto(href)}

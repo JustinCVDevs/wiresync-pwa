@@ -5,6 +5,7 @@
 
 	// Props for the component
 	export let title: string;
+	export let showSubmit: boolean = true;
 	export let steps: string[] = [];
 	export let currentStep: number = 1;
 	export let isSubmitting: boolean = false;
@@ -21,6 +22,7 @@
 		cancel: void;
 		error: string;
 		success: string;
+		showSubmit: boolean;
 	}>();
 
 	// Handle online/offline status
@@ -43,8 +45,8 @@
 
 	// Handle cancel button click
 	function handleCancel() {
-		// dispatch('cancel');
-		history.back();
+		goto('/pmc/processes');
+		// history.back();
 	}
 
 	// Handle submit button click
@@ -61,7 +63,6 @@
 		success = message;
 	}
 </script>
-
 <section class="space-y-4 px-4 mb-4">
 	<h1 class="text-gray text-center text-2xl font-semibold">{title}</h1>
 
@@ -123,6 +124,7 @@
 				>
 					Cancel
 				</button>
+				{#if showSubmit}
 				<button
 					class="submit-button flex-1 items-center justify-center rounded-lg py-3 text-white transition hover:bg-green-700 active:bg-green-800 disabled:opacity-50"
 					type="submit"
@@ -137,6 +139,9 @@
 						Submit
 					{/if}
 				</button>
+				{:else}
+				<div class="w-full"></div>
+				{/if}
 			</div>
 		</form>
 	</div>

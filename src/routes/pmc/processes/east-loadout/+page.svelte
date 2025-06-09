@@ -9,6 +9,7 @@
 	import { syncService } from '$lib/services/syncService';
 	import { SamplingStatusEnum } from '$lib/types/enums';
 	import type { ID } from '$lib';
+	import moment from 'moment';
 
 	let samplingStatus: SamplingStatusEnum = SamplingStatusEnum.No;
 	let wagonId: ID = '';
@@ -18,7 +19,7 @@
 	let currentStep = 1;
 
 	// Process steps
-	const processSteps = ['Train Details', 'Wagon Capturing', 'Verification', 'Review'];
+	const steps = ['Sample Details', 'FEL Weight Capturing', 'Complete'];
 
 	const samplingStatusOptions = [
 		{ value: SamplingStatusEnum.Yes, label: 'Yes' },
@@ -34,7 +35,7 @@
 		productGrade: ''
 	};
 
-	onMount(() => {
+	onMount( async () => {
 		// Load persisted form data
 		loadPersistedData();
 	});
@@ -65,16 +66,6 @@
 		}
 	}
 
-	function validateStep() {
-		switch (currentStep) {
-			case 1:
-				return !!sampleId && !!productGrade;
-			case 3:
-				return !!wagonId && !!sampleId;
-			default:
-				return true;
-		}
-	}
 
 	function validateForm() {
 		let isValid = true;
@@ -113,7 +104,7 @@
 			// Create the assay object according to the Assay interface
 			const assay: Assay = {
 				id: crypto.randomUUID(),
-				name: sampleId,
+				name:  sampleId,
 				productGrade: productGrade,
 				location: 'East Load Out',
 				created: new Date().toISOString(),
@@ -141,9 +132,7 @@
 			currentStep++;
 			setTimeout(() => {
 				// Navigate to next step
-				goto(
-					`/pmc/processes/east-loadout/${currentStep === 2 ? 'wagon-details' : currentStep === 3 ? 'verification' : 'review'}?sampleId=${assay.id}`
-				);
+					goto('/pmc/processes/east-loadout/verification?sampleId=' + assay.id);
 			}, 1000);
 		} catch (err) {
 			if (currentStep < 4) {
@@ -160,8 +149,7 @@
 
 <ProcessLayout
 	title="East Loadout"
-	processKey="east_loadout"
-	steps={processSteps}
+	{steps}
 	{currentStep}
 	{isSubmitting}
 	bind:this={processLayout}

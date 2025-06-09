@@ -8,7 +8,7 @@
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import { formPersistenceService } from '$lib/services/formPersistenceService';
 	import type { Wagon } from '$lib';
-	import { Trash } from 'ucide-svelte';
+	import { Trash } from 'lucide-svelte';
 	
 	
 

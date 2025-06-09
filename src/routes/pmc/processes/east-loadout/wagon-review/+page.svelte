@@ -38,13 +38,15 @@
 
 	function handleNewWagon(e: Event) {
 		e.preventDefault();
-		goto(`/pmc/processes/west-loadout/fel-weight-capturing?sampleId=${sampleId}`);
+		goto(`/pmc/processes/east-loadout/fel-weight-capturing?sampleId=${sampleId}`);
 	}
 
 	function handleCompleteLoading(e: Event) {
 		// Navigate back to west loadout page for new sample ID
-		e.preventDefault();
-		formPersistenceService.clearForm('west_loadout');
+		
+		e.preventDefault()
+		formPersistenceService.clearForm('east_loadout')
+		
 		goto('/pmc/processes/complete');
 	}
 
@@ -67,7 +69,6 @@
 		{#if assay}
 			<div class="bg-white p-4 rounded-lg shadow-sm mb-4">
 				<h6 class="text-lg font-semibold mb-2">Transaction Details</h6>
-				<div class="grid grid-cols-2 gap-4">
 					<div>
 						<p class="text-sm text-gray-500">Sample ID</p>
 						<p class="font-medium">{assay.name}</p>
@@ -76,7 +77,6 @@
 						<p class="text-sm text-gray-500">Product Grade</p>
 						<p class="font-medium">{assay.productGrade}</p>
 					</div>
-				</div>
 			</div>
 <!-- BUG: WHEN BACKING OUT IT DOESNT RENDER THE WAGONS -->
 			<h6 class="font-medium">Linked Wagons ({assay.linkedWagonIds?.length})</h6>
@@ -91,7 +91,6 @@
 										<span class="font-medium">Wagon ID: {wagon.wagonIdSimple}</span>
 									</div>
 									<div class="mt-1 text-sm text-gay">
-										<p>Weight: {wagon.weight} kg</p>
 										<p>Sample ID: {assay.name}</p>
 										<p>Sampling: {wagon.samplingStatus}</p>
 									</div>

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import FormField from '$lib/components/FormField.svelte';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
+	import YesNo from '$lib/components/YesNo.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Assay } from '$lib/types';
 
@@ -62,80 +64,47 @@ on:submit={handleSubmit}
 
 >
 <slot name="header" />
-<div class="space-y-6">
+
+		<YesNo selected={isDedicatedFleet} label="Dedicated Fleet" />
+		<FormField
+			label="Sample ID"
+			id="sampleId"
+			type="text"
+			bind:value={sampleId}
+			placeholder="Enter Sample ID"
+			required
+			/>
+<FormField
+    label="Sample Size"
+    id="sampleSize"
+    type="select" 
+	isSelect={true}
+    bind:value={sampleSize}
+    options={sampleSizes.map((i)=>({value: i, label: i}))}
+    placeholder="Select Sample Size"
+    required
+/>
+
+<FormField
+    label="Commodity"
+    id="commodity"
+    type="select"
+    bind:value={commodity}
+    options={commodities.map((i)=>({value: i, label: i}))}
+	isSelect={true}
+    placeholder="Select Commodity"
+    required
+/>
+{#if commodity === 'Magnetite'}
+<FormField
+	id="productType"
+	label="Product Type"
+	isSelect={true}
+	options={productTypes.map((type) => ({ value: type, label: type }))}
+	bind:value={productType}
+	placeholder="Enter Product Type"
+	required={true}	
+/>
+{/if}
 	
-	<h2 class="text-xl font-semibold">Sample Capturing</h2>
-	<div class="space-y-4">
-		<div class="space-y-2">
-			<label class="block font-medium">Dedicated Fleet</label>
-			<div class="flex space-x-4">
-				<label class="flex items-center block  border border-1 p-4 px-5 rounded {isDedicatedFleet == "Yes"? "bg-gray text-white" : ""}">
-					<input type="radio" hidden name="dedicatedFleet" value="Yes" bind:group={isDedicatedFleet} class="mr-2" />
-					<span>Yes</span>
-				</label>
-				<label class="flex items-center border border-1 rounded p-4 px-5 {isDedicatedFleet == "No" ? "bg-gray text-white" : ""}">
-					<input type="radio" name="dedicatedFleet" value="No" hidden bind:group={isDedicatedFleet} class="mr-2" />
-					<span>No</span>
-				</label>
-			</div>
-		</div>
-
-			<div class="space-y-2">
-				<label for="sampleId" class="block font-medium">Sample ID</label>
-				<input
-					id="sampleId"
-					type="text"
-					bind:value={sampleId}
-					placeholder="Enter Sample ID"
-					required
-					class="w-full rounded border border-gray-300 px-3 py-2"
-				/>
-			</div>
-
-			<div class="space-y-2">
-				<label for="sampleSize" class="block font-medium">Sample Size</label>
-				<select 
-					id="sampleSize" 
-					bind:value={sampleSize} 
-					required
-					class="w-full rounded border border-gray-300 px-3 py-2"
-				>
-					<option value="">Select Sample Size</option>
-					{#each sampleSizes as size}
-						<option value={size}>{size}</option>
-					{/each}
-				</select>
-			</div>
-
-			<div class="space-y-2">
-				<label for="commodity" class="block font-medium">Commodity</label>
-				<select 
-					id="commodity" 
-					bind:value={commodity} 
-					required
-					class="w-full rounded border border-gray-300 px-3 py-2"
-				>
-					<option value="">Select Commodity</option>
-					{#each commodities as item}
-						<option value={item}>{item}</option>
-					{/each}
-				</select>
-			</div>
-
-			<div class="space-y-2">
-				<label for="productType" class="block font-medium">Product Type</label>
-				<select 
-					id="productType" 
-					bind:value={productType} 
-					required
-					class="w-full rounded border border-gray-300 px-3 py-2"
-				>
-					<option value="">Select Product Type</option>
-					{#each productTypes as type}
-						<option value={type}>{type}</option>
-					{/each}
-				</select>
-			</div>
-	
-	</div>
 </ProcessLayout>

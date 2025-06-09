@@ -60,7 +60,8 @@
   
 	$: if (dispatchId) loadDispatch();
   
-	async function handleWagonSubmit(event: CustomEvent<{ wagonId: string; rfidTag: string; image: File | null }>) {
+	async function handleWagonSubmit(event: { preventDefault: () => void; detail: { rfidTag: any; wagonId: any; image: any; }; }) {
+		event.preventDefault();
 	  if (!trainDispatch) return;
 	  error = '';
 	  try {
@@ -86,6 +87,7 @@
 		  updated: new Date().toISOString()
 		});
 		success = 'Wagon added';
+			currentStep = 3;
 		await loadDispatch();
 		showWagonInput = false;
 	  } catch (e) {
@@ -99,7 +101,7 @@
 	}
   
 	function handleReview() {
-	  goto(`/pmc/processes/marshaling-dispatch/complete-loading?dispatchId=${dispatchId}`);
+	  goto(`/pmc/processes/complete`);
 	}
 
   </script>
@@ -168,14 +170,17 @@
 	  {#if showWagonInput}
 		<div class="fixed inset-0 z-10 flex items-center justify-center backdrop-blur-sm  bg-opacity-40">
 		  <div class="w-full max-w-sm rounded-lg bg-white p-6 m-6 shadow-xl">
-			<WagonInput on:submit={handleWagonSubmit} on:cancel={handleWagonCancel} />
+			<form on:submit|preventDefault>
+				<WagonInput on:submit={handleWagonSubmit} on:cancel={handleWagonCancel} />
+
+			</form>
 			
 		  </div>
 		</div>
 	  {:else}
 		<button
 		  class="w-full mb-4 rounded-md bg-gray py-3  text-sm text-white hover:bg-blue-700"
-		  on:click={() => showWagonInput = true}
+		  on:click={() => {currentStep=2;showWagonInput = true}}
 		>+ Add Wagon</button>
 	  {/if}
   

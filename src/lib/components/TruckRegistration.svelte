@@ -4,9 +4,11 @@
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import { Button } from '$lib/components/ui/button';
 	import { Scan, AlertTriangle } from 'lucide-svelte';
+	import FormField from './FormField.svelte';
 
 	export let availableTrucks: { registration: string; serverId: string }[] = [];
 	export let selectedValue: string;
+	export let allowInput: boolean = true;
 
 	let scanStatus: 'idle' | 'scanning' | 'matched' | 'unmatched' = 'idle';
 	let lastScannedId: string | null = null;
@@ -49,17 +51,13 @@
 </script>
 
 <div class="form-field">
-	<label for="truckRegistration" class="form-label"
-		>Scan Truck Registration QR Code or enter manually</label
-	>
-	<select
+	<FormField
+	label={allowInput ? "Scan truck registration QR code or enter manually" : "Select truck registration "}
 		id="truckRegistration"
-		class="flex w-full items-center rounded border border-1 p-4 px-5"
 		bind:value={selectedValue}
+		placeholder="Scan QR Code"
+		isSelect
 		required
-	>
-		{#each availableTrucks as truck}
-			<option value={truck.serverId}>{truck.registration}</option>
-		{/each}
-	</select>
+		options={availableTrucks.map((t) => ({ value: t.serverId, label: t.registration }))}
+			/>
 </div>

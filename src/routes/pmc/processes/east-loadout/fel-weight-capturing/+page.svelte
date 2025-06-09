@@ -55,7 +55,6 @@
 		let isValid = true;
 		formErrors = {
 			wagonId: '',
-			wagonWeight: '',
 			samplingStatus: ''
 		};
 
@@ -64,10 +63,7 @@
 			isValid = false;
 		}
 
-		if (!wagonWeight) {
-			formErrors.wagonWeight = 'Wagon Weight is required';
-			isValid = false;
-		}
+	
 
 		return isValid;
 	}
@@ -110,9 +106,10 @@
 			}
 			
 			processLayout.setSuccess('Wagon data saved successfully');
+
 			setTimeout(() => {
 				// Navigate to wagon review page
-				goto(`/pmc/processes/west-loadout/wagon-review?sampleId=${sampleId}`);
+				goto(`/pmc/processes/east-loadout/wagon-review?sampleId=${sampleId}`);
 			}, 1000);
 		} catch (err) {
 			processLayout.setError('Failed to save wagon data');
@@ -123,7 +120,7 @@
 	}
 
 	function handleCancel() {
-		goto(`/pmc/processes/west-loadout/verification?sampleId=${sampleId}`);
+		goto(`/pmc/processes/east-loadout/verification?sampleId=${sampleId}`);
 	}
 	$: isFormValid = wagonId && wagonWeight && samplingStatus;
 </script>
@@ -145,21 +142,16 @@
 		<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
 			<strong class="font-bold">Error:</strong>
 			<span class="block sm:inline">{formErrors.wagonId}</span>
-			<span class="block sm:inline">{formErrors.wagonWeight}</span>
 			<span class="block sm:inline">{formErrors.samplingStatus}</span>
 			<span class="absolute top-0 bottom-0 right-0 px-4 py-3">
 				</span></div>
 				{/if}
-	<div slot="header">
-		<h5 class="text-xl font-bold ">FEL Weight Capturing</h5>
-		<p class="text-sm text-gay">Please enter the wagon details and weight</p>
-	</div>
+
 
 	<div class="space-y-4">
 		{#if assay}
 			<div class="bg-white p-4 rounded-lg shadow-sm mb-4">
 				<h6 class="text-lg font-semibold mb-2">Transaction Details</h6>
-				<div class="grid grid-cols-2 gap-4">
 					<div>
 						<p class="text-sm text-gray-500">Sample ID</p>
 						<p class="font-medium">{assay.name}</p>
@@ -168,7 +160,6 @@
 						<p class="text-sm text-gray-500">Product Grade</p>
 						<p class="font-medium">{assay.productGrade}</p>
 					</div>
-				</div>
 			</div>
 
 			<div class="bg-white p-4 rounded-lg shadow-sm space-y-4">
@@ -184,16 +175,7 @@
 							<p class="text-sm text-red-600">{formErrors.wagonWeight}</p>
 						{/if}
 
-					<FormField
-						id="wagonWeight"
-						label="Wagon Weight (kg)"
-						bind:value={wagonWeight}
-						placeholder="Enter wagon weight"
-						required={true}
-						error={formErrors.wagonWeight}
-						type="number"
-					/>
-				<YesNo bind:selected={samplingStatus} description='' label="Wagon Sampling Status"/>
+				<YesNo bind:selected={samplingStatus} description="" label="Wagon Sampling Status"/>
 			</div>
 		{:else}
 			<div class="text-center py-8">
