@@ -15,4 +15,5 @@ export interface Assay extends BaseRecord {
 	productType?: string; // e.g. "Cotton"
 	process?: string; // e.g. "Loading" / "Unloading" / "Transferring"
 	dedicatedFleet?: boolean; // e.g. true / false
+	sampleId?: string;
 }
