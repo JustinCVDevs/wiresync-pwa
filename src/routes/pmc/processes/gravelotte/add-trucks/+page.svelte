@@ -71,9 +71,8 @@
 
 	let selectedTruck: string;
 
-	async function handleAddTruck(
-		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
-	) {
+	async function handleAddTruck(event: SubmitEvent) {
+		event.preventDefault();
 		try {
 			if (!assay) return;
 			if (!validateLoadingHour(loadingHour)) {
@@ -146,7 +145,7 @@
 {#if message}
 			<div class="bg-green-600 text-white border rounded-lg shadow-lg flex p-4" style="background: #91f1b5;color: #2f3c33;"><CheckCircle class="mr-4"/> {message}</div>
 			{:else}
-<ProcessLayout {steps} {currentStep} on:cancel={handleCancel} on:submit={handleSubmit}>
+<ProcessLayout title="Gravelotte" {currentStep} on:cancel={handleCancel} on:submit={handleSubmit}>
 	<div class="container">
 		<h1 class="text-2xl font-black ease-in">Adding Trucks to a Lot</h1>
 
@@ -325,8 +324,8 @@
 					<div class="error">{error}</div>
 				{/if}
 				<div class="button-group">
-					<button class="cancel-button" on:click={handleTruckCancel}>Cancel</button>
-					<button class="new-button" on:click={handleAddTruck}>Submit Truck</button>
+					<button class="cancel-button" on:click={handleTruckCancel}>Cancel</button>\
+					<button type="submit" class="new-button">Submit Truck</button>
 				</div>
 			</div>
 		</form>

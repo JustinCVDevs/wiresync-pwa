@@ -72,7 +72,7 @@
 				loadingHour,
 				process: 'Gravelotte',
 				syncStatus: 'pending',
-				created: new Date().toISOString(),
+				created: new Date(),
 				updated: new Date().toISOString()
 			};
 
