@@ -72,25 +72,25 @@
     const isValid = store.manager.validateCurrentStep();
     
     if (isValid) {
-      let currentData: ProcessStepData = {};
-      store.data.subscribe(value => { currentData = value; })();
-      
-      dispatch('next', { data: currentData });
+      const unsubscribe = store.subscribe(storeValue => {
+        dispatch('next', { data: storeValue.data });
+      });
+      unsubscribe();
       await store.manager.nextStep();
     } else {
-      let currentErrors: FormErrors = {};
-      store.errors.subscribe(value => { currentErrors = value; })();
-      
-      dispatch('validate', { isValid, errors: currentErrors });
+      const unsubscribe = store.subscribe(storeValue => {
+        dispatch('validate', { isValid, errors: storeValue.errors });
+      });
+      unsubscribe();
     }
   }
   
   // Handle previous button click
   async function handlePrevious() {
-    let currentData: ProcessStepData = {};
-    store.data.subscribe(value => { currentData = value; })();
-    
-    dispatch('previous', { data: currentData });
+    const unsubscribe = store.subscribe(storeValue => {
+      dispatch('previous', { data: storeValue.data });
+    });
+    unsubscribe();
     await store.manager.previousStep();
   }
   
@@ -100,12 +100,11 @@
     
     if (isValid) {
       let currentData: ProcessStepData = {};
-      store.data.subscribe(value => { currentData = value; })();
+      store.subscribe((value: ProcessStepData) => { currentData = value; })();
       
       dispatch('submit', { data: currentData });
     } else {
       let currentErrors: FormErrors = {};
-      store.errors.subscribe(value => { currentErrors = value; })();
       
       dispatch('validate', { isValid, errors: currentErrors });
     }
@@ -118,7 +117,6 @@
   
   // Get current errors
   let errors: FormErrors = {};
-  store.errors.subscribe(value => { errors = value; });
 </script>
 
 {#if isActive}
