@@ -11,7 +11,7 @@
 	let trains: Train[] = [];
 	let consignments: Consignment[] = [];
 	let selectedTrainRef = '';
-	let selectedConsignment = '';
+	let selectedConsignment: string | undefined = '';
 	let manualConsignment = '';
 	let selectedRfid = '';
 	let manualRfid = '';
@@ -24,6 +24,7 @@
 	const steps = ['Train & Consignment Details', 'Wagon Linkage', 'Complete'];
 	let currentStep = 1;
 	let train: Train;
+
 	async function loadTrainsAndConsignments() {
 		try {
 			const trainRecords = await indexedDBService.getRecords(
@@ -33,19 +34,22 @@
 			trains = trainRecords;
 
 			if (selectedTrainRef) {
-				train = trains.find((t) => t.refNr === selectedTrainRef);
-				manualConsignment = '';
-				selectedConsignment = '';
-				selectedRfid = '';
-				manualRfid = '';
-				capturedImage = null;
-				showCamera = false;
-				error = '';
-				if (train) {
-					consignments = await indexedDBService.getRecords(
-						'consignments',
-						(rec) => rec.syncStatus === 'synced' && rec.linkedTrainId === train.serverId
-					);
+				const foundTrain = trains.find((t) => t.refNr === selectedTrainRef);
+				if (foundTrain) {
+					train = foundTrain;
+					manualConsignment = '';
+					selectedConsignment = '';
+					selectedRfid = '';
+					manualRfid = '';
+					capturedImage = null;
+					showCamera = false;
+					error = '';
+					if (train) {
+						consignments = await indexedDBService.getRecords(
+							'consignments',
+							(rec) => rec.syncStatus === 'synced' && rec.linkedTrainId === train.serverId
+						);
+					}
 				}
 			}
 		} catch (e) {
@@ -92,7 +96,7 @@
 					name: manualConsignment,
 					linkedTrainId: train.serverId,
 					syncStatus: 'pending',
-					created: new Date().toISOString(),
+					created: new Date(),
 					updated: new Date().toISOString()
 				});
 			}
@@ -110,7 +114,7 @@
 			linkedConsignmentId: selectedConsignment || manualConsignment || undefined,
 			process: 'MarshalingDispatch',
 			syncStatus: 'pending',
-			created: new Date().toISOString(),
+			created: new Date(),
 			updated: new Date().toISOString()
 		};
 			await indexedDBService.saveRecord('trainDispatches', trainDispatch);
@@ -126,7 +130,6 @@
 
 <ProcessLayout
 	title="Marshaling Dispatch"
-	processKey="marshaling-dispatch"
 	{steps}
 	{currentStep}
 	isSubmitting={isLoading}
@@ -168,7 +171,12 @@
 			isSelect={true}
 			placeholder="Select Consignment Number"
 			bind:value={selectedConsignment}
-			options={consignments.map((c) => ({ value: c.serverId, label: c.name }))}
+			options={consignments
+					.filter(c => c.serverId)
+					.map((c) => ({ 
+						value: c.serverId!, // Use non-null assertion since we filtered
+						label: c.name 
+					}))}
 		/>
 		{:else}
 		<FormField	
@@ -179,7 +187,7 @@
 			bind:value={manualConsignment}
 		/>
 		{/if}
-		{#if train?.rfidNr?.length > 0}
+		{#if train?.rfidNr && train.rfidNr.length > 0}
 		<FormField
 			label="Train RFID Number"
 			id="trainRfid"
@@ -197,6 +205,6 @@
 			bind:value={manualRfid}
 		/>
 		{/if}
-		<Camera {showCamera} on:capture={handleCapture} on:close={handleCameraClose} />
+		<!-- <Camera onPhotoSelected={handleCapture} on:close={handleCameraClose} /> -->
 	{/if}
 </ProcessLayout>
