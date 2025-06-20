@@ -20,6 +20,12 @@
 			href: '/pmc/processes/marshaling-receival'
 		},
 		{
+			name: 'Wagon ID/RFID Linking',
+			icon: ReceiptText,
+			color: 'text-blue-500',
+			href: '/pmc/processes/wagon-id-linking'
+		},
+		{
 			name: 'Marshaling Dispatch',
 			icon: ArrowRightCircle,
 			color: 'text-green-500',

@@ -8,3 +8,4 @@ export * from './types/wagon';
 export * from './types/sample';
 export * from './types/trainDispatch';
 export * from './types/truckLoad';
+export * from './types/shuntingTrain';

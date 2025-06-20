@@ -4,7 +4,7 @@ import PocketBase, {
 	type RecordSubscription
 } from 'pocketbase';
 import { indexedDBService } from './indexedDBService';
-import type { Train, Wagon, Sample, Assay, Consignment, TrainDispatch, TruckLoad } from '$lib';
+import type { Train, Wagon, Sample, Assay, Consignment, TrainDispatch, TruckLoad, ShuntingTrain } from '$lib';
 
 const POCKETBASE_URL = "https://pb.claervolker.com";
 // make sure you have VITE_POCKETBASE_URL set in your .env
@@ -16,7 +16,8 @@ type PBCollection =
 	| 'trucks'
 	| 'consignments'
 	| 'trainDispatches'
-	| 'truckLoads';
+	| 'truckLoads'
+	| 'shuntingTrains';
 // add others here...
 
 type PBModelMap = {
@@ -28,6 +29,7 @@ type PBModelMap = {
 	consignments: Consignment;
 	trainDispatches: TrainDispatch;
 	truckLoads: TruckLoad;
+	shuntingTrains: ShuntingTrain;
 	// add other mappings here...
 };
 
@@ -153,6 +155,10 @@ class PocketBaseService {
 
 	syncTrains() {
 		return this.syncHelper('trains', indexedDBService.saveTrains, indexedDBService.getTrains);
+	}
+
+	syncShuntingTrains() {
+		return this.syncHelper('shuntingTrains', indexedDBService.saveShuntingTrains, indexedDBService.getShuntingTrains);
 	}
 
 	syncWagons() {

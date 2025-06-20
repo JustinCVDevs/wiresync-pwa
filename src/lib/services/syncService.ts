@@ -4,6 +4,7 @@ import type { Assay } from '$lib/types/assay';
 import type { Wagon } from '$lib/types/wagon';
 import type { TruckLoad } from '$lib/types/truckLoad';
 import type { TrainDispatch } from '$lib/types/trainDispatch';
+import type { ShuntingTrain } from '$lib/types/shuntingTrain';
 
 export const syncService = {
 	// Assay sync methods
@@ -352,6 +353,126 @@ export const syncService = {
 			return false
 		}
 	}, 
+
+	// ShuntingTrain sync methods
+	async syncShuntingTrain(shuntingTrain: ShuntingTrain) {
+		try {
+			const { id, syncStatus, ...payload } = shuntingTrain;
+
+			// Since shunting train always exists in PocketBase, we only update
+			if (shuntingTrain.id) {
+				// Check all linked wagons have server IDs before updating
+				if (shuntingTrain.linkedWagons?.length) {
+					const wagons = await Promise.all(
+						shuntingTrain.linkedWagons.map((id) => indexedDBService.getRecord('wagons', id))
+					);
+
+					// Check if all wagons have server IDs (most will, but new ones might not)
+					const allWagonsHaveServerId = wagons.every((wagon) => wagon?.serverId);
+					if (!allWagonsHaveServerId) {
+						console.warn('Waiting for all wagons to sync before updating shunting train');
+						return false;
+					}
+
+					// Replace local IDs with server IDs
+					payload.linkedWagons = wagons
+						.map((wagon) => wagon?.serverId)
+						.filter((id): id is string => id !== undefined);
+				}
+
+				// Update existing record in PocketBase
+				const updated = await pocketbaseService.update('shuntingTrains', shuntingTrain.id, payload);
+
+				if (shuntingTrain.id) {
+					await indexedDBService.updateRecord('shuntingTrains', shuntingTrain.id, {
+						...shuntingTrain,
+						syncStatus: 'synced',
+						id: updated.id
+					});
+				}
+			} else {
+				// This case should be rare since shunting trains always exist in PocketBase
+				console.warn('ShuntingTrain missing serverId - this should not happen normally');
+				return false;
+			}
+			return true;
+		} catch (err) {
+			console.warn('Failed to sync shunting train with PocketBase, will retry later:', err);
+			return false;
+		}
+	},
+
+	// Add helper method for batch syncing
+	async syncPendingShuntingTrains() {
+		const pending = await indexedDBService.getRecords(
+			'shuntingTrains',
+			(rec: { syncStatus: string }) => rec.syncStatus === 'pending'
+		);
+
+		for (const shuntingTrain of pending) {
+			await this.syncShuntingTrain(shuntingTrain);
+		}
+	},
+
+	async syncShuntingTrainList() {
+		try {
+			const response = await pocketbaseService.list('shuntingTrains');
+			
+			for (const train of response.items) {
+				console.log(`💾 Saving shunting train ${train.id} to IndexedDB...`);
+				await indexedDBService.saveRecord('shuntingTrains', {
+					id: train.id,
+					postDate: train.postDate,
+					syncStatus: 'synced',
+					created: train.created,
+					updated: train.updated,
+					linkedWagons: train.linkedWagons,
+					verificationTimestamp: train.verificationTimestamp
+				});
+			}
+			return true;
+		} catch (err) {
+			console.warn('Failed to sync shunting train list:', err);
+			return false;
+		}
+	},
+
+	async syncWagonList() {
+		console.log('🚛 Starting syncWagonList...');
+		try {
+			console.log('📡 Fetching wagons from PocketBase...');
+			const response = await pocketbaseService.list('wagons');
+			console.log(`✅ Received ${response.items.length} wagons from server`);
+			
+			for (const wagon of response.items) {
+				console.log(`💾 Saving wagon ${wagon.id} to IndexedDB...`);
+				await indexedDBService.saveRecord('wagons', {
+					id: wagon.id,
+					transcoreTag: wagon.transcoreTag,
+					wagonIdSimple: wagon.wagonIdSimple,
+					wagonPhotoUrl: wagon.wagonPhotoUrl,
+					componentType: wagon.componentType,
+					verificationTs: wagon.verificationTs,
+					linkedTrainId: wagon.linkedTrainId,
+					linkedConsignmentId: wagon.linkedConsignmentId,
+					weight: wagon.weight,
+					samplingStatus: wagon.samplingStatus,
+					serverId: wagon.id,
+					syncStatus: 'synced',
+					process: wagon.process,
+					created: wagon.created,
+					updated: wagon.updated
+				});
+			}
+			console.log('🎉 syncWagonList completed successfully');
+			return true;
+		} catch (err) {
+			console.error('❌ Failed to sync wagon list:', err);
+			console.warn('Failed to sync wagon list:', err);
+			return false;
+		}
+	},
+
 	// Update syncAllPending to include train dispatches
 	async syncAllPending() {
 		await Promise.all([
@@ -363,9 +484,12 @@ export const syncService = {
 			this.syncDeletedRecords('assays'),
 			this.syncDeletedRecords('wagons'),
 			this.syncDeletedRecords('truckLoads'),
-			this.syncDeletedRecords('trainDispatches')
-
+			this.syncDeletedRecords('trainDispatches'),
+			this.syncPendingShuntingTrains()
 		]);
 
 	}
 };
+
+
+	
