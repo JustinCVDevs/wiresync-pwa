@@ -105,7 +105,7 @@
 				
 				// Navigate back to processes screen after 1.5 seconds
 				setTimeout(() => {
-					goto('/pmc/processes');
+					goto('/bosveld/processes');
 				}, 1500);
 			}
 		} catch (e: any) {
@@ -131,8 +131,8 @@
 	{steps}
 	{currentStep}
 	isSubmitting={isLoading}
-	cancelPath="/pmc/processes/wagon-id-linking"
-	on:cancel={() => goto('/pmc/processes/wagon-id-linking')}
+	cancelPath="/bosveld/processes/wagon-id-linking"
+	on:cancel={() => goto('/bosveld/processes/wagon-id-linking')}
 	on:submit={handleSubmit}
 	on:error={({ detail }) => (error = detail)}
 	on:success={({ detail }) => (success = detail)}
@@ -201,7 +201,7 @@
 								class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded font-medium"
 								on:click={() => {
 									// Navigate to wagon edit page
-									goto(`/pmc/processes/wagon-id-linking/wagons/${trainId}/edit/${wagon.id}?position=${index + 1}`);
+									goto(`/bosveld/processes/wagon-id-linking/wagons/${trainId}/edit/${wagon.id}?position=${index + 1}`);
 								}}
 							>
 								Change
