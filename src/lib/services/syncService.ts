@@ -5,6 +5,8 @@ import type { Wagon } from '$lib/types/wagon';
 import type { TruckLoad } from '$lib/types/truckLoad';
 import type { TrainDispatch } from '$lib/types/trainDispatch';
 import type { ShuntingTrain } from '$lib/types/shuntingTrain';
+import type { TruckArrival } from '$lib/types/truckArrival';
+import type { Truck } from '$lib/types';
 
 export const syncService = {
 	// Assay sync methods
@@ -177,6 +179,44 @@ export const syncService = {
 		} catch (err) {
 			console.warn('Failed to sync truck list:', err);
 			return false;
+		}
+	},
+
+	async syncTruck(truck: Truck) {
+		try {
+			const { id, syncStatus, ...payload } = truck;
+
+			let created;
+			if (truck.serverId) {
+				// Update existing record in PocketBase
+				created = await pocketbaseService.update('trucks', truck.serverId, payload);
+			} else {
+				// Create new record in PocketBase
+				created = await pocketbaseService.create('trucks', payload);
+			}
+
+			if (truck.id) {
+				await indexedDBService.updateRecord('trucks', truck.id, {
+					...truck,
+					syncStatus: 'synced',
+					serverId: created.id
+				});
+			}
+			return true;
+		} catch (err) {
+			console.warn('Failed to sync truck with PocketBase:', err);
+			return false;
+		}
+	},
+
+	async syncPendingTrucks() {
+		const pending = await indexedDBService.getRecords(
+			'trucks',
+			(rec: { syncStatus: string }) => rec.syncStatus === 'pending'
+		);
+
+		for (const truck of pending) {
+			await this.syncTruck(truck);
 		}
 	},
 
@@ -473,11 +513,101 @@ export const syncService = {
 		}
 	},
 
+	async syncTruckArrival(truckArrival: TruckArrival) {
+		try {
+			// First, check if the linked truck has been synced
+			const linkedTruck = await indexedDBService.getRecord('trucks', truckArrival.truckId);
+			if (!linkedTruck) {
+				console.warn(`Linked truck ${truckArrival.truckId} not found for truck arrival ${truckArrival.id}`);
+				return false;
+			}
+
+			// If the truck hasn't been synced yet, sync it first
+			if (linkedTruck.syncStatus === 'pending') {
+				const truckSynced = await this.syncTruck(linkedTruck);
+				if (!truckSynced) {
+					console.warn(`Failed to sync linked truck ${linkedTruck.id}, cannot sync truck arrival`);
+					return false;
+				}
+			}
+
+			const { id, syncStatus, truckId, ...payload } = truckArrival;
+			
+			// Ensure payload uses the linked truck's serverId
+			const updatedPayload = { ...payload, truckId: linkedTruck.serverId };
+
+			let created;
+			if (truckArrival.serverId) {
+				created = await pocketbaseService.update('truckArrivals', truckArrival.serverId, payload);
+			} else {
+				created = await pocketbaseService.create('truckArrivals', updatedPayload);
+			}
+
+			await indexedDBService.updateRecord('truckArrivals', truckArrival.id, {
+				...truckArrival,
+				syncStatus: 'synced',
+				truckId: linkedTruck.serverId,
+				serverId: created.id
+			});
+
+			return true;
+		} catch (err) {
+			console.warn('Failed to sync truck arrival with PocketBase, will retry later:', err);
+			return false;
+		}
+	},
+
+	// Add helper method for batch syncing
+	async syncPendingTruckArrivals() {
+		const pending = await indexedDBService.getRecords(
+			'truckArrivals',
+			(rec: { syncStatus: string }) => rec.syncStatus === 'pending'
+		);
+
+		for (const truckArrival of pending) {
+			await this.syncTruckArrival(truckArrival);
+		}
+	},
+
+	async syncTruckArrivalList() {
+		try {
+			const response = await pocketbaseService.list('truckArrivals');
+			
+			for (const arrival of response.items) {
+				console.log(`💾 Saving truck arrival ${arrival.id} to IndexedDB...`);
+				await indexedDBService.saveRecord('truckArrivals', {
+					id: arrival.id,
+					truckId: arrival.truckId,
+					port_arrival_sample_id: arrival.port_arrival_sample_id,
+					truck_photo: arrival.truck_photo,
+					port_truck_arrival_timestamp: arrival.port_truck_arrival_timestamp,
+					status: arrival.status,
+					transporter: arrival.transporter,
+					truck_commodity: arrival.truck_commodity,
+					gross_measured_kg: arrival.gross_measured_kg,
+					gross_timestamp: arrival.gross_timestamp,
+					tare_stored_kg: arrival.tare_stored_kg,
+					tare_timestamp: arrival.tare_timestamp,
+					truck_origin_location: arrival.truck_origin_location,
+					syncStatus: 'synced',
+					created: arrival.created,
+					updated: arrival.updated,
+					serverId: arrival.id
+				});
+			}
+			return true;
+		} catch (err) {
+			console.warn('Failed to sync truck arrival list:', err);
+			return false;
+		}
+	},
+
 	// Update syncAllPending to include train dispatches
 	async syncAllPending() {
 		await Promise.all([
 			this.syncPendingAssays(),
 			this.syncPendingWagons(),
+			this.syncPendingTrucks(),
 			this.syncPendingTruckLoads(),
 			this.syncConsignmentList(),
 			this.syncPendingTrainDispatches(),
@@ -485,7 +615,8 @@ export const syncService = {
 			this.syncDeletedRecords('wagons'),
 			this.syncDeletedRecords('truckLoads'),
 			this.syncDeletedRecords('trainDispatches'),
-			this.syncPendingShuntingTrains()
+			this.syncPendingShuntingTrains(),
+			this.syncPendingTruckArrivals()
 		]);
 
 	}

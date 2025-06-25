@@ -9,7 +9,8 @@ import type {
 	Consignment,
 	TrainDispatch,
 	TruckLoad,
-	ShuntingTrain
+	ShuntingTrain, 
+	TruckArrival
 } from '$lib';
 
 // concretely list your stores so TS sees them as literals
@@ -24,7 +25,8 @@ const STORE_NAMES = [
 	'consignments',
 	'trainDispatches',
 	'truckLoads',
-	'shuntingTrains'
+	'shuntingTrains',
+	'truckArrivals'
 ] as const;
 type StoreName = (typeof STORE_NAMES)[number];
 
@@ -40,6 +42,7 @@ interface AppDB extends DBSchema {
 	trainDispatches: { key: string; value: TrainDispatch };
 	truckLoads: { key: string; value: TruckLoad };
 	shuntingTrains: { key: string; value: ShuntingTrain };
+	truckArrivals: { key: string; value: TruckArrival };
 }
 interface Tag extends BaseRecord {
 	id: string;
@@ -47,7 +50,7 @@ interface Tag extends BaseRecord {
 }
 class IndexedDBService {
 	private dbName = 'wiresync-db';
-	private version = 7; // Increment version to trigger upgrade
+	private version = 8; // Increment version to trigger upgrade
 	private db: IDBPDatabase<AppDB> | null = null;
 
 	private async initDB(): Promise<void> {
@@ -213,6 +216,18 @@ class IndexedDBService {
 	}
 	async clearShuntingTrains(): Promise<void> {
 		await this.clearStore('shuntingTrains');
+	}
+	async saveTruckArrivals(truckArrivals: TruckArrival[]): Promise<void> {
+		await this.initDB();
+		const tx = this.db!.transaction('truckArrivals', 'readwrite');
+		truckArrivals.forEach((ta) => tx.store.put(ta));
+		await tx.done;
+	}
+	async getTruckArrivals(): Promise<TruckArrival[]> {
+		return this.getAllRecords('truckArrivals');
+	}
+	async clearTruckArrivals(): Promise<void> {
+		await this.clearStore('truckArrivals');
 	}
 }
 

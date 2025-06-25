@@ -15,25 +15,21 @@
 	const processes = [
 		{
 			name: 'Truck Arrival',
-			icon: ReceiptText,
 			color: 'text-blue-500',
-			href: '/richardsbay/processes/wagon-id-linking'
+			href: '/richardsbay/processes/truck-arrival'
 		},
 		{
 			name: 'Train Arrival',
-			icon: ArrowRightCircle,
 			color: 'text-green-500',
 			href: '/richardsbay/processes/marshaling-dispatch'
 		},
 		{
 			name: 'Train Staging',
-			icon: Train,
 			color: 'text-red-500',
 			href: '/richardsbay/processes/west-loadout'
 		},
 		{
 			name: 'Wagon Dispatch',
-			icon: Train,
 			color: 'text-orange-500',
 			href: '/richardsbay/processes/east-loadout'
 		}
@@ -43,7 +39,7 @@
 
 <section class="space-y-4 px-4">
 <p class="mms-title ">Select a Process</p>
-		{#each processes as { name, icon: Icon, color, href }}
+		{#each processes as { name, color, href }}
 			<button
 				on:click={() => goto(href)}
 				class={`flex w-full transform items-center gap-4 rounded-lg border-1 border-gray-100 px-5 py-4 shadow-lg transition-transform

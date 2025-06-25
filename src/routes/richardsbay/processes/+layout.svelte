@@ -19,15 +19,12 @@
 			try {
 				await Promise.all([
 					syncService.syncTruckList(),
-					syncService.syncTrainList(),
-					syncService.syncConsignmentList(),
+					syncService.syncTruckArrivalList(),
 					syncService.syncAllPending(),
-					syncService.syncShuntingTrainList(),
-					syncService.syncWagonList()
 				]);
 				lastSyncTime.set(new Date());
 			} catch (error) {
-				goto(`/pmc/processes?error=Sync failed: Unable to sync`);
+				goto(`/richardsbay/processes?error=Sync failed: Unable to sync`);
 				console.warn('Sync failed:', error);
 			}
 		}
