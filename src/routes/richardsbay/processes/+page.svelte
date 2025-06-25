@@ -9,7 +9,8 @@
 		Truck,
 		HardDrive,
 		Package,
-		Droplet
+		Droplet,
+		ArrowLeft
 	} from 'lucide-svelte';
 
 	const processes = [
@@ -21,24 +22,33 @@
 		{
 			name: 'Train Arrival',
 			color: 'text-green-500',
-			href: '/richardsbay/processes/marshaling-dispatch'
+			href: '/richardsbay/processes/train-arrival'
 		},
 		{
 			name: 'Train Staging',
 			color: 'text-red-500',
-			href: '/richardsbay/processes/west-loadout'
+			href: '/richardsbay/processes/train-staging'
 		},
 		{
 			name: 'Wagon Dispatch',
 			color: 'text-orange-500',
-			href: '/richardsbay/processes/east-loadout'
+			href: '/richardsbay/processes/wagon-dispatch'
 		}
 	] as const;
 
 </script>
 
 <section class="space-y-4 px-4">
-<p class="mms-title ">Select a Process</p>
+	<!-- Back to Locations Button -->
+	<button
+		on:click={() => goto('/locations')}
+		class="flex items-center gap-2 mb-4 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+	>
+		<ArrowLeft size={20} />
+		<span>Back to Locations</span>
+	</button>
+	
+	<p class="mms-title ">Select a Process</p>
 		{#each processes as { name, color, href }}
 			<button
 				on:click={() => goto(href)}
