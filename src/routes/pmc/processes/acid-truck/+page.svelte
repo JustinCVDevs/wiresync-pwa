@@ -176,6 +176,7 @@
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
+	cancelPath="/pmc/processes"
 	bind:this={processLayout}
 	on:submit={handleSubmit}
 >

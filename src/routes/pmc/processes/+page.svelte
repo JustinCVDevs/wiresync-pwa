@@ -9,15 +9,16 @@
 		Truck,
 		HardDrive,
 		Package,
-		Droplet
+		Droplet,
+		ArrowLeft
 	} from 'lucide-svelte';
 
 	const processes = [
 		{
-			name: 'Marshaling Receival',
+			name: 'Wagon ID/RFID Linking',
 			icon: ReceiptText,
 			color: 'text-blue-500',
-			href: '/pmc/processes/marshaling-receival'
+			href: '/pmc/processes/wagon-id-linking'
 		},
 		{
 			name: 'Marshaling Dispatch',
@@ -66,7 +67,16 @@
 </script>
 
 <section class="space-y-4 px-4">
-<p class="mms-title ">Select a Process</p>
+	<!-- Back to Locations Button -->
+	<button
+		on:click={() => goto('/locations')}
+		class="flex items-center gap-2 mb-4 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+	>
+		<ArrowLeft size={20} />
+		<span>Back to Locations</span>
+	</button>
+	
+	<p class="mms-title ">Select a Process</p>
 		{#each processes as { name, icon: Icon, color, href }}
 			<button
 				on:click={() => goto(href)}

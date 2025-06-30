@@ -34,22 +34,24 @@
 		  id: truckLoadId,
 		  truckId,
 		  felWeight: loadedWeight,
-		  created: new Date().toISOString(),
+		  created: new Date(),
 		  samplingStatus: true,
 		  syncStatus: 'pending',
-		  process: 'Copper Truck Loadout'
+		  process: 'Copper Truck Loadout',
+		  sampleId
 		};
   
 		const assay: Assay = {
 		  id: crypto.randomUUID(),
 		  name: sampleId,
-		  created: new Date().toISOString(),
+		  created: new Date(),
 		  dedicatedFleet: false,
 		  commodity: 'Copper',
 		  productType: materialType,
 		  linkedTruckLoadIds: [truckLoadId],
 		  syncStatus: 'pending',
-		  process: 'Copper Truck Loadout'
+		  process: 'Copper Truck Loadout',
+		  sampleId
 		};
   
 		await Promise.all([
@@ -76,7 +78,6 @@
   
   <ProcessLayout
 	title="Copper Truck Loadout"
-	processKey="copper_truck_loadout"
 	{steps}
 	{currentStep}
 	isSubmitting={false}

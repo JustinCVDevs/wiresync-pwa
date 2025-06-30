@@ -1,26 +1,17 @@
 import { writable, derived, type Writable, type Readable } from 'svelte/store';
 import { ProcessStepManager, type ProcessStepData, type FormErrors } from '$lib/services/processStepManager';
 
-/**
- * Interface for the process step store
- */
 export interface ProcessStepStore {
-  currentStep: Readable<number>;
-  stepNames: Readable<string[]>;
-  data: Writable<ProcessStepData>;
-  errors: Readable<FormErrors>;
-  isSubmitting: Readable<boolean>;
+  subscribe: (run: (value: {
+    currentStep: number;
+    stepNames: string[];
+    data: ProcessStepData;
+    errors: FormErrors;
+    isSubmitting: boolean;
+  }) => void) => () => void;
   manager: ProcessStepManager;
 }
 
-/**
- * Creates a process step store for a specific process
- * 
- * @param processName - The name of the process (must match a key in processConfig)
- * @param baseUrl - The base URL for the process (e.g., '/pmc/processes/gravelotte')
- * @param initialData - Optional initial data for the process
- * @returns A ProcessStepStore object
- */
 export function createProcessStepStore(
   processName: string,
   baseUrl: string,
@@ -34,12 +25,20 @@ export function createProcessStepStore(
   const errors = derived(manager.errors, $errors => $errors);
   const isSubmitting = derived(manager.submitting, $submitting => $submitting);
   
+  // Create a readable store that combines all the values
+  const store = derived(
+    [currentStep, stepNames, manager.data, errors, isSubmitting],
+    ([$currentStep, $stepNames, $data, $errors, $isSubmitting]) => ({
+      currentStep: $currentStep,
+      stepNames: $stepNames,
+      data: $data,
+      errors: $errors,
+      isSubmitting: $isSubmitting
+    })
+  );
+
   return {
-    currentStep,
-    stepNames,
-    data: manager.data,
-    errors,
-    isSubmitting,
+    subscribe: store.subscribe,
     manager
   };
 }
@@ -62,13 +61,15 @@ export function createStepStore(
     store.manager.registerValidator(stepIndex, validator);
   }
   
-  // Create a derived store that is true when this is the current step
-  const isActive = derived(store.currentStep, $currentStep => $currentStep === stepIndex);
+  // Create derived stores from the main store
+  const derivedStore = derived(store, $store => ({
+    isActive: $store.currentStep === stepIndex,
+    data: $store.data,
+    errors: $store.errors
+  }));
   
   return {
-    isActive,
-    data: store.data,
-    errors: store.errors,
+    subscribe: derivedStore.subscribe,
     nextStep: () => store.manager.nextStep(),
     previousStep: () => store.manager.previousStep(),
     updateData: (newData: Partial<ProcessStepData>) => store.manager.updateData(newData),

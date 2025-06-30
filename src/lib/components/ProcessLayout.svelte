@@ -9,7 +9,7 @@
 	export let steps: string[] = [];
 	export let currentStep: number = 1;
 	export let isSubmitting: boolean = false;
-	export let cancelPath: string = '/pmc/processes';
+	export let cancelPath: string;
 
 	// State variables
 	let isOnline = navigator.onLine;
@@ -45,7 +45,7 @@
 
 	// Handle cancel button click
 	function handleCancel() {
-		goto('/pmc/processes');
+		goto(cancelPath);
 		// history.back();
 	}
 

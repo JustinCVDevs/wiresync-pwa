@@ -62,7 +62,7 @@
         <div class="flex flex-col gap-2">
           <div class="flex justify-between  text-leftitems-center">
             <span class="font-semibold">📄 Truck registration:</span>
-            <span>{trucks?.find((t)=> t.id == truckLoad.truckId)?.registration}</span>
+            <span>{trucks?.find((t)=> t.id == truckLoad?.truckId)?.registration}</span>
           </div>
           <div class="flex justify-between items-center">
             <span class="font-semibold">🪣 Tank loaded from:</span>
@@ -74,7 +74,7 @@
           </div>
           <div class="flex justify-between items-center">
             <span class="font-semibold">🔒 Sampling Time:</span>
-            <span>{new Date(truckLoad.created).toLocaleString()}</span>
+            <span>{new Date(truckLoad.created ?? null).toLocaleString()}</span>
           </div>
           {#if assay.name.indexOf("ACID") == -1}
           <div class="flex justify-between items-center">

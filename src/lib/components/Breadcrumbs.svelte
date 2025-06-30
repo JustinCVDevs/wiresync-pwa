@@ -12,8 +12,13 @@
 			const name = decodeURIComponent(seg)
 				.replace(/[-_]/g, ' ')
 				.replace(/\b\w/g, (c) => c.toUpperCase());
-			if (name === 'Processes') {
-				return { name: 'PMC Processes', href: '/pmc/processes' };
+			
+			// Check if this is a 'processes' segment and get the location from previous segment
+			if (name === 'Processes' && i > 0) {
+				const location = decodeURIComponent(segments[i-1])
+					.replace(/[-_]/g, ' ')
+					.replace(/\b\w/g, (c) => c.toUpperCase());
+				return { name: `${location} Processes`, href };
 			}
 			return { name, href };
 		});
