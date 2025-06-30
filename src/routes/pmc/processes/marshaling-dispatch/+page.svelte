@@ -133,7 +133,7 @@
 	{steps}
 	{currentStep}
 	isSubmitting={isLoading}
-	cancelPath="/processes"
+	cancelPath="/pmc/processes"
 	on:cancel={() => goto('/pmc/processes')}
 	on:submit={handleSubmit}
 	on:error={({ detail }) => (error = detail)}

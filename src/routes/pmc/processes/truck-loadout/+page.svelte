@@ -58,10 +58,9 @@ title="Truck Loadout"
 {currentStep}
 isSubmitting={false}
 bind:this={processLayout}
-cancelPath="/processes"
+cancelPath="/pmc/processes"
 on:cancel={() => goto('/pmc/processes')}
 on:submit={handleSubmit}
-
 >
 <slot name="header" />
 

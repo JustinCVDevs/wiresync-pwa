@@ -153,6 +153,8 @@
 	{currentStep}
 	{isSubmitting}
 	bind:this={processLayout}
+	cancelPath="/pmc/processes"
+	on:cancel={() => goto('/pmc/processes')}
 	on:submit={handleSubmit}
 >
 	<div slot="header">

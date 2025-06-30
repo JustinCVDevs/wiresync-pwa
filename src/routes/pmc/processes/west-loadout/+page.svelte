@@ -28,7 +28,7 @@
 	let processLayout: ProcessLayout;
 
 	function handleCancel() {
-		goto('/pmc/processes/west-loadout');
+		goto('/pmc/processes');
 	}
 	// Form errors
 	let formErrors = {
@@ -156,6 +156,7 @@
 	{currentStep}
 	{isSubmitting}
 	bind:this={processLayout}
+	cancelPath="/pmc/processes"
 	on:submit={handleSubmit}
 	on:cancel={handleCancel}
 >
