@@ -7,6 +7,7 @@ import type { TrainDispatch } from '$lib/types/trainDispatch';
 import type { ShuntingTrain } from '$lib/types/shuntingTrain';
 import type { TruckArrival } from '$lib/types/truckArrival';
 import type { Truck } from '$lib/types';
+import type { TrainArrival } from '$lib/types/trainArrival';
 
 export const syncService = {
 	// Assay sync methods
@@ -602,6 +603,74 @@ export const syncService = {
 		}
 	},
 
+	async syncTrainArrival(trainArrival: TrainArrival) {
+		try {
+			// // First, check if the linked train has been synced
+			// const linkedTrain = await indexedDBService.getRecord('trains', trainArrival.trainId);
+			// if (!linkedTrain) {
+			// 	console.warn(`Linked train ${trainArrival.trainId} not found for train arrival ${trainArrival.id}`);
+			// 	return false;
+			// }
+
+			// // If the train hasn't been synced yet, sync it first
+			// if (linkedTrain.syncStatus === 'pending') {
+			// 	// We need to ensure the train is synced first
+			// 	// Since there's no syncTrain method, we'll use the existing train record
+			// 	// or create one if needed through the syncTrainList method
+			// 	const trainListSynced = await this.syncTrainList();
+			// 	if (!trainListSynced) {
+			// 		console.warn(`Failed to sync train list, cannot sync train arrival`);
+			// 		return false;
+			// 	}
+				
+			// 	// Check if the train was synced in the list
+			// 	const updatedTrain = await indexedDBService.getRecord('trains', trainArrival.trainId);
+			// 	if (!updatedTrain || updatedTrain.syncStatus === 'pending') {
+			// 		console.warn(`Failed to sync linked train ${linkedTrain.id}, cannot sync train arrival`);
+			// 		return false;
+			// 	}
+				
+			// 	// Update our reference to the linked train
+            //     const linkedTrainUpdated = updatedTrain;
+			// }
+
+			const { id, syncStatus, trainId, ...payload } = trainArrival;
+			
+			// Ensure payload uses the linked train's serverId
+			const updatedPayload = { ...payload };
+
+			let created;
+			if (trainArrival.serverId) {
+				created = await pocketbaseService.update('trainArrivals', trainArrival.serverId, payload);
+			} else {
+				created = await pocketbaseService.create('trainArrivals', updatedPayload);
+			}
+
+			await indexedDBService.updateRecord('trainArrivals', trainArrival.id, {
+				...trainArrival,
+				syncStatus: 'synced',
+				serverId: created.id
+			});
+
+			return true;
+		} catch (err) {
+			console.warn('Failed to sync train arrival with PocketBase, will retry later:', err);
+			return false;
+		}
+	},
+
+	// Add helper method for batch syncing
+	async syncPendingTrainArrivals() {
+		const pending = await indexedDBService.getRecords(
+			'trainArrivals',
+			(rec: { syncStatus: string }) => rec.syncStatus === 'pending'
+		);
+
+		for (const trainArrival of pending) {
+			await this.syncTrainArrival(trainArrival);
+		}
+	},
+	
 	// Update syncAllPending to include train dispatches
 	async syncAllPending() {
 		await Promise.all([
@@ -616,7 +685,8 @@ export const syncService = {
 			this.syncDeletedRecords('truckLoads'),
 			this.syncDeletedRecords('trainDispatches'),
 			this.syncPendingShuntingTrains(),
-			this.syncPendingTruckArrivals()
+			this.syncPendingTruckArrivals(),
+			this.syncPendingTrainArrivals()
 		]);
 
 	}

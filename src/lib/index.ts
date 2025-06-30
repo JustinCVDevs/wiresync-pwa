@@ -10,3 +10,4 @@ export * from './types/trainDispatch';
 export * from './types/truckLoad';
 export * from './types/shuntingTrain';
 export * from './types/truckArrival';
+export * from './types/trainArrival';
