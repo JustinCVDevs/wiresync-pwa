@@ -13,4 +13,5 @@ export interface Wagon extends BaseRecord {
 	serverId?: string;
 	syncStatus: 'pending' | 'synced';
 	process?: string; // e.g. "Loading" / "Unloading" / "Transferring"
+	dispatchTimestamp?: Date;
 }
