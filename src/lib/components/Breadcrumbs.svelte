@@ -7,6 +7,7 @@
 	const crumbs = derived(page, ($page) => {
 		const segments = $page.url.pathname.split('/').filter(Boolean);
 
+		const editIndex = segments.findIndex(seg => decodeURIComponent(seg).toLowerCase() === 'edit');
 		let list = segments.map((seg, i) => {
 			const href = '/' + segments.slice(0, i + 1).join('/');
 			const name = decodeURIComponent(seg)
@@ -24,7 +25,11 @@
 		});
 
 		if (list.length > 2) {
-			list = list.slice(1);
+			let filtered = list.slice(1, -1);
+			if (editIndex > 1 &&  editIndex < list.length) {
+				filtered = filtered.filter((_, i) => i !== editIndex - 2);
+			}
+			list = filtered;
 		}else{
 			list = [];
 		}

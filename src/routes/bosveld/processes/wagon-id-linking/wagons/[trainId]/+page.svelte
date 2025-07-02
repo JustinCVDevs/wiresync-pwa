@@ -182,16 +182,16 @@
 					
 					<div class="space-y-3">
 						<FormField
-							label="Name:"
+							label="Name (ID):"
 							id="wagonName_{index}"
-							value={wagon.transcoreTag || ''}
+							value={wagon.wagonIdSimple || ''}
 							disabled={true}
 						/>
 						
 						<FormField
-							label="Wagon ID:"
+							label="Wagon RFID:"
 							id="wagonId_{index}"
-							value={wagon.wagonIdSimple || ''}
+							value={wagon.transcoreTag || ''}
 							disabled={true}
 						/>
 						
