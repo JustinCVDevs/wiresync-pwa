@@ -7,7 +7,8 @@
 	  import type { Assay } from '$lib/types';
 	  import FormField from '$lib/components/FormField.svelte';
   
-	  $: isDedicatedFleet = '';
+	  let dedicatedFleet = '';
+	  let isDedicatedFleet = false;
 	  let sampleId = '';
 	  let sampleSize = '';
 	  let commodity = '';
@@ -27,10 +28,10 @@
 	  ]
 	  async function handleSubmit() {
 		  try {
-			  if (isDedicatedFleet == 'Yes'){
-  // create fleet 
-			  }else{
-  // ccreate
+			  if (dedicatedFleet === 'Yes') {
+				isDedicatedFleet = true;
+			  }else {
+				isDedicatedFleet = false;
 			  }
 			  
 			  const assay: Assay = {
@@ -39,7 +40,7 @@
 				  sampleSize,
 				  commodity,
 				  productType,
-				  dedicatedFleet: isDedicatedFleet === 'Yes', // Convert to boolean
+				  dedicatedFleet: isDedicatedFleet,
 				  syncStatus: 'pending',
 				  created: new Date(),
 				  updated: new Date().toISOString(),
@@ -48,7 +49,7 @@
   
 			  // Save assay to IndexedDB
 			  await indexedDBService.saveRecord('assays', assay);
-  
+
 			  goto(`/pmc/processes/gravelotte/add-trucks?assayId=${assay.id}`);
 		  } catch (err) {
 			  error = 'Failed to submit data';
@@ -66,7 +67,7 @@
   {currentStep}
   isSubmitting={false}
   cancelPath="/pmc/processes"
-  on:cancel={() => goto('/pmc/processes')}
+  on:cancel={handleCancel}
   on:submit={handleSubmit}
   on:error={({ detail }) => (error = detail)}
   >
@@ -82,7 +83,11 @@
   
 						  
 			  
-			  <YesNo selected={isDedicatedFleet} label={"Dedicated Fleet"} description={"Please specify wether the truck is part of a fleet."}/>
+				<YesNo 
+					bind:selected={dedicatedFleet} 
+					label={"Dedicated Fleet"} 
+					description={"Please specify wether the truck is part of a fleet."}
+				/>
 				  
 			  
   

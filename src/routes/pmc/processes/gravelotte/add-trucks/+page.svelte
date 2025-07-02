@@ -145,7 +145,7 @@
 {#if message}
 			<div class="bg-green-600 text-white border rounded-lg shadow-lg flex p-4" style="background: #91f1b5;color: #2f3c33;"><CheckCircle class="mr-4"/> {message}</div>
 			{:else}
-<ProcessLayout title="Gravelotte" {currentStep} on:cancel={handleCancel} on:submit={handleSubmit}>
+<ProcessLayout title="Gravelotte" {currentStep} cancelPath="/pmc/processes" on:cancel={handleCancel} on:submit={handleSubmit}>
 	<div class="container">
 		<h1 class="text-2xl font-black ease-in">Adding Trucks to a Lot</h1>
 
@@ -162,31 +162,31 @@
 				<h2 class="text-xl mb-4">Sampling Details</h2>
 				<div class="details-grid rounded-lg border bg-gray-50  p-4 shadow-lg inset-boxshadow-sm">
 					<div class="detail-item">
-						<label>Total Trucks Linked</label>
+						<span class="label">Total Trucks Linked</span>
 						<span class="value">{truckLoads.length}</span>
 					</div>
 					<div class="detail-item">
-						<label>Sample Batch Created</label>
+						<span class="label">Sample Batch Created</span>
 						<span class="value">{(assay.created)}</span>
 					</div>
 					<div class="detail-item">
-						<label>Dedicated Fleet</label>
+						<span class="label">Dedicated Fleet</span>
 						<span class="value">{assay.dedicatedFleet ? 'Yes' : 'No'}</span>
 					</div>
 					<div class="detail-item">
-						<label>Sample ID</label>
+						<span class="label">Sample ID</span>
 						<span class="value">{assay.name}</span>
 					</div>
 					<div class="detail-item">
-						<label>Sample Size</label>
+						<span class="label">Sample Size</span>
 						<span class="value">{assay.sampleSize}</span>
 					</div>
 					<div class="detail-item">
-						<label>Commodity</label>
+						<span class="label">Commodity</span>
 						<span class="value">{assay.commodity}</span>
 					</div>
 					<div class="detail-item">
-						<label>Product Type</label>
+						<span class="label">Product Type</span>
 						<span class="value">{assay.productType}</span>
 					</div>
 				</div>
@@ -200,27 +200,27 @@
 								class="load-card flex flex-col items-center justify-between rounded-lg border bg-white p-4 shadow mt-4"
 							>
 								<div class="load-detail flex w-full justify-between">
-									<label>Truck Registration</label>
+									<span class="label">Truck Registration</span>
 									<span>{trucks.find((t) => load.truckId?.includes(t.id))?.registration}</span>
 								</div>
 								<div class="load-detail flex w-full justify-between">
-									<label>FEL Weight</label>
+									<span class="label">FEL Weight</span>
 									<span>{load.felWeight} kg</span>
 								</div>
 								<div class="load-detail flex w-full justify-between">
-									<label>Sample Status</label>
+									<span class="label">Sample Status</span>
 									<span>{load.samplingStatus ? 'Yes' : 'No'}</span>
 								</div>
 								<div class="load-detail flex w-full justify-between">
-									<label>Loading Location</label>
+									<span class="label">Loading Location</span>
 									<span>{load.loadingLocation}</span>
 								</div>
 								<div class="load-detail flex w-full justify-between">
-									<label>Loading Hour</label>
+									<span class="label">Loading Hour</span>
 									<span>{load.loadingHour}</span>
 								</div>
 								<div class="load-detail flex w-full justify-between">
-									<label>Created</label>
+									<span class="label">Created</span>
 									<span>{(load?.created)}</span>
 								</div>
 							</div>
@@ -256,7 +256,7 @@
 					/>
 				</div>
 				<br />
-				<label class="form-label">Sample Status</label>
+				<span class="form-label">Sample Status</span>
 
 				<div class="flex space-x-4">
 					<label
@@ -336,12 +336,30 @@
 {/if}
 <style>
 	.detail-item {
-		margin-bottom: 8px;
+		margin-bottom: 15px;
 		display: flex;
 		line-height: 1;
 		font-size: 14px;
 	}
-	.detail-item label {
+	.detail-item .label {
+		font-weight: bold;
+		margin-right: 8px;
+	}
+	.detail-item span {
+		flex: 1;
+	}
+
+	.load-detail {
+		margin-bottom: 15px;
+		display: flex;
+		line-height: 1;
+		font-size: 14px;
+	}
+	.load-detail .label {
+		font-weight: bold;
+		margin-right: 8px;
+	}
+	.load-detail span {
 		flex: 1;
 	}
 </style>
