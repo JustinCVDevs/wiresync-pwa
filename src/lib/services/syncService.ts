@@ -259,6 +259,42 @@ export const syncService = {
 		}
 	},
 
+	async syncConsignment(consignment: any) {
+		try {
+			const { id, syncStatus, ...payload } = consignment;
+
+			let created;
+			if (consignment.serverId) {
+				created = await pocketbaseService.update('consignments', consignment.serverId, payload);
+			} else {
+				created = await pocketbaseService.create('consignments', payload);
+			}
+
+			if (consignment.id) {
+				await indexedDBService.updateRecord('consignments', consignment.id, {
+					...consignment,
+					syncStatus: 'synced',
+					serverId: created.id
+				});
+			}
+			return true;
+		} catch (err) {
+			console.warn('Failed to sync consignment with PocketBase:', err);
+			return false;
+		}
+	},
+
+	async syncPendingConsignment() {
+		const pending = await indexedDBService.getRecords(
+			'consignments',
+			(rec: { syncStatus: string }) => rec.syncStatus === 'pending'
+		);
+
+		for (const consignment of pending) {
+			await this.syncConsignment(consignment);
+		}
+	},
+
 	async syncTruckLoad(truckLoad: TruckLoad) {
 		try {
 			const { id, syncStatus, ...payload } = truckLoad;
@@ -679,6 +715,7 @@ export const syncService = {
 			this.syncPendingTrucks(),
 			this.syncPendingTruckLoads(),
 			this.syncConsignmentList(),
+			this.syncPendingConsignment(),
 			this.syncPendingTrainDispatches(),
 			this.syncDeletedRecords('assays'),
 			this.syncDeletedRecords('wagons'),
