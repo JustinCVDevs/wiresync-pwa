@@ -6,7 +6,7 @@ import type { TruckLoad } from '$lib/types/truckLoad';
 import type { TrainDispatch } from '$lib/types/trainDispatch';
 import type { ShuntingTrain } from '$lib/types/shuntingTrain';
 import type { TruckArrival } from '$lib/types/truckArrival';
-import type { Truck } from '$lib/types';
+import type { Fleet, Truck } from '$lib/types';
 import type { TrainArrival } from '$lib/types/trainArrival';
 
 export const syncService = {
@@ -706,6 +706,50 @@ export const syncService = {
 			await this.syncTrainArrival(trainArrival);
 		}
 	},
+
+	async syncFleet(fleet : Fleet) {
+		try {
+			const { id, syncStatus, ...payload } = fleet;
+			console.log('🚚 Syncing fleet:', fleet.serverId, 'payload:', payload);
+
+			let created;
+			if (fleet.serverId) {
+				console.log('Updating fleet in PB...');
+				created = await pocketbaseService.update('fleet', fleet.serverId, payload);
+				console.log('Updated fleet in PB:', created);
+			} else {
+				console.log('Creating fleet in PB...');
+				created = await pocketbaseService.create('fleet', payload);
+				console.log('Created fleet in PB:', created);
+			}
+
+			console.log('Fleet ID: ', fleet.id);
+
+			if (fleet.id) {
+				await indexedDBService.updateRecord('fleet', fleet.id, {
+					...fleet,
+					syncStatus: 'synced',
+					serverId: created.id
+				});
+			}
+			return true;
+		} catch (err) {
+			console.warn('Failed to sync fleet with PocketBase:', err);
+			return false;
+		}
+
+	},
+
+	async syncPendingFleet() {
+		const pending = await indexedDBService.getRecords(
+			'fleet',
+			(rec: { syncStatus: string }) => rec.syncStatus === 'pending'
+		);
+
+		for (const fleet of pending) {
+			await this.syncFleet(fleet);
+		}
+	},
 	
 	// Update syncAllPending to include train dispatches
 	async syncAllPending() {
@@ -723,11 +767,12 @@ export const syncService = {
 			this.syncDeletedRecords('trainDispatches'),
 			this.syncPendingShuntingTrains(),
 			this.syncPendingTruckArrivals(),
-			this.syncPendingTrainArrivals()
+			this.syncPendingTrainArrivals(),
+			this.syncPendingFleet()
 		]);
 
 	}
 };
 
 
-	
+

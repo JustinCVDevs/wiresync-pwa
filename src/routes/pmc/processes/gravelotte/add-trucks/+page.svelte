@@ -58,7 +58,7 @@
 		history.back();
 	}
 
-	function formatDate(dateString: string | undefined) {
+	function formatDate(dateString: Date | undefined) {
 		if (!dateString) return '';
 		return new Date(dateString).toLocaleString();
 	}
@@ -98,10 +98,10 @@
 			await indexedDBService.saveRecord('truckLoads', truckLoad);
 			addTruck = false;
 			currentStep = 2;
-			 samplingStatus= "";
-	felWeight= '';
-	 loadingLocation=  'Gravelotte';
-	 loadingHour = '';
+			samplingStatus= "";
+			felWeight= '';
+	 		loadingLocation=  'Gravelotte';
+	 		loadingHour = '';
 			// Update assay with new truckLoad ID
 			const updatedAssay: Assay = {
 				...assay,
@@ -139,7 +139,6 @@
 		setTimeout(() => {
 			goto('/pmc/processes')
 		}, 2500);
-		
 	}
 </script>
 {#if message}
@@ -167,7 +166,7 @@
 					</div>
 					<div class="detail-item">
 						<span class="label">Sample Batch Created</span>
-						<span class="value">{(assay.created)}</span>
+						<span class="value">{formatDate(assay.created)}</span>
 					</div>
 					<div class="detail-item">
 						<span class="label">Dedicated Fleet</span>
@@ -221,7 +220,7 @@
 								</div>
 								<div class="load-detail flex w-full justify-between">
 									<span class="label">Created</span>
-									<span>{(load?.created)}</span>
+									<span>{formatDate(load?.created)}</span>
 								</div>
 							</div>
 						{/each}
