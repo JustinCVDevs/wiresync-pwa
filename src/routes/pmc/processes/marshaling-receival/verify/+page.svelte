@@ -75,7 +75,6 @@
   
   <ProcessLayout
 	title="Wagon Verification"
-	processKey="verify-wagon"
 	{steps}
 	{currentStep}
 	isSubmitting={isVerifying}

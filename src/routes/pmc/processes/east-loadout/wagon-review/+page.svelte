@@ -22,7 +22,8 @@
 
 	async function loadData() {
 		if (sampleId) {
-			assay = await indexedDBService.getAssayById(sampleId);
+			const result = await indexedDBService.getAssayById(sampleId);
+			assay = result ?? null;
 			
 			if (assay?.linkedWagonIds?.length) {
 				const fetchedWagons = await Promise.all(
@@ -57,11 +58,11 @@
 
 <ProcessLayout
 	title={`Loaded Wagons for Sample ${assay?.name}`}
-	processKey="west_loadout"
 	steps={processSteps}
 	{currentStep}
 	on:submit={handleCompleteLoading}
-	showActions={false}
+	on:cancel={handleCancel}
+	cancelPath="/pmc/processes"
 >
 	
 

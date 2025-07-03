@@ -60,7 +60,7 @@
         <div class="flex flex-col gap-2">
           <div class="flex justify-between  text-leftitems-center">
             <span class="font-semibold">📄 Trans Reference:</span>
-            <span>{trucks?.find((t)=> t.id == truckLoad.truckId)?.registration}</span>
+            <span>{trucks?.find((t)=> t.id == truckLoad?.truckId)?.registration}</span>
           </div>
           <div class="flex justify-between items-center">
             <span class="font-semibold">✏️ FEL: Weight:</span>
@@ -68,7 +68,7 @@
           </div>
           <div class="flex justify-between items-center">
             <span class="font-semibold">🔒 Sampling Time:</span>
-            <span>{new Date(truckLoad.created).toLocaleString()}</span>
+            <span>{truckLoad?.created ? new Date(truckLoad.created).toLocaleString() : 'N/A'}</span>
           </div>
           <div class="flex justify-between items-center">
             <span class="font-semibold">🔢 Sample ID:</span>

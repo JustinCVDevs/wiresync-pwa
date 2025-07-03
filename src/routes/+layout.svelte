@@ -1,18 +1,21 @@
-<script>
-	import { onMount } from 'svelte'
-	import { browser, dev } from '$app/environment'
-	import '../app.css';
+<script lang="ts">
+    import { onMount } from 'svelte'
+    import { browser, dev } from '$app/environment'
+    import '../app.css';
+    import type { SvelteComponent } from 'svelte';
 
-	// replaced dynamically
-	const date = '__DATE__'
-	const enableSwDev = 'true'
+    // replaced dynamically
+    const date = '__DATE__'
+    const enableSwDev = 'true'
 
-	const enableManifest = (!dev && browser) || (dev && browser && enableSwDev === 'true')
+    const enableManifest = (!dev && browser) || (dev && browser && enableSwDev === 'true')
 
-	let ReloadPrompt
-	onMount(async () => {
-		enableManifest && (ReloadPrompt = (await import('$lib/components/ReloadPrompt.svelte')).default)
-	})
+    let ReloadPrompt: typeof SvelteComponent | any = null;
+    onMount(async () => {
+        if (enableManifest) {
+            ReloadPrompt = (await import('$lib/components/ReloadPrompt.svelte')).default;
+        }
+    });
 </script>
 <svelte:head>
 	{#if enableManifest}

@@ -152,6 +152,7 @@
 			const truckArrival: TruckArrival = {
 				id: crypto.randomUUID(),
 				truckId: newTruck.id,
+				serverId: '',
 				port_arrival_sample_id: portArrivalSampleId,
 				truck_photo: [], // Will be handled separately if needed
 				port_truck_arrival_timestamp: new Date(date).toISOString(),

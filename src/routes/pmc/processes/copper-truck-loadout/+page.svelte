@@ -105,8 +105,14 @@
 	  required
 	/>
 
-	<Camera {showCamera} on:capture={handleCapture} on:close={() => (showCamera = false)} />
-
+	{#if showCamera}
+		<Camera 
+			onPhotoSelected={(file) => {
+				/*Handle the file*/
+			}} 
+			on:capture={handleCapture} 
+			on:close={() => (showCamera = false)} />
+	{/if}
 	<FormField
 	  id="materialType"
 	  label="Material Type"

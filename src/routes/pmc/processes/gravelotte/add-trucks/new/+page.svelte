@@ -137,7 +137,7 @@ let currentStep = 2
 			</div>
 
 			<div class="form-field">
-				<label class="form-label">Sample Status</label>
+				<span class="form-label">Sample Status</span>
 				<div class="flex gap-4">
 					<label class="inline-flex items-center">
 						<input type="radio" class="form-radio" name="samplingStatus" value="Yes" bind:group={samplingStatus} />

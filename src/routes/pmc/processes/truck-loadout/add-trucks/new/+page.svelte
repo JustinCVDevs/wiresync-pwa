@@ -70,7 +70,7 @@
 				loadingHour,
 				process: 'Truck Loadout',
 				syncStatus: 'pending',
-				created: new Date().toISOString(),
+				created: new Date(),
 				updated: new Date().toISOString()
 			};
 
@@ -136,7 +136,7 @@
 			</div>
 
 			<div class="input-group">
-				<label>Sample Status</label>
+				<span>Sample Status</span>
 				<div class="radio-group">
 					<label class="radio-button">
 						<input type="radio" name="samplingStatus" value="Yes" bind:group={samplingStatus} />

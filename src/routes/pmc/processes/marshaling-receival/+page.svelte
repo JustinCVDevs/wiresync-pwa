@@ -71,7 +71,7 @@
 				transcoreTag,
 				wagonIdSimple: wagonId,
 				wagonPhotoUrl: selectedPhoto,
-				created: new Date().toISOString(),
+				created: new Date(),
 				componentType: 'MARSHALING_RECEIVAL',
 				id: crypto.randomUUID(),
 				updated: new Date().toISOString(),
@@ -115,12 +115,12 @@
 
 <ProcessLayout
 	title="Wagon Details"
-	processKey="marshaling_receival"
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
 	bind:this={processLayout}
 	on:submit={handleSubmit}
+	cancelPath="/pmc/processes"
 >
 	<div slot="header">
 		<h5 class="text-xl font-bold text-gray ">RFID Tag & Wagon Number</h5>

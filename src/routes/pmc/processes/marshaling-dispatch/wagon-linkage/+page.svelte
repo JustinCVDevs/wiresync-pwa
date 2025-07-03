@@ -43,8 +43,6 @@
 			consignment = (await indexedDBService.getAllRecords("consignments")).find(t => trainDispatch?.linkedConsignmentId === t.id);
 			wagons = (await indexedDBService.getAllRecords("wagons")).filter(t => trainDispatch?.linkedWagonIds?.includes(t?.id ?? '') || trainDispatch?.linkedWagonIds?.includes(t?.serverId ?? ''));
 			// wagons = (await indexedDBService.getAllRecords("wagons")).filter(t => trainDispatch.linkedWagonIds?.includes(t.id));
-			console.log('Train:', train);
-			console.log('Consignment:', consignment);
 	}
 	
 

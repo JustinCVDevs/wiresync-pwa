@@ -16,7 +16,7 @@
 	let selectedRfid = '';
 	let manualRfid = '';
 	let capturedImage: string | null = null;
-	let showCamera = false;
+	let showCamera = true;
 	let error = '';
 	let success = '';
 	let isLoading = true;
@@ -63,8 +63,9 @@
 	onMount(loadTrainsAndConsignments);
 	$: if (selectedTrainRef) loadTrainsAndConsignments();
 
-	function handleCapture(event: CustomEvent<string>) {
-		capturedImage = event.detail;
+	function handleCapture(file: File) {
+		capturedImage = URL.createObjectURL(file);
+		showCamera = false;
 	}
 	function handleCameraClose() {
 		showCamera = false;
@@ -179,7 +180,12 @@
 			placeholder="Enter Train RFID Number"
 			bind:value={manualRfid}
 		/>
-
-		<!-- <Camera onPhotoSelected={handleCapture} on:close={handleCameraClose} /> -->
+		
+		{#if showCamera}
+			<Camera onPhotoSelected={handleCapture} on:close={handleCameraClose} />
+		{/if}
+		{#if capturedImage}
+			<img src={capturedImage} alt="Captured photo" class="mt-4 rounded shadow max-w-xs" />
+		{/if}
 	{/if}
 </ProcessLayout>

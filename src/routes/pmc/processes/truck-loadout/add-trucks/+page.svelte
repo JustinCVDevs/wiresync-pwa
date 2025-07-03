@@ -60,7 +60,7 @@
 		history.back();
 	}
 
-	function formatDate(dateString: string | undefined) {
+	function formatDate(dateString: string | Date | undefined) {
 		if (!dateString) return '';
 		return new Date(dateString).toLocaleString();
 	}
@@ -149,7 +149,15 @@
 {#if message}
 			<div class="bg-green-600 text-white border rounded-lg shadow-lg flex p-4" style="background: #91f1b5;color: #2f3c33;"><CheckCircle class="mr-4"/> {message}</div>
 			{:else}
-<ProcessLayout {steps} {currentStep} on:cancel={handleCancel} on:submit={handleSubmit} cancelPath="/pmc/processes" showSubmit={hasTrucks}>
+<ProcessLayout 
+	title="Add Trucks to Lot"
+	{steps} 
+	{currentStep} 
+	on:cancel={handleCancel} 
+	on:submit={handleSubmit} 
+	cancelPath="/pmc/processes" 
+	showSubmit={hasTrucks}>
+
 	<div class="container">
 		<h1 class="text-2xl font-black ease-in">Adding Trucks to a Lot</h1>
 
@@ -240,7 +248,7 @@
 		{/if}
 		<br />
 		{#if addTruck}
-		<form action="" on:submit={handleAddTruck} >
+		<form action="">
 
 			<div class="add-truck-form rounded border border-1 p-4 space-y-4">
 				<h5 class="text-center text-2xl font-bold">Enter Truck Details</h5>
