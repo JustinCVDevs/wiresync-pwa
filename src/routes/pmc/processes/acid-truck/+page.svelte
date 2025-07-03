@@ -132,7 +132,7 @@
 			const assay: Assay = {
 				id: crypto.randomUUID(),
 				name: sampleId || `ACID_${Date.now()}`,
-				created: new Date().toISOString(),
+				created: new Date(),
 				syncStatus: 'pending',
 				process: 'Acid Truck',
 				productType: acidType,

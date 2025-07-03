@@ -180,9 +180,9 @@
 
 		<!-- Camera Section -->
 		<div class="space-y-2">
-			<label class="block text-sm font-medium text-gray-700">
+			<span class="block text-sm font-medium text-gray-700">
 				Capture a photo of the Truck Registration
-			</label>
+			</span>
 			<Camera onPhotoSelected={handlePhotoSelected} initialFile={capturedPhoto} />
 			{#if formErrors.capturedPhoto}
 				<p class="text-sm text-red-600">{formErrors.capturedPhoto}</p>

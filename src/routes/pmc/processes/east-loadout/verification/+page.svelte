@@ -21,7 +21,8 @@
 
 	async function loadAssayData() {
 		if (sampleId) {
-			assay = await indexedDBService.getAssayById(sampleId);
+			const result = await indexedDBService.getAssayById(sampleId);
+			assay = result ?? null;
 		}
 	}
 
@@ -30,18 +31,17 @@
 	}
 
 	function handleCancel() {
-		goto(`/pmc/processes/east-loadout?sampleId=${sampleId}`);
+		goto('/pmc/processes');
 	}
 </script>
 
 <ProcessLayout
 	title="  Sample Details Verification"
-	processKey="west_loadout"
 	steps={processSteps}
 	{currentStep}
-	showActions={false}
 	on:cancel={handleCancel}
-	showSubmit={assay?.linkedWagonIds > 0}
+	cancelPath="/pmc/processes"
+	showSubmit={!!(assay?.linkedWagonIds?.length)}
 >
 <!-- t -->
 

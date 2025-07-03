@@ -137,7 +137,7 @@
 
 		<!-- Camera Component -->
 		<div class="space-y-2">
-			<label class="block font-medium text-gray text-sm">Train Photo *</label>
+			<span class="block font-medium text-gray text-sm">Train Photo *</span>
 			<Camera onPhotoSelected={handlePhotoSelected} />
 		</div>
 

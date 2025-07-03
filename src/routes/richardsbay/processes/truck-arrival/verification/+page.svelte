@@ -143,9 +143,9 @@
 			
 			<!-- Truck Registration Display -->
 			<div class="mb-4">
-				<label class="block text-sm font-medium text-gray-700 mb-2">
+				<span class="block text-sm font-medium text-gray-700 mb-2">
 					Please enter Truck Registration
-				</label>
+				</span>
 				<div class="bg-gray-50 border border-gray-300 rounded-md px-3 py-2 text-lg font-mono">
 					{truckRegistration || 'No registration provided'}
 				</div>
@@ -153,9 +153,9 @@
 
 			<!-- Sample ID Display -->
 			<div class="mb-4">
-				<label class="block text-sm font-medium text-gray-700 mb-2">
+				<span class="block text-sm font-medium text-gray-700 mb-2">
 					Please enter Sample ID
-				</label>
+				</span>
 				<div class="bg-gray-50 border border-gray-300 rounded-md px-3 py-2">
 					{portArrivalSampleId || 'No sample ID provided'}
 				</div>
@@ -163,9 +163,9 @@
 
 			<!-- Photo Section -->
 			<div class="mb-6">
-				<label class="block text-sm font-medium text-gray-700 mb-2">
+				<span class="block text-sm font-medium text-gray-700 mb-2">
 					Capture a photo of the Truck Registration
-				</label>
+				</span>
 				<div class="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
 					<div class="text-gray-500">
 						{#if capturedPhoto}

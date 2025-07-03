@@ -93,7 +93,7 @@
 				loadingHour,
 				process: 'Gravelotte',
 				syncStatus: 'pending',
-				created: new Date().toISOString(),
+				created: new Date(),
 				updated: new Date().toISOString()
 			};
 
@@ -126,7 +126,7 @@
 	let samplingStatus: string;
 	let felWeight: string | undefined;
 	$: message= '';
-	$: hasTrucks = assay?.linkedTruckLoadIds?.length > 0 || false;
+	$: hasTrucks = !!(assay?.linkedTruckLoadIds?.length);
 	let loadingLocation: any = 'Gravelotte';
 	let loadingHour: string;
 	const loadingLocations = ['West Load Out', 'East Load Out', 'Gravelotte', 'TLO'];
@@ -149,7 +149,7 @@
 {#if message}
 			<div class="bg-green-600 text-white border rounded-lg shadow-lg flex p-4" style="background: #91f1b5;color: #2f3c33;"><CheckCircle class="mr-4"/> {message}</div>
 			{:else}
-<ProcessLayout {steps} {currentStep} on:cancel={handleCancel} on:submit={handleSubmit} showSubmit={hasTrucks}>
+<ProcessLayout {steps} {currentStep} on:cancel={handleCancel} on:submit={handleSubmit} cancelPath="/pmc/processes" showSubmit={hasTrucks}>
 	<div class="container">
 		<h1 class="text-2xl font-black ease-in">Adding Trucks to a Lot</h1>
 
@@ -166,31 +166,31 @@
 				<h2 class="text-xl mb-4">Sampling Details</h2>
 				<div class="details-grid rounded-lg border bg-gray-50  p-4 shadow-lg inset-boxshadow-sm">
 					<div class="detail-item">
-						<label>Total Trucks Linked</label>
+						<span>Total Trucks Linked</span>
 						<span class="value">{truckLoads.length}</span>
 					</div>
 					<div class="detail-item">
-						<label>Sample Batch Created</label>
+						<span>Sample Batch Created</span>
 						<span class="value">{formatDate(assay.created)}</span>
 					</div>
 					<div class="detail-item">
-						<label>Dedicated Fleet</label>
+						<span>Dedicated Fleet</span>
 						<span class="value">{assay.dedicatedFleet ? 'Yes' : 'No'}</span>
 					</div>
 					<div class="detail-item">
-						<label>Sample ID</label>
+						<span>Sample ID</span>
 						<span class="value">{assay.name}</span>
 					</div>
 					<div class="detail-item">
-						<label>Sample Size</label>
+						<span>Sample Size</span>
 						<span class="value">{assay.sampleSize}</span>
 					</div>
 					<div class="detail-item">
-						<label>Commodity</label>
+						<span>Commodity</span>
 						<span class="value">{assay.commodity}</span>
 					</div>
 					<div class="detail-item">
-						<label>Product Type</label>
+						<span>Product Type</span>
 						<span class="value">{assay.productType}</span>
 					</div>
 				</div>
@@ -204,27 +204,27 @@
 								class="load-card flex flex-col items-center justify-between rounded-lg border bg-white p-4 shadow mt-4"
 							>
 								<div class="load-detail flex w-full justify-between">
-									<label>Truck Registration</label>
+									<span>Truck Registration</span>
 									<span>{trucks.find((t) => load.truckId?.includes(t.id))?.registration}</span>
 								</div>
 								<div class="load-detail flex w-full justify-between">
-									<label>FEL Weight</label>
+									<span>FEL Weight</span>
 									<span>{load.felWeight} kg</span>
 								</div>
 								<div class="load-detail flex w-full justify-between">
-									<label>Sample Status</label>
+									<span>Sample Status</span>
 									<span>{load.samplingStatus ? 'Yes' : 'No'}</span>
 								</div>
 								<div class="load-detail flex w-full justify-between">
-									<label>Loading Location</label>
+									<span>Loading Location</span>
 									<span>{load.loadingLocation}</span>
 								</div>
 								<div class="load-detail flex w-full justify-between">
-									<label>Loading Hour</label>
+									<span>Loading Hour</span>
 									<span>{load.loadingHour}</span>
 								</div>
 								<div class="load-detail flex w-full justify-between">
-									<label>Created</label>
+									<span>Created</span>
 									<span>{formatDate(load.created)}</span>
 								</div>
 							</div>
@@ -240,7 +240,7 @@
 		{/if}
 		<br />
 		{#if addTruck}
-		<form action="" on:submit|preventDefault={handleAddTruck} >
+		<form action="" on:submit={handleAddTruck} >
 
 			<div class="add-truck-form rounded border border-1 p-4 space-y-4">
 				<h5 class="text-center text-2xl font-bold">Enter Truck Details</h5>
@@ -310,8 +310,5 @@
 		display: flex;
 		line-height: 1;
 		font-size: 14px;
-	}
-	.detail-item label {
-		flex: 1;
 	}
 </style>

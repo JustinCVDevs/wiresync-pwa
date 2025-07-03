@@ -122,7 +122,7 @@
 	}
 
 	function handleCancel() {
-		goto(`/pmc/processes/east-loadout/verification?sampleId=${sampleId}`);
+		goto('/pmc/processes');
 	}
 	$: isFormValid = wagonId && wagonWeight && samplingStatus;
 </script>

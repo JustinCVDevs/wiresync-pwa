@@ -111,7 +111,7 @@
 			const trainDispatch: TrainDispatch = {
 			id: dispatchId,
 			linkedTrainId: train.serverId,
-			linkedConsignmentId: selectedConsignment || manualConsignment || undefined,
+			linkedConsignmentId: manualConsignment,
 			process: 'MarshalingDispatch',
 			syncStatus: 'pending',
 			created: new Date(),

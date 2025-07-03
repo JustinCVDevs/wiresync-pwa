@@ -28,7 +28,7 @@
 	let processLayout: ProcessLayout;
 
 	function handleCancel() {
-		goto('/bosveld/processes/west-loadout');
+		goto('/bosveld/processes');
 	}
 	// Form errors
 	let formErrors = {
@@ -117,13 +117,12 @@
 				name: sampleId,
 				productGrade: productGrade,
 				location: loadingLocation,
-				created: new Date().toISOString(),
+				created: new Date(),
 				updated: new Date().toISOString(),
 				linkedWagonIds: [],
 				linkedTruckIds: [],
 				syncStatus: 'pending',
 				process: 'West Loadout',
-				consignment: consignment
 			};
 
 			// Save to IndexedDB
@@ -151,7 +150,6 @@
 
 <ProcessLayout
 	title="Sample Details"
-	processKey="west_loadout"
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
@@ -165,7 +163,7 @@
 		<p class="text-sm text-gay">Please enter the sample and product details</p>
 	</div>
 
-	<div class="space-y-4">
+	<div class="container">
 		<FormField
 			id="sampleId"
 			label="Sample ID"
@@ -214,59 +212,5 @@
 		max-width: 600px;
 		margin: 0 auto;
 		padding: 2rem;
-	}
-
-	.form {
-		margin-top: 2rem;
-	}
-
-	.input-group {
-		margin-bottom: 1.5rem;
-	}
-
-	label {
-		display: block;
-		margin-bottom: 0.5rem;
-		font-weight: bold;
-	}
-
-	input,
-	select {
-		width: 100%;
-		padding: 0.75rem;
-		font-size: 1.1rem;
-		border: 1px solid #ccc;
-		border-radius: 4px;
-	}
-
-	.button-group {
-		display: flex;
-		gap: 1rem;
-		margin-top: 2rem;
-	}
-
-	button {
-		padding: 0.75rem 1.5rem;
-		font-size: 1rem;
-		border: none;
-		border-radius: 4px;
-		cursor: pointer;
-		color: white;
-	}
-
-	.submit-button {
-		background-color: #4caf50;
-	}
-
-	.cancel-button {
-		background-color: #f44336;
-	}
-
-	.error {
-		background-color: #ffebee;
-		color: #c62828;
-		padding: 1rem;
-		border-radius: 4px;
-		margin-bottom: 1rem;
 	}
 </style>
