@@ -27,6 +27,7 @@
 	let train : Train | undefined;
 	let consignment : Consignment | undefined;
 	let wagons : Wagon[] | undefined;
+
 	async function loadDispatch() {
 	  isLoading = true;
 	  try {
@@ -42,11 +43,6 @@
 			consignment = (await indexedDBService.getAllRecords("consignments")).find(t => trainDispatch?.linkedConsignmentId === t.id);
 			wagons = (await indexedDBService.getAllRecords("wagons")).filter(t => trainDispatch?.linkedWagonIds?.includes(t?.id ?? '') || trainDispatch?.linkedWagonIds?.includes(t?.serverId ?? ''));
 			// wagons = (await indexedDBService.getAllRecords("wagons")).filter(t => trainDispatch.linkedWagonIds?.includes(t.id));
-
-			console.log('Train:', train);
-			console.log('Consignment:', consignment);
-			console.log('Wagons:', wagons);
-		
 	}
 	
 
@@ -85,7 +81,7 @@
 
 			await indexedDBService.saveRecord('wagons', receivalData);
 
-		const updatedIds = [...(trainDispatch.linkedWagonIds || []), wagonIndexId];
+		const updatedIds = [...(trainDispatch.linkedWagonIds ?? []), wagonIndexId];
 		await indexedDBService.updateRecord('trainDispatches', dispatchId, {
 		  ...trainDispatch,
 		  linkedWagonIds: updatedIds,

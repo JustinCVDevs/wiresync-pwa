@@ -47,7 +47,8 @@
 
 	async function loadAssayData() {
 		if (sampleId) {
-			assay = await indexedDBService.getAssayById(sampleId);
+			const result = await indexedDBService.getAssayById(sampleId);
+			assay = result ?? null;
 		}
 	}
 
@@ -85,7 +86,7 @@
 			const wagon: Wagon = {
 				id: crypto.randomUUID(),
 				wagonIdSimple: wagonId,
-				created: new Date().toISOString(),
+				created: new Date(),
 				updated: new Date().toISOString(),
 				weight: wagonWeight,
 				samplingStatus: samplingStatus,
@@ -98,10 +99,10 @@
 			await syncService.syncWagon(wagon);
 
 			// Update assay to link the wagon
-			if (assay) {
+			if (wagon.id && assay) {
 				const updatedAssay: Assay = {
 					...assay,
-					linkedWagonIds: [...(assay.linkedWagonIds || []), wagon.id],
+					linkedWagonIds: [...(assay.linkedWagonIds ?? []), wagon.id],
 					updated: new Date().toISOString(),
 					syncStatus: 'pending' 
 				};
@@ -130,7 +131,6 @@
 
 <ProcessLayout
 	title="Sample Details Verification"
-	processKey="west_loadout"
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
@@ -138,6 +138,7 @@
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
 	showSubmit={false}
+	cancelPath="/pmc/processes"
 >
 
 <!-- process form errors-->

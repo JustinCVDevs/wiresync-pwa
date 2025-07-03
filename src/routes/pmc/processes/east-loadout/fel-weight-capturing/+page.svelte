@@ -47,7 +47,8 @@
 
 	async function loadAssayData() {
 		if (sampleId) {
-			assay = await indexedDBService.getAssayById(sampleId);
+			const result = await indexedDBService.getAssayById(sampleId);
+			assay = result ?? null;
 		}
 	}
 
@@ -55,6 +56,7 @@
 		let isValid = true;
 		formErrors = {
 			wagonId: '',
+			wagonWeight: '',
 			samplingStatus: ''
 		};
 
@@ -81,12 +83,12 @@
 			const wagon: Wagon = {
 				id: crypto.randomUUID(),
 				wagonIdSimple: wagonId,
-				created: new Date().toISOString(),
+				created: new Date(),
 				updated: new Date().toISOString(),
 				weight: wagonWeight,
 				samplingStatus: samplingStatus,
 				syncStatus: 'pending',
-				process: 'West Loadout'
+				process: 'East Loadout'
 			};
 
 			// Save wagon to IndexedDB
@@ -94,10 +96,10 @@
 			await syncService.syncWagon(wagon);
 
 			// Update assay to link the wagon
-			if (assay) {
+			if (wagon.id && assay) {
 				const updatedAssay: Assay = {
 					...assay,
-					linkedWagonIds: [...(assay.linkedWagonIds || []), wagon.id],
+					linkedWagonIds: [...(assay.linkedWagonIds ?? []), wagon.id],
 					updated: new Date().toISOString(),
 					syncStatus: 'pending' 
 				};
@@ -106,7 +108,7 @@
 			}
 			
 			processLayout.setSuccess('Wagon data saved successfully');
-
+			
 			setTimeout(() => {
 				// Navigate to wagon review page
 				goto(`/pmc/processes/east-loadout/wagon-review?sampleId=${sampleId}`);
@@ -127,7 +129,6 @@
 
 <ProcessLayout
 	title="Sample Details Verification"
-	processKey="west_loadout"
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
@@ -135,6 +136,7 @@
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
 	showSubmit={false}
+	cancelPath="/pmc/processes"
 >
 
 <!-- process form errors-->

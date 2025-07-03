@@ -32,7 +32,9 @@
 	// Form errors
 	let formErrors = {
 		sampleId: '',
-		productGrade: ''
+		productGrade: '',
+		wagonId: '',
+		samplingStatus: ''
 	};
 
 	onMount( async () => {
@@ -58,6 +60,8 @@
 		const savedData = formPersistenceService.loadForm<{
 			sampleId: string;
 			productGrade: string;
+			wagonId: string;
+			samplingStatus: SamplingStatusEnum;
 		}>('east_loadout');
 
 		if (savedData) {
@@ -106,8 +110,10 @@
 				id: crypto.randomUUID(),
 				name:  sampleId,
 				productGrade: productGrade,
+				commodity: productGrade,
+				sampleId: sampleId,
 				location: 'East Load Out',
-				created: new Date().toISOString(),
+				created: new Date(),
 				updated: new Date().toISOString(),
 				linkedWagonIds: [],
 				linkedTruckIds: [],
@@ -122,7 +128,7 @@
 			await syncService.syncAssay(assay);
 
 			// Store wagon linkage
-			assay.linkedWagonIds.push(wagonId);
+			assay.linkedWagonIds?.push(wagonId);
 			await indexedDBService.saveRecord('assays', assay);
 
 			// Clear persisted form data
@@ -162,7 +168,7 @@
 		<p class="text-sm text-gay">Please enter the sample and product details</p>
 	</div>
 
-	<div class="space-y-4">
+	<div class="container">
 		{#if currentStep === 1}
 			<FormField
 				id="sampleId"
@@ -213,59 +219,5 @@
 		max-width: 600px;
 		margin: 0 auto;
 		padding: 2rem;
-	}
-
-	.form {
-		margin-top: 2rem;
-	}
-
-	.input-group {
-		margin-bottom: 1.5rem;
-	}
-
-	label {
-		display: block;
-		margin-bottom: 0.5rem;
-		font-weight: bold;
-	}
-
-	input,
-	select {
-		width: 100%;
-		padding: 0.75rem;
-		font-size: 1.1rem;
-		border: 1px solid #ccc;
-		border-radius: 4px;
-	}
-
-	.button-group {
-		display: flex;
-		gap: 1rem;
-		margin-top: 2rem;
-	}
-
-	button {
-		padding: 0.75rem 1.5rem;
-		font-size: 1rem;
-		border: none;
-		border-radius: 4px;
-		cursor: pointer;
-		color: white;
-	}
-
-	.submit-button {
-		background-color: #4caf50;
-	}
-
-	.cancel-button {
-		background-color: #f44336;
-	}
-
-	.error {
-		background-color: #ffebee;
-		color: #c62828;
-		padding: 1rem;
-		border-radius: 4px;
-		margin-bottom: 1rem;
 	}
 </style>
