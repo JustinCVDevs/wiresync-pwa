@@ -115,7 +115,6 @@
 				location: 'East Load Out',
 				created: new Date(),
 				updated: new Date().toISOString(),
-				linkedWagonIds: [],
 				linkedTruckIds: [],
 				syncStatus: 'pending',
 				process: 'East Loadout'

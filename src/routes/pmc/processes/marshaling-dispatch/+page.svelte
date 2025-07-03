@@ -164,47 +164,20 @@
 		bind:value={selectedTrainRef}
 		options={trains.map((t) => ({ value: t.refNr, label: t.refNr }))}
 		/>
-		{#if consignments.length > 0}
-		<FormField
+		<FormField	
 			label="Consignment Number"
 			id="consignmentNumber"
-			isSelect={true}
-			placeholder="Select Consignment Number"
-			bind:value={selectedConsignment}
-			options={consignments
-					.filter(c => c.serverId)
-					.map((c) => ({ 
-						value: c.serverId!, // Use non-null assertion since we filtered
-						label: c.name 
-					}))}
-		/>
-		{:else}
-		<FormField	
-			label="Manual Consignment Number"
-			id="manualConsignmentNumber"
 			isSelect={false}
 			placeholder="Enter Consignment Number"
 			bind:value={manualConsignment}
 		/>
-		{/if}
-		{#if train?.rfidNr && train.rfidNr.length > 0}
 		<FormField
 			label="Train RFID Number"
 			id="trainRfid"
-			isSelect={true}
-			placeholder="Select RFID"
-			bind:value={selectedRfid}
-			options={[{ value: train.rfidNr, label: train.rfidNr }]}
-		/>
-		{:else}
-		<FormField
-			label="Manual Train RFID Number"
-			id="manualTrainRfid"
 			isSelect={false}
 			placeholder="Enter Train RFID Number"
 			bind:value={manualRfid}
 		/>
 		{/if}
-		<!-- <Camera onPhotoSelected={handleCapture} on:close={handleCameraClose} /> -->
-	{/if}
+		<!-- <Camera onPhotoSelected={handleCapture} on:close={handleCameraClose} /> -->	
 </ProcessLayout>
