@@ -41,6 +41,7 @@
 					loadingLocation: '', // get from truck
 					loadingHour: new Date().getHours(), // get from truck
 					syncStatus: 'pending',
+					siteLocation: 'PMC',
 				};
 
 				await indexedDBService.saveRecord('fleet', fleet);
@@ -59,6 +60,7 @@
 				  created: new Date(),
 				  updated: new Date().toISOString(),
 				  process: 'Gravelotte',
+				  siteLocation: 'PMC',
 			  };
   
 			  // Save assay to IndexedDB

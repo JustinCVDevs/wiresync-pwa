@@ -51,7 +51,8 @@
 				process: 'Train Staging',
 				syncStatus: 'pending',
 				created: new Date(),
-				updated: new Date().toISOString()
+				updated: new Date().toISOString(),
+				siteLocation: 'Richards Bay',
 			};
 
 			await indexedDBService.saveRecord('trainDispatches', trainDispatch);

@@ -7,4 +7,5 @@ export interface ShuntingTrain extends BaseRecord {
 	linkedWagons?: ID[]; 
 	syncStatus: 'pending' | 'synced';// many-to-many with TruckLoad.id
 	verificationTimestamp?: Date; 
+	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"
 }

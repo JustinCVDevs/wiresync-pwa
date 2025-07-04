@@ -112,7 +112,7 @@
 	currentStep={currentStep}
 	cancelPath="/richardsbay/processes"
 	showSubmit={false}
-	on:cancel={handleCancel}
+	showCancel={false}
 >
 	{#if isLoading}
 		<div class="flex justify-center items-center py-8">
@@ -160,11 +160,11 @@
 							<div class="bg-green-50 border border-green-200 rounded-lg p-3">
 								<div class="flex justify-between items-center">
 									<div>
-										<span class="font-medium">{dispatchedWagon.wagonIdSimple}</span>
-										<span class="text-sm text-gray-600 ml-2">Verified: {dispatchedWagon.verificationTs}</span>
+										<span class="font-medium">Wagon ID: {dispatchedWagon.wagonIdSimple}</span>
+										<span class="text-sm text-gray-600 ml-2">Verified at: {dispatchedWagon.verificationTs}</span>
 									</div>
 									<span class="text-sm text-green-600">
-										{formatDateTime(dispatchedWagon.dispatchTimestamp)}
+										Dispatched at: {formatDateTime(dispatchedWagon.dispatchTimestamp)}
 									</span>
 								</div>
 							</div>

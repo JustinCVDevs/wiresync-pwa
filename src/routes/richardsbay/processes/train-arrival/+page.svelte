@@ -77,7 +77,8 @@
 				status: 'pending',
 				created: new Date(),
 				updated: new Date().toISOString(),
-				syncStatus: 'pending'
+				syncStatus: 'pending',
+				siteLocation: 'Richards Bay'
 			};
 
 			// Save to IndexedDB using the generic saveRecord method

@@ -125,7 +125,8 @@
 				syncStatus: 'pending',
 				process: 'Acid Truck',
 				loadingLocation: tankLocation,
-				acidType: acidType
+				acidType: acidType,
+				siteLocation: 'PMC',
 			};
 
 			// Create assay record
@@ -136,7 +137,8 @@
 				syncStatus: 'pending',
 				process: 'Acid Truck',
 				productType: acidType,
-				linkedTruckLoadIds: [truckLoadId]
+				linkedTruckLoadIds: [truckLoadId],
+				siteLocation: 'PMC',
 			};
 
 			// Save both records

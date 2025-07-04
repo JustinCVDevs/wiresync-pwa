@@ -5,4 +5,5 @@ export interface Consignment extends BaseRecord {
 	linkedTrainId?: ID; // relation to Train.id
 	serverId?: string;
 	syncStatus: 'pending' | 'synced';
+	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"
 }

@@ -91,7 +91,8 @@
 				process: 'Gravelotte',
 				syncStatus: 'pending',
 				created: new Date(),
-				updated: new Date().toISOString()
+				updated: new Date().toISOString(),
+				siteLocation: 'PMC'
 			};
 
 			// Save truckLoad to IndexedDB
@@ -195,32 +196,33 @@
 					<h2 class="font-bold">Linked Trucks ({truckLoads.length})</h2>
 					<div class="loads-grid">
 						{#each truckLoads as load}
-							<div
-								class="load-card flex flex-col items-center justify-between rounded-lg border bg-white p-4 shadow mt-4"
-							>
-								<div class="load-detail flex w-full justify-between">
-									<span class="label">Truck Registration</span>
-									<span>{trucks.find((t) => load.truckId?.includes(t.id))?.registration}</span>
-								</div>
-								<div class="load-detail flex w-full justify-between">
-									<span class="label">FEL Weight</span>
-									<span>{load.felWeight} kg</span>
-								</div>
-								<div class="load-detail flex w-full justify-between">
-									<span class="label">Sample Status</span>
-									<span>{load.samplingStatus ? 'Yes' : 'No'}</span>
-								</div>
-								<div class="load-detail flex w-full justify-between">
-									<span class="label">Loading Location</span>
-									<span>{load.loadingLocation}</span>
-								</div>
-								<div class="load-detail flex w-full justify-between">
-									<span class="label">Loading Hour</span>
-									<span>{load.loadingHour}</span>
-								</div>
-								<div class="load-detail flex w-full justify-between">
-									<span class="label">Created</span>
-									<span>{formatDate(load?.created)}</span>
+							<div class="mb-6 rounded border text-xs p-4 bg-white">
+								<div class="flex flex-col gap-2">
+									<div class="flex justify-between  text-leftitems-center">
+										<span class="font-semibold">📄 Trans Reference:</span>
+										<span>{trucks?.find((t)=> t.id == load?.truckId)?.registration}</span>
+									</div>
+									<div class="flex justify-between items-center">
+										<span class="font-semibold">⚖ FEL Weight:</span>
+										<span>{load.felWeight} kg</span>
+									</div>
+									<div class="flex justify-between items-center">
+										<span class="font-semibold">🔢 Sample Status:</span>
+										<span>{load.samplingStatus ? 'Yes' : 'No'}</span>
+									</div>
+									<div class="flex justify-between items-center">
+										<span class="font-semibold">🌍 Loading Location:</span>
+										<span>{load.loadingLocation}</span>
+									</div>
+									<div class="flex justify-between items-center">
+										<span class="font-semibold">🕒 Loading Hour:</span>
+										<span>{load?.loadingHour}</span>
+									</div>
+									
+									<div class="flex justify-between items-center">
+										<span class="font-semibold">✏️ Created:</span>
+										<span>{formatDate(load.created)}</span>
+									</div>
 								</div>
 							</div>
 						{/each}
@@ -338,20 +340,6 @@
 		margin-right: 8px;
 	}
 	.detail-item span {
-		flex: 1;
-	}
-
-	.load-detail {
-		margin-bottom: 15px;
-		display: flex;
-		line-height: 1;
-		font-size: 14px;
-	}
-	.load-detail .label {
-		font-weight: bold;
-		margin-right: 8px;
-	}
-	.load-detail span {
 		flex: 1;
 	}
 

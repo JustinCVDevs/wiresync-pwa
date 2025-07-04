@@ -117,7 +117,8 @@
 				updated: new Date().toISOString(),
 				linkedTruckIds: [],
 				syncStatus: 'pending',
-				process: 'East Loadout'
+				process: 'East Loadout',
+				siteLocation: 'PMC',
 			};
 
 			// Save to IndexedDB

@@ -10,4 +10,5 @@ export interface TrainArrival extends BaseRecord {
 	status: 'pending' | 'received' | 'processed';
 	serverId?: string;
 	syncStatus: 'pending' | 'synced';
+	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"
 }

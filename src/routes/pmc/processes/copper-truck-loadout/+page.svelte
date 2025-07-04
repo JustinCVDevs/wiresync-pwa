@@ -38,7 +38,8 @@
 		  samplingStatus: true,
 		  syncStatus: 'pending',
 		  process: 'Copper Truck Loadout',
-		  sampleId
+		  sampleId,
+		  siteLocation: 'PMC',
 		};
   
 		const assay: Assay = {
@@ -51,7 +52,8 @@
 		  linkedTruckLoadIds: [truckLoadId],
 		  syncStatus: 'pending',
 		  process: 'Copper Truck Loadout',
-		  sampleId
+		  sampleId,
+		  siteLocation: 'PMC',
 		};
   
 		await Promise.all([

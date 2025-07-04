@@ -21,4 +21,5 @@ export interface TruckArrival extends BaseRecord{
 	truck_origin_location?: 'TLG' | 'RCL' | 'BOP';
 	syncStatus: string;
 	serverId: string;
+	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"
   }

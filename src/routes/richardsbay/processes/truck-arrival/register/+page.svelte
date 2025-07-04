@@ -166,7 +166,8 @@
 				truck_origin_location: sender as 'TLG' | 'RCL' | 'BOP',
 				created: new Date(),
 				updated: new Date().toISOString(),
-				syncStatus: 'pending'
+				syncStatus: 'pending',
+				siteLocation: 'Richards Bay'
 			};
 
 			// Save truck arrival record

@@ -8,4 +8,5 @@ export interface TrainDispatch extends BaseRecord {
 	process?: string; // e.g. "Loading" / "Unloading" / "Transferring"
 	serverId?: string;
 	syncStatus: 'pending' | 'synced';
+	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"
 }

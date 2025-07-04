@@ -98,7 +98,8 @@
 					linkedTrainId: train.serverId,
 					syncStatus: 'pending',
 					created: new Date(),
-					updated: new Date().toISOString()
+					updated: new Date().toISOString(),
+					siteLocation: 'Bosveld'
 				});
 			}
 			if (manualRfid) {
@@ -116,7 +117,8 @@
 			process: 'MarshalingDispatch',
 			syncStatus: 'pending',
 			created: new Date(),
-			updated: new Date().toISOString()
+			updated: new Date().toISOString(),
+			siteLocation: 'Bosveld'
 		};
 			await indexedDBService.saveRecord('trainDispatches', trainDispatch);
 

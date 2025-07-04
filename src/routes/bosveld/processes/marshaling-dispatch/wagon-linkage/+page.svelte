@@ -99,7 +99,7 @@
 	}
   
 	function handleReview() {
-	  goto(`/bosveld/processes/complete`);
+	  goto(`/bosveld/processes`);
 	}
 
   </script>

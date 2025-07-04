@@ -71,7 +71,8 @@
 				process: 'Truck Loadout',
 				syncStatus: 'pending',
 				created: new Date(),
-				updated: new Date().toISOString()
+				updated: new Date().toISOString(),
+				siteLocation: 'PMC',
 			};
 
 			// Save truckLoad to IndexedDB

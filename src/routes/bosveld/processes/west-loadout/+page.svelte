@@ -127,6 +127,7 @@
 				linkedTruckIds: [],
 				syncStatus: 'pending',
 				process: 'West Loadout',
+				siteLocation: 'Bosveld',
 			};
 
 			// Save to IndexedDB

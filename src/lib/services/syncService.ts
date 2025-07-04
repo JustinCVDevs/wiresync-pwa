@@ -274,7 +274,8 @@ export const syncService = {
 				await indexedDBService.updateRecord('consignments', consignment.id, {
 					...consignment,
 					syncStatus: 'synced',
-					serverId: created.id
+					serverId: created.id,
+					siteLocation: consignment.siteLocation
 				});
 			}
 			return true;
