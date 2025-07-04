@@ -238,30 +238,27 @@
 		<br />
 		{#if addTruck}
 		<form action="" on:submit|preventDefault={handleAddTruck}>
-
 			<div class="add-truck-form rounded border border-1 p-4">
 				<h5 class="text-center text-2xl font-bold">Enter Truck Details</h5>
-				<TruckRegistration availableTrucks={trucks} bind:selectedValue={selectedTruck} />
-
-				<div class="form-field mt-4">
+				<div class="form-field">
+					<TruckRegistration availableTrucks={trucks} bind:selectedValue={selectedTruck} />
+				</div>
+				<div class="form-field">
 					<label for="felWeight" class="form-label block text-gray">FEL Weight (kg)</label>
 					<input
 						id="felWeight"
 						type="number"
-						class="form-input block border border-1 p-4 px-5"
+						class="form-input"
 						bind:value={felWeight}
 						placeholder="Enter FEL Weight"
 						required
 					/>
 				</div>
-				<br />
-				<span class="form-label">Sample Status</span>
 
-				<div class="flex space-x-4">
+				<span class="form-label">Sample Status</span>
+				<div class="form-field flex gap-4">
 					<label
-						class="block flex items-center rounded border border-1 p-4 px-5 {samplingStatus == 'Yes'
-							? 'bg-gray text-white'
-							: ''}"
+						class="radio-equal flex items-center rounded border border-1 p-4 px-5 {samplingStatus == 'Yes' ? 'bg-gray text-white' : ''}"
 					>
 						<input
 							type="radio"
@@ -273,9 +270,7 @@
 						<span>Yes</span>
 					</label>
 					<label
-						class="flex items-center rounded border border-1 p-4 px-5 {samplingStatus == 'No'
-							? 'bg-gray text-white'
-							: ''}"
+						class="radio-equal flex items-center rounded border border-1 p-4 px-5 {samplingStatus == 'No' ? 'bg-gray text-white' : ''}"
 					>
 						<input
 							type="radio"
@@ -288,14 +283,11 @@
 					</label>
 				</div>
 
-				<br />
-				<div class="form-field mb-4">
-					<label for="loadingLocation" class="form-label block text-gray"
-						>Loading Location</label
-					>
+				<div class="form-field">
+					<label for="loadingLocation" class="form-label block text-gray">Loading Location</label>
 					<select
 						id="loadingLocation"
-						class="form-select w-full rounded border border-1 p-4"
+						class="form-select"
 						bind:value={loadingLocation}
 						required
 					>
@@ -323,7 +315,8 @@
 					<div class="error">{error}</div>
 				{/if}
 				<div class="button-group">
-					<button class="cancel-button" on:click={handleTruckCancel}>Cancel</button>\
+					<button class="cancel-button" on:click={handleTruckCancel}>Cancel</button>
+					<span class="divider">\</span>
 					<button type="submit" class="new-button">Submit Truck</button>
 				</div>
 			</div>
@@ -360,5 +353,37 @@
 	}
 	.load-detail span {
 		flex: 1;
+	}
+
+	.add-truck-form {
+		max-width: 400px;
+		margin: 0 auto;
+	}
+	.form-field {
+		width: 100%;
+		margin-bottom: 1.5rem;
+	}
+	.form-input,
+	.form-select {
+		width: 100%;
+		box-sizing: border-box;
+		height: 50px;
+	}
+	.radio-equal {
+		flex: 1 1 0;
+		justify-content: center;
+		min-width: 120px;
+	}
+	.button-group {
+		display: flex;
+		justify-content: center;
+		gap: 2rem;
+	}
+	.divider {
+		font-size: 1.7rem;
+		line-height: 1;
+		display: flex;
+		align-items: center;
+		user-select: none;
 	}
 </style>

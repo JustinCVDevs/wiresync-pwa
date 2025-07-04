@@ -52,12 +52,12 @@
 
 <div class="form-field">
 	<FormField
-	label={allowInput ? "Scan truck registration QR code or enter manually" : "Select truck registration "}
+		label={allowInput ? "Scan truck registration QR code or enter manually" : "Select truck registration "}
 		id="truckRegistration"
 		bind:value={selectedValue}
 		placeholder="Scan QR Code"
 		isSelect
 		required
 		options={availableTrucks.map((t) => ({ value: t.serverId, label: t.registration }))}
-			/>
+	/>
 </div>

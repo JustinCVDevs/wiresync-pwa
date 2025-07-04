@@ -1,5 +1,5 @@
 <script lang="ts">
-	import YesNo from '$lib/components/YesNo.svelte';
+	  import YesNo from '$lib/components/YesNo.svelte';
   
 	  import { goto } from '$app/navigation';
 	  import ProcessLayout from '$lib/components/ProcessLayout.svelte';
