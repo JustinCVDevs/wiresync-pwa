@@ -8,6 +8,8 @@
 	import type { Assay } from '$lib/types/assay';
 	import { pocketbaseService } from '$lib/services/pocketbaseService';
 	import { syncService } from '$lib/services/syncService';
+	import Camera from '$lib/components/Camera.svelte';
+	import Button from '$lib/components/ui/button/button.svelte';
 
 	interface Consignment {
 		name: string;
@@ -20,6 +22,8 @@
 	let consignments: Consignment[] = [];
 	let isSubmitting = false;
 	let currentStep = 1;
+	let showCamera = true;
+	let capturedImage: string | null = null;
 
 	// Process steps
 	const processSteps = ['Sample Details', 'FEL Weight Capturing', 'Complete'];
@@ -137,7 +141,7 @@
 			processLayout.setSuccess('Data saved successfully');
 			setTimeout(() => {
 				// Navigate to verification page
-				goto('/bosveld/processes/west-loadout/verification?sampleId=' + assay.id);
+				goto('/bosveld/processes/west-loadout/verification?sampleId=' + assay.id + '&consignment=' + consignment);
 			}, 1000);
 		} catch (err) {
 			processLayout.setError('Failed to save assay data');
@@ -145,6 +149,14 @@
 		} finally {
 			isSubmitting = false;
 		}
+	}
+
+	function handlePhotoSelected(file: File) {
+		capturedImage = URL.createObjectURL(file);
+	}
+
+	function handleCameraClose() {
+		showCamera = false;
 	}
 </script>
 
@@ -164,46 +176,58 @@
 	</div>
 
 	<div class="container">
-		<FormField
-			id="sampleId"
-			label="Sample ID"
-			bind:value={sampleId}
-			placeholder="Enter Sample ID"
-			required={true}
-			error={formErrors.sampleId}
-		/>
+		<div class="formfield">
+			<FormField
+				id="sampleId"
+				label="Sample ID"
+				bind:value={sampleId}
+				placeholder="Enter Sample ID"
+				required={true}
+				error={formErrors.sampleId}
+			/>
+		</div>
+		
+		<div class="formfield">
+			<FormField
+				id="productGrade"
+				label="Product Grade"
+				bind:value={productGrade}
+				placeholder="Select Product Grade"
+				isSelect={true}
+				options={productGrades.map((grade) => ({ value: grade, label: grade }))}
+				required={true}
+				error={formErrors.productGrade}
+			/>
+		</div>
 
-		<FormField
-			id="productGrade"
-			label="Product Grade"
-			bind:value={productGrade}
-			placeholder="Select Product Grade"
-			isSelect={true}
-			options={productGrades.map((grade) => ({ value: grade, label: grade }))}
-			required={true}
-			error={formErrors.productGrade}
-		/>
+		<div class="formfield">
+			<FormField
+				id="consignment"
+				label="Consignment Number (Optional)"
+				bind:value={consignment}
+				placeholder="Select Consignment"
+				isSelect={true}
+				options={consignments.map((con) => ({ value: con.name, label: con.name }))}
+				error={formErrors.consignment}
+			/>
+		</div>
 
-		<FormField
-			id="consignment"
-			label="Consignment Number (Optional)"
-			bind:value={consignment}
-			placeholder="Select Consignment"
-			isSelect={true}
-			options={consignments.map((con) => ({ value: con.name, label: con.name }))}
-			error={formErrors.consignment}
-		/>
-
-		<FormField
-			id="loadingLocation"
-			label="Loading Location"
-			disabled
-			bind:value={loadingLocation}
-			placeholder="Select Loading Location"
-			isSelect={true}
-			options={loadingLocations.map((location) => ({ value: location, label: location }))}
-			required={true}
-		/>
+		<div class="formfield">
+			<FormField
+				id="loadingLocation"
+				label="Loading Location"
+				disabled
+				bind:value={loadingLocation}
+				placeholder="Select Loading Location"
+				isSelect={true}
+				options={loadingLocations.map((location) => ({ value: location, label: location }))}
+				required={true}
+			/>
+		</div>
+		<!-- Show Camera component only when showCamera is true -->
+		{#if showCamera}
+			<Camera onPhotoSelected={handlePhotoSelected} on:close={handleCameraClose} />
+		{/if}
 	</div>
 </ProcessLayout>
 
@@ -212,5 +236,8 @@
 		max-width: 600px;
 		margin: 0 auto;
 		padding: 2rem;
+	}
+	.formfield {
+		margin-bottom: 1rem
 	}
 </style>

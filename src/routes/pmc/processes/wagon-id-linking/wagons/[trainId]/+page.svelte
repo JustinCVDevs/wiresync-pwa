@@ -32,13 +32,10 @@
 
 			// Load linked wagons using the IDs from linkedWagons array
 			if (shuntingTrain.linkedWagons && shuntingTrain.linkedWagons.length > 0) {
-				console.log('Loading wagons for IDs:', shuntingTrain.linkedWagons);
-				
 				// Fetch each wagon by ID from the wagons collection
 				const wagonPromises = shuntingTrain.linkedWagons.map(async (wagonId) => {
 					try {
 						const wagon = await indexedDBService.getRecord('wagons', wagonId);
-						console.log(`Loaded wagon ${wagonId}:`, wagon);
 						return wagon;
 					} catch (e) {
 						console.warn(`Failed to load wagon ${wagonId}:`, e);
@@ -49,8 +46,6 @@
 				const wagonResults = await Promise.all(wagonPromises);
 				// Filter out null results and ensure we have valid wagon objects
 				linkedWagons = wagonResults.filter(wagon => wagon !== null && wagon !== undefined) as Wagon[];
-				
-				console.log('Final linked wagons:', linkedWagons);
 			} else {
 				console.log('No linkedWagons found in shunting train');
 				linkedWagons = [];

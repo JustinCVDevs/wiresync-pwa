@@ -7,6 +7,7 @@
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Assay } from '$lib/types/assay';
 	import { ScanBarcode, WashingMachine } from 'lucide-svelte';
+	import { get } from 'svelte/store';
 
 	const sampleId = $page.url.searchParams.get('sampleId') || '';
 	let assay: Assay | null = null;
@@ -61,7 +62,7 @@
 
 					<div>
 						<p class="text-sm text-gray-500 font-bold">Consignment</p>
-						<p class="font-medium">{assay}</p>
+						<p class="font-medium">{get(page).url.searchParams.get('consignment') ?? ''}</p>
 					</div>
 
 					<div>
