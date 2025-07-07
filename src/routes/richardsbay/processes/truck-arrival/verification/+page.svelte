@@ -62,7 +62,7 @@
 			const truckArrivals = await indexedDBService.getTruckArrivals();
 			console.log('Truck Arrivals:', truckArrivals);
 			const matchingTruckArrival = truckArrivals.find(arrival => 
-				arrival.truckId === matchingTruck.registration && arrival.gross_timestamp
+				arrival.truckId === matchingTruck.registration
 			);
 			console.log('Matching Truck Arrival:', matchingTruckArrival);
 			if (matchingTruckArrival) {

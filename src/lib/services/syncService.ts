@@ -583,41 +583,56 @@ export const syncService = {
 
 	async syncTruckArrival(truckArrival: TruckArrival) {
 		try {
-			// First, check if the linked truck has been synced
-			const linkedTruck = await indexedDBService.getRecord('trucks', truckArrival.truckId);
-			if (!linkedTruck) {
-				console.warn(`Linked truck ${truckArrival.truckId} not found for truck arrival ${truckArrival.id}`);
-				return false;
-			}
+			const { id, syncStatus, ...payload } = truckArrival;
 
-			// If the truck hasn't been synced yet, sync it first
-			if (linkedTruck.syncStatus === 'pending') {
-				const truckSynced = await this.syncTruck(linkedTruck);
-				if (!truckSynced) {
-					console.warn(`Failed to sync linked truck ${linkedTruck.id}, cannot sync truck arrival`);
-					return false;
-				}
-			}
-
-			const { id, syncStatus, truckId, ...payload } = truckArrival;
-			
-			// Ensure payload uses the linked truck's serverId
-			const updatedPayload = { ...payload, truckId: linkedTruck.serverId };
-			console.log('🚚 Syncing truck arrival:', truckArrival.id, 'with payload:', updatedPayload);
 			let created;
-			if (truckArrival.serverId) {
-				created = await pocketbaseService.update('truckArrivals', truckArrival.serverId, payload);
+			if(truckArrival.serverId) {
+				// Check for linked truck
+				if (truckArrival.truckId) {
+					const linkedTruck = await indexedDBService.getRecord('trucks', truckArrival.truckId);
+					// Check if linked truck has serverId
+					if (!linkedTruck?.serverId) {
+						console.warn(`Waiting for truck to sync before updating truck arrival`);
+					}
+
+					// Replace local truckId with serverId
+					payload.truckId = linkedTruck?.serverId;
+				}
+				if (payload.truckId) {
+					const trucks = await indexedDBService.getRecord('trucks', payload.truckId);
+					if (trucks?.serverId) {
+						payload.truckId = trucks.serverId;
+					}
+				}
+				created = await pocketbaseService.update('truckArrivals', truckArrival.serverId, payload);	
 			} else {
-				created = await pocketbaseService.create('truckArrivals', updatedPayload);
+				if (payload.truckId?.length) {
+					const linkedTruck = await indexedDBService.getRecord('trucks', payload.truckId);
+
+					if (!linkedTruck?.serverId) {
+						console.warn(`Waiting for truck to sync before creating truck arrival`);
+						return false;
+					}
+
+					payload.truckId = linkedTruck.serverId;
+				}
+
+				if (payload.truckId) {
+					const trucks = await indexedDBService.getRecord('trucks', payload.truckId);
+					if (trucks?.serverId) {
+						payload.truckId = trucks.serverId;
+					}
+				}
+				created = await pocketbaseService.create('truckArrivals', payload);
 			}
 
-			await indexedDBService.updateRecord('truckArrivals', truckArrival.id, {
-				...truckArrival,
-				syncStatus: 'synced',
-				truckId: linkedTruck.serverId,
-				serverId: created.id
-			});
-
+			if (truckArrival.id) {
+				await indexedDBService.updateRecord('truckArrivals', truckArrival.id, {
+					...truckArrival,
+					syncStatus: 'synced',
+					serverId: created.id
+				});
+			}
 			return true;
 		} catch (err) {
 			console.warn('Failed to sync truck arrival with PocketBase, will retry later:', err);
@@ -796,7 +811,7 @@ export const syncService = {
 			this.syncDeletedRecords('trainDispatches'),
 			this.syncPendingShuntingTrains(),
 			this.syncPendingTruckArrivals(),
-			this.syncPendingTrainArrivals(),
+			this.syncTruckArrivalList(),
 			this.syncPendingFleet()
 		]);
 

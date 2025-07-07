@@ -154,15 +154,10 @@
 				return t.registration === truckRegistration &&
 					Math.abs(new Date(t.created).getTime() - Date.now()) < 5000;
 			});
-			if (!linkedTrucks) {
-				processLayout.setError('Truck registration not found in the database');
-				return;
-			}
 			// Create truck arrival record with all the manual data
 			const truckArrival: TruckArrival = {
 				id: crypto.randomUUID(),
-				truckId: linkedTrucks.id,
-				serverId: '',
+				truckId: linkedTrucks?.id,
 				port_arrival_sample_id: portArrivalSampleId,
 				truck_photo: [], // Will be handled separately if needed
 				port_truck_arrival_timestamp: new Date(date).toISOString(),
