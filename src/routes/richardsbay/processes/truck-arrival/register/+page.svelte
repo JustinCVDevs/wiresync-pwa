@@ -148,10 +148,20 @@
 			// Save the truck record
 			await indexedDBService.saveRecord('trucks', newTruck);
 
+			const trucks = await indexedDBService.getAllRecords('trucks');
+			const linkedTrucks = trucks.find(t => {
+				if (!t.created) return false;
+				return t.registration === truckRegistration &&
+					Math.abs(new Date(t.created).getTime() - Date.now()) < 5000;
+			});
+			if (!linkedTrucks) {
+				processLayout.setError('Truck registration not found in the database');
+				return;
+			}
 			// Create truck arrival record with all the manual data
 			const truckArrival: TruckArrival = {
 				id: crypto.randomUUID(),
-				truckId: newTruck.id,
+				truckId: linkedTrucks.id,
 				serverId: '',
 				port_arrival_sample_id: portArrivalSampleId,
 				truck_photo: [], // Will be handled separately if needed

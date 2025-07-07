@@ -603,7 +603,7 @@ export const syncService = {
 			
 			// Ensure payload uses the linked truck's serverId
 			const updatedPayload = { ...payload, truckId: linkedTruck.serverId };
-			
+			console.log('🚚 Syncing truck arrival:', truckArrival.id, 'with payload:', updatedPayload);
 			let created;
 			if (truckArrival.serverId) {
 				created = await pocketbaseService.update('truckArrivals', truckArrival.serverId, payload);
@@ -640,9 +640,7 @@ export const syncService = {
 	async syncTruckArrivalList() {
 		try {
 			const response = await pocketbaseService.list('truckArrivals');
-			
 			for (const arrival of response.items) {
-				console.log(`💾 Saving truck arrival ${arrival.id} to IndexedDB...`);
 				await indexedDBService.saveRecord('truckArrivals', {
 					id: arrival.id,
 					truckId: arrival.truckId,

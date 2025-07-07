@@ -44,7 +44,7 @@
 			// Find the train by reference number
 			const trains = await indexedDBService.getTrains();
 			const matchingTrain = trains.find(train => train.refNr === trainRefNr);
-			
+			console.log('Matching train:', matchingTrain);
 			if (!matchingTrain) {
 				// Train reference not found in trains database
 				verificationResult = 'not_found';

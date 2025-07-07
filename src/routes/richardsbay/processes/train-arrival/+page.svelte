@@ -12,6 +12,7 @@
 	let trainRefNr = '';
 	let capturedPhoto: File | null = null;
 	let isSubmitting = false;
+	let showCamera = true;
 	let currentStep = 1;
 	let availableTrains: Train[] = [];
 
@@ -34,6 +35,7 @@
 
 	function handlePhotoSelected(file: File) {
 		capturedPhoto = file;
+		showCamera = false; 
 	}
 
 	async function handleSubmit() {
@@ -139,7 +141,9 @@
 		<!-- Camera Component -->
 		<div class="space-y-2">
 			<span class="block font-medium text-gray text-sm">Train Photo *</span>
-			<Camera onPhotoSelected={handlePhotoSelected} />
+			{#if showCamera}
+				<Camera onPhotoSelected={handlePhotoSelected} />
+			{/if}
 		</div>
 
 		<!-- Form Validation Message -->

@@ -49,8 +49,9 @@
 			// First, find the truck by registration number
 			const trucks = await indexedDBService.getRecords('trucks');
 			const matchingTruck = trucks.find(truck => truck.registration === truckRegistration);
-			
-			if (!matchingTruck) {
+			console.log('Matching Truck:', matchingTruck);
+			console.log('bool check:', matchingTruck === undefined);
+			if (matchingTruck === undefined) {
 				// Truck registration not found in trucks database
 				verificationResult = 'not_found';
 				processLayout.setError('Truck Not in Pre-Registration List');
@@ -59,10 +60,11 @@
 
 			// Now get all truck arrivals and find one with matching truckId and gross_timestamp
 			const truckArrivals = await indexedDBService.getTruckArrivals();
+			console.log('Truck Arrivals:', truckArrivals);
 			const matchingTruckArrival = truckArrivals.find(arrival => 
-				arrival.truckId === matchingTruck.id && arrival.gross_timestamp
+				arrival.truckId === matchingTruck.registration && arrival.gross_timestamp
 			);
-
+			console.log('Matching Truck Arrival:', matchingTruckArrival);
 			if (matchingTruckArrival) {
 				// Check if gross timestamp is within 36 hours
 				const grossTime = new Date(matchingTruckArrival.gross_timestamp!);

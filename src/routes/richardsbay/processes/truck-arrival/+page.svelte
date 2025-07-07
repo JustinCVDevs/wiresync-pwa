@@ -14,6 +14,8 @@
 	let capturedPhoto: File | null = null;
 	let availableTrucks: Truck[] = [];
 	let isSubmitting = false;
+	let showCamera = true;
+	let capturedImage: string | null = null;
 	let currentStep = 1;
 
 	// Process steps
@@ -126,7 +128,8 @@
 	}
 
 	function handlePhotoSelected(file: File) {
-		capturedPhoto = file;
+		capturedImage = URL.createObjectURL(file);
+		showCamera = false;
 		// Clear photo error if photo is selected
 		if (formErrors.capturedPhoto) {
 			formErrors.capturedPhoto = '';
@@ -183,7 +186,12 @@
 			<span class="block text-sm font-medium text-gray-700">
 				Capture a photo of the Truck Registration
 			</span>
-			<Camera onPhotoSelected={handlePhotoSelected} initialFile={capturedPhoto} />
+			{#if showCamera}
+				<Camera onPhotoSelected={handlePhotoSelected} initialFile={capturedPhoto} />
+			{/if}
+			{#if capturedImage}
+				<img src={capturedImage} alt="Captured photo" class="mt-4 rounded shadow max-w-xs" />
+			{/if}
 			{#if formErrors.capturedPhoto}
 				<p class="text-sm text-red-600">{formErrors.capturedPhoto}</p>
 			{/if}
