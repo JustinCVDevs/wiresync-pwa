@@ -42,7 +42,7 @@
 					selectedRfid = '';
 					manualRfid = '';
 					capturedImage = null;
-					showCamera = false;
+					showCamera = true;
 					error = '';
 					if (train) {
 						consignments = await indexedDBService.getRecords(
@@ -110,10 +110,17 @@
 					updated: new Date().toISOString()
 				});
 			}
+			const consignments = await indexedDBService.getAllRecords('consignments');
+			const linkedConsignment = consignments.find(c => {
+				if (!c.created) return false;
+				return c.name === manualConsignment &&
+					Math.abs(new Date(c.created).getTime() - Date.now()) < 5000;
+			});
+
 			const trainDispatch: TrainDispatch = {
 			id: dispatchId,
 			linkedTrainId: train.serverId,
-			linkedConsignmentId: selectedConsignment || manualConsignment || undefined,
+			linkedConsignmentId: linkedConsignment?.id,
 			process: 'MarshalingDispatch',
 			syncStatus: 'pending',
 			created: new Date(),
@@ -121,7 +128,6 @@
 			siteLocation: 'Bosveld'
 		};
 			await indexedDBService.saveRecord('trainDispatches', trainDispatch);
-
 			success = 'Dispatch initialized';
 			goto(`/bosveld/processes/marshaling-dispatch/wagon-linkage?dispatchId=${dispatchId}`);
 		} catch (e: any) {

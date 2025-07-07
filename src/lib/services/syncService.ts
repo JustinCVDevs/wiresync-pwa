@@ -603,7 +603,7 @@ export const syncService = {
 			
 			// Ensure payload uses the linked truck's serverId
 			const updatedPayload = { ...payload, truckId: linkedTruck.serverId };
-
+			
 			let created;
 			if (truckArrival.serverId) {
 				created = await pocketbaseService.update('truckArrivals', truckArrival.serverId, payload);
