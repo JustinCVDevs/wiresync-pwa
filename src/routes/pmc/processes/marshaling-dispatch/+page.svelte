@@ -7,6 +7,8 @@
 	import type { TrainDispatch } from '$lib';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import FormField from '$lib/components/FormField.svelte';
+	import moment from 'moment';
+	import { date } from 'zod';
 
 	let trains: Train[] = [];
 	let consignments: Consignment[] = [];
@@ -38,8 +40,6 @@
 				if (foundTrain) {
 					train = foundTrain;
 					manualConsignment = '';
-					selectedConsignment = '';
-					selectedRfid = '';
 					manualRfid = '';
 					capturedImage = null;
 					showCamera = false;
@@ -109,10 +109,17 @@
 					updated: new Date().toISOString()
 				});
 			}
+			const consignments = await indexedDBService.getAllRecords('consignments');
+			const linkedConsignment = consignments.find(c => {
+				if (!c.created) return false;
+				return c.name === manualConsignment &&
+					Math.abs(new Date(c.created).getTime() - Date.now()) < 5000;
+			});
+		
 			const trainDispatch: TrainDispatch = {
 			id: dispatchId,
 			linkedTrainId: train.serverId,
-			linkedConsignmentId: manualConsignment,
+			linkedConsignmentId: linkedConsignment?.id,
 			process: 'MarshalingDispatch',
 			syncStatus: 'pending',
 			created: new Date(),
@@ -120,7 +127,6 @@
 			siteLocation: 'PMC',
 		};
 			await indexedDBService.saveRecord('trainDispatches', trainDispatch);
-
 			success = 'Dispatch initialized';
 			goto(`/pmc/processes/marshaling-dispatch/wagon-linkage?dispatchId=${dispatchId}`);
 		} catch (e: any) {

@@ -24,7 +24,7 @@
 		try {
 			// Load the shunting train
 			shuntingTrain = await indexedDBService.getRecord('shuntingTrains', trainId) ?? null;
-			
+
 			if (!shuntingTrain) {
 				error = 'Shunting train not found';
 				return;
@@ -32,10 +32,12 @@
 
 			// Load linked wagons using the IDs from linkedWagons array
 			if (shuntingTrain.linkedWagons && shuntingTrain.linkedWagons.length > 0) {
+				//Fetch all wagons
+				const allWagons: Wagon[] = await indexedDBService.getAllRecords('wagons');
 				// Fetch each wagon by ID from the wagons collection
-				const wagonPromises = shuntingTrain.linkedWagons.map(async (wagonId) => {
+				const wagonPromises = shuntingTrain.linkedWagons.map(wagonId => {
+					const wagon = allWagons.find(w => w.serverId === wagonId);
 					try {
-						const wagon = await indexedDBService.getRecord('wagons', wagonId);
 						return wagon;
 					} catch (e) {
 						console.warn(`Failed to load wagon ${wagonId}:`, e);

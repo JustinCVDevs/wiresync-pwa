@@ -61,7 +61,8 @@ export const syncService = {
 					await indexedDBService.updateRecord('assays', assay.id, {
 						...assay,
 						syncStatus: 'synced',
-						serverId: created.id
+						serverId: created.id,
+						siteLocation: assay.siteLocation
 					});
 				}
 			} else {
@@ -249,7 +250,8 @@ export const syncService = {
 					name: consignment.name,
 					linkedTrainId: consignment.linkedTrainId,
 					syncStatus: 'synced',
-					serverId: consignment.id
+					serverId: consignment.id,
+					siteLocation: consignment.siteLocation
 				});
 			}
 			return true;
@@ -311,7 +313,8 @@ export const syncService = {
 				await indexedDBService.updateRecord('truckLoads', truckLoad.id, {
 					...truckLoad,
 					syncStatus: 'synced',
-					serverId: created.id
+					serverId: created.id,
+					siteLocation: truckLoad.siteLocation
 				});
 			}
 			return true;
@@ -356,13 +359,40 @@ export const syncService = {
 						.map((wagon) => wagon?.serverId)
 						.filter((id): id is string => id !== undefined);
 				}
-
+				if (payload.linkedConsignmentId) {
+					const consignment = await indexedDBService.getRecord('consignments', payload.linkedConsignmentId);
+					if (consignment?.serverId) {
+						payload.linkedConsignmentId = consignment.serverId; 
+					}
+				}
 				created = await pocketbaseService.update(
 					'trainDispatches',
 					trainDispatch.serverId,
 					payload
 				);
 			} else {
+				if (payload.linkedWagonIds?.length) {
+					const wagons = await Promise.all(
+						payload.linkedWagonIds.map((id) => indexedDBService.getRecord('wagons', id))
+					);
+
+					const allWagonsHaveServerId = wagons.every((wagon) => wagon?.serverId);
+					if (!allWagonsHaveServerId) {
+						console.warn('Waiting for all wagons to sync before creating assay');
+						return false;
+					}
+
+					payload.linkedWagonIds = wagons
+						.map((wagon) => wagon?.serverId)
+						.filter((id): id is string => id !== undefined);
+				}
+
+				if (payload.linkedConsignmentId) {
+					const consignment = await indexedDBService.getRecord('consignments', payload.linkedConsignmentId);
+					if (consignment?.serverId) {
+						payload.linkedConsignmentId = consignment.serverId; 
+					}
+				}
 				created = await pocketbaseService.create('trainDispatches', payload);
 			}
 
