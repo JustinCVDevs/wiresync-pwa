@@ -2,7 +2,7 @@ import type { BaseRecord } from './baserecord';
 
 export interface TrainArrival extends BaseRecord {
     id: string;
-	trainId: string;
+	trainId?: string;
 	trainRefNr: string; // TRAIN_REF_NR
 	trainRfidNr?: string; // TRAIN_RFID_NR
 	portRailArrivalTimestamp?: string; // PORT_RAIL_ARRIVAL_TIMESTAMP

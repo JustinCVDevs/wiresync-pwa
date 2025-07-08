@@ -35,7 +35,7 @@
 
 	function handlePhotoSelected(file: File) {
 		capturedPhoto = file;
-		showCamera = false; 
+		//showCamera = false; 
 	}
 
 	async function handleSubmit() {
@@ -71,7 +71,7 @@
 			// Create train arrival record
 			const trainArrival: TrainArrival = {
 				id: crypto.randomUUID(),
-				trainId: selectedTrain.id ?? '',
+				trainId: selectedTrain?.serverId,
 				trainRefNr: selectedTrain.refNr,
 				trainRfidNr: selectedTrain.rfidNr,
 				portRailArrivalTimestamp: new Date().toISOString(),

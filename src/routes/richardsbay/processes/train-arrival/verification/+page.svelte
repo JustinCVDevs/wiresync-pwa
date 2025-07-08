@@ -106,6 +106,8 @@
 	cancelPath="/richardsbay/processes"
 	bind:this={processLayout}
 	on:cancel={handleCancel}
+	showCancel={false}
+	showSubmit={false}
 >
 	<div slot="header">
 		<h5 class="text-xl font-bold text-gray">Train Arrival</h5>
@@ -217,14 +219,6 @@
 </ProcessLayout>
 
 <style>
-	.space-y-6 > * + * {
-		margin-top: 1.5rem;
-	}
-
-	.space-y-3 > * + * {
-		margin-top: 0.75rem;
-	}
-
 	.space-y-2 > * + * {
 		margin-top: 0.5rem;
 	}

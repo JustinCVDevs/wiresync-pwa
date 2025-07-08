@@ -9,6 +9,16 @@ import type { TruckArrival } from '$lib/types/truckArrival';
 import type { Fleet, Truck } from '$lib/types';
 import type { TrainArrival } from '$lib/types/trainArrival';
 
+function base64ToBlob(base64: string, mime: string) {
+    const byteString = atob(base64.split(',')[1]);
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: mime });
+}
+
 export const syncService = {
 	// Assay sync methods
 	async syncAssay(assay: Assay) {
@@ -586,6 +596,17 @@ export const syncService = {
 			const { id, syncStatus, ...payload } = truckArrival;
 
 			let created;
+
+			// Prepare a payload for PocketBase with Blob if needed
+			let apiPayload: any = { ...payload };
+			console.log('🚛 Syncing truck arrival:', apiPayload);
+			// Convert base64 to Blob for PocketBase file upload
+			if (payload.truck_photo && typeof payload.truck_photo === 'string' && payload.truck_photo.startsWith('data:')) {
+				const [meta] = payload.truck_photo.split(',');
+				const mime = meta.match(/data:(.*);base64/)?.[1] || 'image/webp';
+				apiPayload.truck_photo = base64ToBlob(payload.truck_photo, mime);
+			}
+
 			if(truckArrival.serverId) {
 				// Check for linked truck
 				if (truckArrival.truckId) {
@@ -594,36 +615,32 @@ export const syncService = {
 					if (!linkedTruck?.serverId) {
 						console.warn(`Waiting for truck to sync before updating truck arrival`);
 					}
-
-					// Replace local truckId with serverId
-					payload.truckId = linkedTruck?.serverId;
+					apiPayload.truckId = linkedTruck?.serverId;
 				}
-				if (payload.truckId) {
-					const trucks = await indexedDBService.getRecord('trucks', payload.truckId);
+				if (apiPayload.truckId) {
+					const trucks = await indexedDBService.getRecord('trucks', apiPayload.truckId);
 					if (trucks?.serverId) {
-						payload.truckId = trucks.serverId;
+						apiPayload.truckId = trucks.serverId;
 					}
 				}
-				created = await pocketbaseService.update('truckArrivals', truckArrival.serverId, payload);	
+				created = await pocketbaseService.update('truckArrivals', truckArrival.serverId, apiPayload);	
 			} else {
-				if (payload.truckId?.length) {
-					const linkedTruck = await indexedDBService.getRecord('trucks', payload.truckId);
+				if (apiPayload.truckId?.length) {
+					const linkedTruck = await indexedDBService.getRecord('trucks', apiPayload.truckId);
 
 					if (!linkedTruck?.serverId) {
 						console.warn(`Waiting for truck to sync before creating truck arrival`);
 						return false;
 					}
-
-					payload.truckId = linkedTruck.serverId;
+					apiPayload.truckId = linkedTruck.serverId;
 				}
-
-				if (payload.truckId) {
-					const trucks = await indexedDBService.getRecord('trucks', payload.truckId);
+				if (apiPayload.truckId) {
+					const trucks = await indexedDBService.getRecord('trucks', apiPayload.truckId);
 					if (trucks?.serverId) {
-						payload.truckId = trucks.serverId;
+						apiPayload.truckId = trucks.serverId;
 					}
 				}
-				created = await pocketbaseService.create('truckArrivals', payload);
+				created = await pocketbaseService.create('truckArrivals', apiPayload);
 			}
 
 			if (truckArrival.id) {
@@ -685,53 +702,61 @@ export const syncService = {
 
 	async syncTrainArrival(trainArrival: TrainArrival) {
 		try {
-			// // First, check if the linked train has been synced
-			// const linkedTrain = await indexedDBService.getRecord('trains', trainArrival.trainId);
-			// if (!linkedTrain) {
-			// 	console.warn(`Linked train ${trainArrival.trainId} not found for train arrival ${trainArrival.id}`);
-			// 	return false;
-			// }
-
-			// // If the train hasn't been synced yet, sync it first
-			// if (linkedTrain.syncStatus === 'pending') {
-			// 	// We need to ensure the train is synced first
-			// 	// Since there's no syncTrain method, we'll use the existing train record
-			// 	// or create one if needed through the syncTrainList method
-			// 	const trainListSynced = await this.syncTrainList();
-			// 	if (!trainListSynced) {
-			// 		console.warn(`Failed to sync train list, cannot sync train arrival`);
-			// 		return false;
-			// 	}
-				
-			// 	// Check if the train was synced in the list
-			// 	const updatedTrain = await indexedDBService.getRecord('trains', trainArrival.trainId);
-			// 	if (!updatedTrain || updatedTrain.syncStatus === 'pending') {
-			// 		console.warn(`Failed to sync linked train ${linkedTrain.id}, cannot sync train arrival`);
-			// 		return false;
-			// 	}
-				
-			// 	// Update our reference to the linked train
-            //     const linkedTrainUpdated = updatedTrain;
-			// }
-
-			const { id, syncStatus, trainId, ...payload } = trainArrival;
-			
-			// Ensure payload uses the linked train's serverId
-			const updatedPayload = { ...payload };
+			const { id, syncStatus, ...payload } = trainArrival;
 
 			let created;
-			if (trainArrival.serverId) {
-				created = await pocketbaseService.update('trainArrivals', trainArrival.serverId, payload);
-			} else {
-				created = await pocketbaseService.create('trainArrivals', updatedPayload);
+			// Prepare a payload for PocketBase with Blob if needed
+			let apiPayload: any = { ...payload };
+
+			// Convert base64 to Blob for PocketBase file upload
+			if (payload.trainPhotoUrl && typeof payload.trainPhotoUrl === 'string' && payload.trainPhotoUrl.startsWith('data:')) {
+				const [meta] = payload.trainPhotoUrl.split(',');
+				const mime = meta.match(/data:(.*);base64/)?.[1] || 'image/webp';
+				apiPayload.trainPhotoUrl = base64ToBlob(payload.trainPhotoUrl, mime);
 			}
 
-			await indexedDBService.updateRecord('trainArrivals', trainArrival.id, {
-				...trainArrival,
-				syncStatus: 'synced',
-				serverId: created.id
-			});
+			if (trainArrival.serverId) {
+				// Check for linked train
+				if (trainArrival.trainId) {
+					const linkedTrain = await indexedDBService.getRecord('trains', trainArrival.trainId);
+					if (!linkedTrain?.serverId) {
+						console.warn(`Waiting for train to sync before updating train arrival`);
+						return false;
+					}
+					apiPayload.trainId = linkedTrain?.serverId;
+				}
+				if (apiPayload.trainId) {
+					const trains = await indexedDBService.getRecord('trains', apiPayload.trainId);
+					if (trains?.serverId) {
+						apiPayload.trainId = trains.serverId;
+					}
+				}
+				created = await pocketbaseService.update('trainArrivals', trainArrival.serverId, apiPayload);
+			} else {
+				if (apiPayload.trainId?.length) {
+					const linkedTrain = await indexedDBService.getRecord('trains', apiPayload.trainId);
+					if (!linkedTrain?.serverId) {
+						console.warn(`Waiting for train to sync before creating train arrival`);
+						return false;
+					}
+					apiPayload.trainId = linkedTrain.serverId;
+				}
+				if (apiPayload.trainId) {
+					const trains = await indexedDBService.getRecord('trains', apiPayload.trainId);
+					if (trains?.serverId) {
+						apiPayload.trainId = trains.serverId;
+					}
+				}
+				created = await pocketbaseService.create('trainArrivals', apiPayload);
+			}
 
+			if (trainArrival.id) {
+				await indexedDBService.updateRecord('trainArrivals', trainArrival.id, {
+					...trainArrival,
+					syncStatus: 'synced',
+					serverId: created.id
+				});
+			}
 			return true;
 		} catch (err) {
 			console.warn('Failed to sync train arrival with PocketBase, will retry later:', err);
@@ -754,20 +779,13 @@ export const syncService = {
 	async syncFleet(fleet : Fleet) {
 		try {
 			const { id, syncStatus, ...payload } = fleet;
-			console.log('🚚 Syncing fleet:', fleet.serverId, 'payload:', payload);
 
 			let created;
 			if (fleet.serverId) {
-				console.log('Updating fleet in PB...');
 				created = await pocketbaseService.update('fleet', fleet.serverId, payload);
-				console.log('Updated fleet in PB:', created);
 			} else {
-				console.log('Creating fleet in PB...');
 				created = await pocketbaseService.create('fleet', payload);
-				console.log('Created fleet in PB:', created);
 			}
-
-			console.log('Fleet ID: ', fleet.id);
 
 			if (fleet.id) {
 				await indexedDBService.updateRecord('fleet', fleet.id, {
@@ -805,6 +823,7 @@ export const syncService = {
 			this.syncConsignmentList(),
 			this.syncPendingConsignment(),
 			this.syncPendingTrainDispatches(),
+			this.syncPendingTrainArrivals(),
 			this.syncDeletedRecords('assays'),
 			this.syncDeletedRecords('wagons'),
 			this.syncDeletedRecords('truckLoads'),

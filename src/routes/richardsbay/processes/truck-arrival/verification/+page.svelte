@@ -8,7 +8,7 @@
 
 	let truckRegistration = '';
 	let portArrivalSampleId = '';
-	let capturedPhoto: File | null = null;
+	let capturedPhoto: string | null = null;
 	let isSubmitting = false;
 	let currentStep = 2;
 	let verificationResult: 'success' | 'not_found' | 'pending' = 'pending';
@@ -28,11 +28,8 @@
 		portArrivalSampleId = urlParams.get('portArrivalSampleId') || '';
 		
 		// Get photo from session storage if available
-		const photoData = sessionStorage.getItem('truckArrivalPhoto');
-		if (photoData) {
-			// Convert base64 back to File if needed
-			capturedPhoto = null; // For now, we'll handle photo separately
-		}
+		capturedPhoto = sessionStorage.getItem('trainArrivalPhoto');
+
 
 		// Automatically start verification
 		if (truckRegistration) {
@@ -49,8 +46,7 @@
 			// First, find the truck by registration number
 			const trucks = await indexedDBService.getRecords('trucks');
 			const matchingTruck = trucks.find(truck => truck.registration === truckRegistration);
-			console.log('Matching Truck:', matchingTruck);
-			console.log('bool check:', matchingTruck === undefined);
+
 			if (matchingTruck === undefined) {
 				// Truck registration not found in trucks database
 				verificationResult = 'not_found';
@@ -60,11 +56,10 @@
 
 			// Now get all truck arrivals and find one with matching truckId and gross_timestamp
 			const truckArrivals = await indexedDBService.getTruckArrivals();
-			console.log('Truck Arrivals:', truckArrivals);
 			const matchingTruckArrival = truckArrivals.find(arrival => 
-				arrival.truckId === matchingTruck.registration
+				arrival.truckId === matchingTruck.serverId
 			);
-			console.log('Matching Truck Arrival:', matchingTruckArrival);
+
 			if (matchingTruckArrival) {
 				// Check if gross timestamp is within 36 hours
 				const grossTime = new Date(matchingTruckArrival.gross_timestamp!);
@@ -109,12 +104,9 @@
 	}
 
 	function handleRegisterTruck() {
-		// Navigate to truck registration page with current data
+		// Navigate to truck registration page with current data 
+		sessionStorage.setItem('truckArrivalPhoto', capturedPhoto || '');
 		goto(`/richardsbay/processes/truck-arrival/register?truckRegistration=${encodeURIComponent(truckRegistration)}&portArrivalSampleId=${encodeURIComponent(portArrivalSampleId)}`);
-	}
-
-	function handleBackToProcesses() {
-		goto('/richardsbay/processes');
 	}
 
 	function handleCancel() {
@@ -129,6 +121,7 @@
 	{isSubmitting}
 	cancelPath="/richardsbay/processes/truck-arrival"
 	bind:this={processLayout}
+	showSubmit={false}
 	on:cancel={handleCancel}
 >
 	<div slot="header">
@@ -171,9 +164,10 @@
 				<div class="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
 					<div class="text-gray-500">
 						{#if capturedPhoto}
-							✓ Photo captured
+							<!-- svelte-ignore a11y_img_redundant_alt -->
+							<img src={capturedPhoto} alt="Truck Registration Photo" class="mx-auto max-h-40" />
 						{:else}
-							Photo will be displayed here
+							<div class="text-gray-500">Photo will be displayed here</div>
 						{/if}
 					</div>
 				</div>
@@ -205,16 +199,6 @@
 					</div>
 				</div>
 
-				<!-- Success Actions -->
-				<div class="mt-6">
-					<button
-						type="button"
-						class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-						on:click={handleBackToProcesses}
-					>
-						Back to Processes
-					</button>
-				</div>
 
 			{:else if verificationResult === 'not_found'}
 				<div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
@@ -235,13 +219,6 @@
 					>
 						Register Truck
 					</button>
-					<button
-						type="button"
-						class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-						on:click={handleBackToProcesses}
-					>
-						Back to Processes
-					</button>
 				</div>
 
 			{:else}
@@ -256,14 +233,6 @@
 </ProcessLayout>
 
 <style>
-	.space-y-6 > * + * {
-		margin-top: 1.5rem;
-	}
-
-	.space-y-3 > * + * {
-		margin-top: 0.75rem;
-	}
-
 	.space-y-2 > * + * {
 		margin-top: 0.5rem;
 	}

@@ -9,6 +9,7 @@
 	import type { Truck } from '$lib/types/truck';
 
 	let truckRegistration = '';
+	let capturedPhoto: string | null = null;
 	let portArrivalSampleId = '';
 	let date = '';
 	let haulier = '';
@@ -52,6 +53,7 @@
 		const urlParams = new URLSearchParams($page.url.search);
 		truckRegistration = urlParams.get('truckRegistration') || '';
 		portArrivalSampleId = urlParams.get('portArrivalSampleId') || '';
+		capturedPhoto = sessionStorage.getItem('truckArrivalPhoto');
 		
 		// Set current date as default
 		date = new Date().toISOString().split('T')[0];
@@ -159,7 +161,7 @@
 				id: crypto.randomUUID(),
 				truckId: linkedTrucks?.id,
 				port_arrival_sample_id: portArrivalSampleId,
-				truck_photo: [], // Will be handled separately if needed
+				truck_photo: capturedPhoto ?? '',
 				port_truck_arrival_timestamp: new Date(date).toISOString(),
 				status: 'registered',
 				transporter: haulier,
@@ -191,7 +193,7 @@
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes/truck-arrival/verification');
+		goto('/richardsbay/processes/truck-arrival');
 	}
 
 	$: isFormValid = truckRegistration && date && haulier && product && grossMass && grossTimestamp && tareMass && tareTimestamp && sender;
@@ -204,7 +206,7 @@
 	{isSubmitting}
 	cancelPath="/richardsbay/processes/truck-arrival/verification"
 	bind:this={processLayout}
-	on:submit={handleSubmit}
+	showSubmit={false}
 	on:cancel={handleCancel}
 >
 	<div slot="header">
@@ -334,9 +336,3 @@
 		</div>
 	</div>
 </ProcessLayout>
-
-<style>
-	.space-y-4 > * + * {
-		margin-top: 1rem;
-	}
-</style>
