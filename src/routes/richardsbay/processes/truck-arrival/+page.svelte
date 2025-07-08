@@ -12,8 +12,11 @@
 	let truckRegistration = '';
 	let portArrivalSampleId = '';
 	let capturedPhoto: File | null = null;
+	let photoBase64 = '';
 	let availableTrucks: Truck[] = [];
 	let isSubmitting = false;
+	let showCamera = true;
+	let capturedImage: string | null = null;
 	let currentStep = 1;
 
 	// Process steps
@@ -97,14 +100,14 @@
 			processLayout.setError('');
 			processLayout.setSuccess('');
 
-			// Store photo in session storage for verification page
 			if (capturedPhoto) {
-				// Convert to base64 for temporary storage
-				const reader = new FileReader();
-				reader.onload = () => {
-					sessionStorage.setItem('truckArrivalPhoto', reader.result as string);
-				};
-				reader.readAsDataURL(capturedPhoto);
+				photoBase64 = await new Promise<string>((resolve) => {
+					const reader = new FileReader();
+					reader.onloadend = () => resolve(reader.result as string);
+					if (capturedPhoto) reader.readAsDataURL(capturedPhoto);
+				});
+				// Store photo in session storage for verification page
+				sessionStorage.setItem('trainArrivalPhoto', photoBase64);
 			}
 
 			// Clear persisted form data
@@ -126,7 +129,8 @@
 	}
 
 	function handlePhotoSelected(file: File) {
-		capturedPhoto = file;
+		capturedImage = URL.createObjectURL(file);
+		showCamera = false;
 		// Clear photo error if photo is selected
 		if (formErrors.capturedPhoto) {
 			formErrors.capturedPhoto = '';
@@ -180,10 +184,16 @@
 
 		<!-- Camera Section -->
 		<div class="space-y-2">
-			<label class="block text-sm font-medium text-gray-700">
+			<span class="block text-sm font-medium text-gray-700">
 				Capture a photo of the Truck Registration
-			</label>
-			<Camera onPhotoSelected={handlePhotoSelected} initialFile={capturedPhoto} />
+			</span>
+			{#if showCamera}
+				<Camera onPhotoSelected={handlePhotoSelected} initialFile={capturedPhoto} />
+			{/if}
+			{#if capturedImage}
+				<!-- svelte-ignore a11y_img_redundant_alt -->
+				<img src={capturedImage} alt="Captured photo" class="mt-4 rounded shadow max-w-xs" />
+			{/if}
 			{#if formErrors.capturedPhoto}
 				<p class="text-sm text-red-600">{formErrors.capturedPhoto}</p>
 			{/if}
@@ -192,10 +202,6 @@
 </ProcessLayout>
 
 <style>
-	.space-y-4 > * + * {
-		margin-top: 1rem;
-	}
-
 	.space-y-2 > * + * {
 		margin-top: 0.5rem;
 	}

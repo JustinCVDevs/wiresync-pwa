@@ -9,6 +9,7 @@
 	import type { Truck } from '$lib/types/truck';
 
 	let truckRegistration = '';
+	let capturedPhoto: string | null = null;
 	let portArrivalSampleId = '';
 	let date = '';
 	let haulier = '';
@@ -52,6 +53,7 @@
 		const urlParams = new URLSearchParams($page.url.search);
 		truckRegistration = urlParams.get('truckRegistration') || '';
 		portArrivalSampleId = urlParams.get('portArrivalSampleId') || '';
+		capturedPhoto = sessionStorage.getItem('truckArrivalPhoto');
 		
 		// Set current date as default
 		date = new Date().toISOString().split('T')[0];
@@ -148,12 +150,18 @@
 			// Save the truck record
 			await indexedDBService.saveRecord('trucks', newTruck);
 
+			const trucks = await indexedDBService.getAllRecords('trucks');
+			const linkedTrucks = trucks.find(t => {
+				if (!t.created) return false;
+				return t.registration === truckRegistration &&
+					Math.abs(new Date(t.created).getTime() - Date.now()) < 5000;
+			});
 			// Create truck arrival record with all the manual data
 			const truckArrival: TruckArrival = {
 				id: crypto.randomUUID(),
-				truckId: newTruck.id,
+				truckId: linkedTrucks?.id,
 				port_arrival_sample_id: portArrivalSampleId,
-				truck_photo: [], // Will be handled separately if needed
+				truck_photo: capturedPhoto ?? '',
 				port_truck_arrival_timestamp: new Date(date).toISOString(),
 				status: 'registered',
 				transporter: haulier,
@@ -165,7 +173,8 @@
 				truck_origin_location: sender as 'TLG' | 'RCL' | 'BOP',
 				created: new Date(),
 				updated: new Date().toISOString(),
-				syncStatus: 'pending'
+				syncStatus: 'pending',
+				siteLocation: 'Richards Bay'
 			};
 
 			// Save truck arrival record
@@ -184,7 +193,7 @@
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes/truck-arrival/verification');
+		goto('/richardsbay/processes/truck-arrival');
 	}
 
 	$: isFormValid = truckRegistration && date && haulier && product && grossMass && grossTimestamp && tareMass && tareTimestamp && sender;
@@ -197,7 +206,7 @@
 	{isSubmitting}
 	cancelPath="/richardsbay/processes/truck-arrival/verification"
 	bind:this={processLayout}
-	on:submit={handleSubmit}
+	showSubmit={false}
 	on:cancel={handleCancel}
 >
 	<div slot="header">
@@ -327,9 +336,3 @@
 		</div>
 	</div>
 </ProcessLayout>
-
-<style>
-	.space-y-4 > * + * {
-		margin-top: 1rem;
-	}
-</style>

@@ -31,9 +31,10 @@
 				productType,
 				dedicatedFleet: isDedicatedFleet === 'Yes', // Convert to boolean
 				syncStatus: 'pending',
-				created: new Date().toISOString(),
+				created: new Date(),
 				updated: new Date().toISOString(),
-				process: 'Truck Loadout'
+				process: 'Truck Loadout',
+				siteLocation: 'PMC',
 			};
 
 			// Save assay to IndexedDB

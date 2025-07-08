@@ -16,7 +16,7 @@
 	let selectedRfid = '';
 	let manualRfid = '';
 	let capturedImage: string | null = null;
-	let showCamera = false;
+	let showCamera = true;
 	let error = '';
 	let success = '';
 	let isLoading = true;
@@ -42,7 +42,7 @@
 					selectedRfid = '';
 					manualRfid = '';
 					capturedImage = null;
-					showCamera = false;
+					showCamera = true;
 					error = '';
 					if (train) {
 						consignments = await indexedDBService.getRecords(
@@ -63,8 +63,9 @@
 	onMount(loadTrainsAndConsignments);
 	$: if (selectedTrainRef) loadTrainsAndConsignments();
 
-	function handleCapture(event: CustomEvent<string>) {
-		capturedImage = event.detail;
+	function handleCapture(file: File) {
+		capturedImage = URL.createObjectURL(file);
+		showCamera = false;
 	}
 	function handleCameraClose() {
 		showCamera = false;
@@ -97,7 +98,8 @@
 					linkedTrainId: train.serverId,
 					syncStatus: 'pending',
 					created: new Date(),
-					updated: new Date().toISOString()
+					updated: new Date().toISOString(),
+					siteLocation: 'Bosveld'
 				});
 			}
 			if (manualRfid) {
@@ -108,17 +110,24 @@
 					updated: new Date().toISOString()
 				});
 			}
+			const consignments = await indexedDBService.getAllRecords('consignments');
+			const linkedConsignment = consignments.find(c => {
+				if (!c.created) return false;
+				return c.name === manualConsignment &&
+					Math.abs(new Date(c.created).getTime() - Date.now()) < 5000;
+			});
+
 			const trainDispatch: TrainDispatch = {
 			id: dispatchId,
 			linkedTrainId: train.serverId,
-			linkedConsignmentId: selectedConsignment || manualConsignment || undefined,
+			linkedConsignmentId: linkedConsignment?.id,
 			process: 'MarshalingDispatch',
 			syncStatus: 'pending',
 			created: new Date(),
-			updated: new Date().toISOString()
+			updated: new Date().toISOString(),
+			siteLocation: 'Bosveld'
 		};
 			await indexedDBService.saveRecord('trainDispatches', trainDispatch);
-
 			success = 'Dispatch initialized';
 			goto(`/bosveld/processes/marshaling-dispatch/wagon-linkage?dispatchId=${dispatchId}`);
 		} catch (e: any) {
@@ -156,55 +165,35 @@
 	{#if isLoading}
 		<div>Loading…</div>
 	{:else}
+
 	<FormField
 		label="Train Reference"
 		id="trainRef"
-		isSelect={true}
 		placeholder="Select Train Reference"
+		isSelect={true}
 		bind:value={selectedTrainRef}
 		options={trains.map((t) => ({ value: t.refNr, label: t.refNr }))}
 		/>
-		{#if consignments.length > 0}
-		<FormField
-			label="Consignment Number"
-			id="consignmentNumber"
-			isSelect={true}
-			placeholder="Select Consignment Number"
-			bind:value={selectedConsignment}
-			options={consignments
-					.filter(c => c.serverId)
-					.map((c) => ({ 
-						value: c.serverId!, // Use non-null assertion since we filtered
-						label: c.name 
-					}))}
-		/>
-		{:else}
+	
 		<FormField	
 			label="Manual Consignment Number"
 			id="manualConsignmentNumber"
-			isSelect={false}
 			placeholder="Enter Consignment Number"
 			bind:value={manualConsignment}
 		/>
-		{/if}
-		{#if train?.rfidNr && train.rfidNr.length > 0}
-		<FormField
-			label="Train RFID Number"
-			id="trainRfid"
-			isSelect={true}
-			placeholder="Select RFID"
-			bind:value={selectedRfid}
-			options={[{ value: train.rfidNr, label: train.rfidNr }]}
-		/>
-		{:else}
+
 		<FormField
 			label="Manual Train RFID Number"
 			id="manualTrainRfid"
-			isSelect={false}
 			placeholder="Enter Train RFID Number"
 			bind:value={manualRfid}
 		/>
+		
+		{#if showCamera}
+			<Camera onPhotoSelected={handleCapture} on:close={handleCameraClose} />
 		{/if}
-		<!-- <Camera onPhotoSelected={handleCapture} on:close={handleCameraClose} /> -->
+		{#if capturedImage}
+			<img src={capturedImage} alt="Captured photo" class="mt-4 rounded shadow max-w-xs" />
+		{/if}
 	{/if}
 </ProcessLayout>

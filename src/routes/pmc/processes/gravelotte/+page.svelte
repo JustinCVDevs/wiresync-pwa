@@ -1,13 +1,14 @@
 <script lang="ts">
-	import YesNo from '$lib/components/YesNo.svelte';
+	  import YesNo from '$lib/components/YesNo.svelte';
   
 	  import { goto } from '$app/navigation';
 	  import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	  import { indexedDBService } from '$lib/services/indexedDBService';
-	  import type { Assay } from '$lib/types';
+	  import type { Assay, Fleet } from '$lib/types';
 	  import FormField from '$lib/components/FormField.svelte';
   
-	  $: isDedicatedFleet = '';
+	  let dedicatedFleet = '';
+	  let isDedicatedFleet = false;
 	  let sampleId = '';
 	  let sampleSize = '';
 	  let commodity = '';
@@ -27,10 +28,25 @@
 	  ]
 	  async function handleSubmit() {
 		  try {
-			  if (isDedicatedFleet == 'Yes'){
-  // create fleet 
-			  }else{
-  // ccreate
+			  if (dedicatedFleet === 'Yes') {
+				isDedicatedFleet = true;
+				const fleet: Fleet = {
+					id: crypto.randomUUID(),
+					sampleId,
+					sampleSize,
+					commodity,
+					materialType: productType,
+					registration: sampleId,
+					felMassKg: 0, // get from truck
+					loadingLocation: '', // get from truck
+					loadingHour: new Date().getHours(), // get from truck
+					syncStatus: 'pending',
+					siteLocation: 'PMC',
+				};
+
+				await indexedDBService.saveRecord('fleet', fleet);
+			  }else {
+				isDedicatedFleet = false;
 			  }
 			  
 			  const assay: Assay = {
@@ -39,16 +55,17 @@
 				  sampleSize,
 				  commodity,
 				  productType,
-				  dedicatedFleet: isDedicatedFleet === 'Yes', // Convert to boolean
+				  dedicatedFleet: isDedicatedFleet,
 				  syncStatus: 'pending',
 				  created: new Date(),
 				  updated: new Date().toISOString(),
 				  process: 'Gravelotte',
+				  siteLocation: 'PMC',
 			  };
   
 			  // Save assay to IndexedDB
 			  await indexedDBService.saveRecord('assays', assay);
-  
+
 			  goto(`/pmc/processes/gravelotte/add-trucks?assayId=${assay.id}`);
 		  } catch (err) {
 			  error = 'Failed to submit data';
@@ -66,7 +83,7 @@
   {currentStep}
   isSubmitting={false}
   cancelPath="/pmc/processes"
-  on:cancel={() => goto('/pmc/processes')}
+  on:cancel={handleCancel}
   on:submit={handleSubmit}
   on:error={({ detail }) => (error = detail)}
   >
@@ -79,52 +96,47 @@
 	  {/if}
   
 		  <h2 class="">Truck Data Capturing</h2>
-  
-						  
+
+			<YesNo 
+				bind:selected={dedicatedFleet} 
+				label={"Dedicated Fleet"} 
+				description={"Please specify wether the truck is part of a fleet."}
+			/>
 			  
-			  <YesNo selected={isDedicatedFleet} label={"Dedicated Fleet"} description={"Please specify wether the truck is part of a fleet."}/>
-				  
-			  
-  
-			  
-				  <FormField
-					  id="sampleId"
-					  label="Sample ID"
-					  type="text"
-					  bind:value={sampleId}
-					  placeholder="Enter Sample ID"
-					  required
-  
-				  />
-				  <FormField
-					  id="sampleSize"
-					  label="Sample Size"
-					  isSelect={true}
-					  options={sampleSizes.map(size => ({ value: size, label: size }))}
-					  bind:value={sampleSize}
-					  placeholder="Enter Sample Size"
-					  required
-  
-				  />
-				  <FormField
-					  id="commodity"
-					  label="Commodity"
-					  isSelect={true}
-					  options={commodities.map(item => ({ value: item, label: item }))}
-					  bind:value={commodity}
-					  placeholder="Enter Commodity"
-					  required
-  
-				  />
-				  <FormField
-					  id="productType"
-					  label="Product Type"
-					  isSelect={true}
-					  options={productTypes.map(type => ({ value: type, label: type }))}
-					  bind:value={productType}
-					  placeholder="Enter Product Type"
-					  required
-				  
-				  />
+			<FormField
+				id="sampleId"
+				label="Sample ID"
+				type="text"
+				bind:value={sampleId}
+				placeholder="Enter Sample ID"
+				required
+  			/>
+			<FormField
+				id="sampleSize"
+				label="Sample Size"
+				isSelect={true}
+				options={sampleSizes.map(size => ({ value: size, label: size }))}
+				bind:value={sampleSize}
+				placeholder="Enter Sample Size"
+				required
+  			/>
+			<FormField
+				id="commodity"
+				label="Commodity"
+				isSelect={true}
+				options={commodities.map(item => ({ value: item, label: item }))}
+				bind:value={commodity}
+				placeholder="Enter Commodity"
+				required
+  			/>
+			<FormField
+				id="productType"
+				label="Product Type"
+				isSelect={true}
+				options={productTypes.map(type => ({ value: type, label: type }))}
+				bind:value={productType}
+				placeholder="Enter Product Type"
+				required
+			/>
 		  
   </ProcessLayout>

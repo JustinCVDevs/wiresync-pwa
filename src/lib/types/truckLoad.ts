@@ -13,4 +13,5 @@ export interface TruckLoad extends BaseRecord {
 	syncStatus: 'pending' | 'synced';
 	tankLocation?: string;
 	acidType?: string;
+	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"
 }

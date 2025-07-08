@@ -29,16 +29,14 @@
 				error = 'Shunting train not found';
 				return;
 			}
-
+			
 			// Load linked wagons using the IDs from linkedWagons array
 			if (shuntingTrain.linkedWagons && shuntingTrain.linkedWagons.length > 0) {
-				console.log('Loading wagons for IDs:', shuntingTrain.linkedWagons);
-				
 				// Fetch each wagon by ID from the wagons collection
 				const wagonPromises = shuntingTrain.linkedWagons.map(async (wagonId) => {
 					try {
-						const wagon = await indexedDBService.getRecord('wagons', wagonId);
-						console.log(`Loaded wagon ${wagonId}:`, wagon);
+						const allWagons = await indexedDBService.getAllRecords('wagons');
+						const wagon = allWagons.find(w => w.id === wagonId || w.serverId === wagonId);
 						return wagon;
 					} catch (e) {
 						console.warn(`Failed to load wagon ${wagonId}:`, e);
@@ -182,16 +180,16 @@
 					
 					<div class="space-y-3">
 						<FormField
-							label="Name:"
+							label="Name (ID):"
 							id="wagonName_{index}"
-							value={wagon.transcoreTag || ''}
+							value={wagon.wagonIdSimple || ''}
 							disabled={true}
 						/>
 						
 						<FormField
-							label="Wagon ID:"
+							label="Wagon RFID:"
 							id="wagonId_{index}"
-							value={wagon.wagonIdSimple || ''}
+							value={wagon.transcoreTag || ''}
 							disabled={true}
 						/>
 						

@@ -12,4 +12,5 @@ export interface Fleet extends BaseRecord {
 	loadingHour?: number; // FLEET_HR (0–23)
 	serverId?: string;
 	syncStatus: 'pending' | 'synced';
+	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"
 }

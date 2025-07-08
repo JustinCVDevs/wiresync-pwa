@@ -7,6 +7,7 @@
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Assay } from '$lib/types/assay';
 	import { ScanBarcode, WashingMachine } from 'lucide-svelte';
+	import { get } from 'svelte/store';
 
 	const sampleId = $page.url.searchParams.get('sampleId') || '';
 	let assay: Assay | null = null;
@@ -21,7 +22,8 @@
 
 	async function loadAssayData() {
 		if (sampleId) {
-			assay = await indexedDBService.getAssayById(sampleId);
+			const result = await indexedDBService.getAssayById(sampleId);
+			assay = result ?? null;
 		}
 	}
 
@@ -30,18 +32,17 @@
 	}
 
 	function handleCancel() {
-		goto(`/bosveld/processes/west-loadout?sampleId=${sampleId}`);
+		goto('/bosveld/processes');
 	}
 </script>
 
 <ProcessLayout
 	title="  Sample Details Verification"
-	processKey="west_loadout"
 	steps={processSteps}
 	{currentStep}
-	showActions={false}
 	on:cancel={handleCancel}
-	showSubmit={assay?.linkedWagonIds > 0}
+	showSubmit={!!(assay?.linkedWagonIds?.length)}
+	cancelPath="/bosveld/processes"
 >
 <!-- t -->
 
@@ -58,12 +59,12 @@
 						<p class="text-sm text-gray-500 font-bold">Product Grade</p>
 						<p class="font-medium">{assay.productGrade}</p>
 					</div>
-					{#if assay.consignment}
+
 					<div>
 						<p class="text-sm text-gray-500 font-bold">Consignment</p>
-						<p class="font-medium">{assay.consignment}</p>
+						<p class="font-medium">{get(page).url.searchParams.get('consignment') ?? ''}</p>
 					</div>
-					{/if}
+
 					<div>
 						<p class="text-sm text-gray-500 font-bold">Loading Location</p>
 						<p class="font-medium">{assay.location}</p>

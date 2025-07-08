@@ -6,6 +6,7 @@
 	// Props for the component
 	export let title: string;
 	export let showSubmit: boolean = true;
+	export let showCancel: boolean = true;
 	export let steps: string[] = [];
 	export let currentStep: number = 1;
 	export let isSubmitting: boolean = false;
@@ -23,6 +24,7 @@
 		error: string;
 		success: string;
 		showSubmit: boolean;
+		showCancel: boolean;
 	}>();
 
 	// Handle online/offline status
@@ -116,6 +118,7 @@
 			</div>
 
 			<div class="flex space-x-4 pt-4 button-group">
+				{#if showCancel}
 				<button
 					class="cancel-button flex-1 border-2 rounded-lg py-3 border border-gray-800 text-sm  text-white transition hover:bg-red-700 active:bg-red-800 disabled:opacity-50"
 					on:click={handleCancel}
@@ -124,6 +127,9 @@
 				>
 					Cancel
 				</button>
+				{:else}
+				<div class="w-full"></div>
+				{/if}
 				{#if showSubmit}
 				<button
 					class="submit-button flex-1 items-center justify-center rounded-lg py-3 text-white transition hover:bg-green-700 active:bg-green-800 disabled:opacity-50"

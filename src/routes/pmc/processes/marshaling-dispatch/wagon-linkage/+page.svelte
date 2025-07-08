@@ -27,6 +27,7 @@
 	let train : Train | undefined;
 	let consignment : Consignment | undefined;
 	let wagons : Wagon[] | undefined;
+
 	async function loadDispatch() {
 	  isLoading = true;
 	  try {
@@ -38,12 +39,12 @@
 		trainDispatch = record;
 		if(trainDispatch !== undefined && trainDispatch != null){
 
-			train = (await indexedDBService.getTrains()).find(t => trainDispatch.linkedTrainId === t.id);
-			consignment = (await indexedDBService.getAllRecords("consignments")).find(t => trainDispatch.linkedConsignmentId === t.id);
-			wagons = (await indexedDBService.getAllRecords("wagons")).filter(t => trainDispatch.linkedWagonIds?.includes(t.id) || trainDispatch.linkedWagonIds?.includes(t.serverId));
+			train = (await indexedDBService.getTrains()).find(t => trainDispatch?.linkedTrainId === t.id);
+			consignment = (await indexedDBService.getAllRecords("consignments")).find(t => trainDispatch?.linkedConsignmentId === t.id);
+			wagons = (await indexedDBService.getAllRecords("wagons")).filter(t => trainDispatch?.linkedWagonIds?.includes(t?.id ?? '') || trainDispatch?.linkedWagonIds?.includes(t?.serverId ?? ''));
 			// wagons = (await indexedDBService.getAllRecords("wagons")).filter(t => trainDispatch.linkedWagonIds?.includes(t.id));
-		
 	}
+	
 
 	  } catch (e) {
 		console.error(e);
@@ -70,7 +71,7 @@
 				transcoreTag: event.detail.rfidTag,
 				wagonIdSimple: event.detail.wagonId,
 				wagonPhotoUrl: event.detail.image,
-				created: new Date().toISOString(),
+				created: new Date(),
 				componentType: 'MARSHALING_DISPATCH',
 				id:wagonIndexId,
 				updated: new Date().toISOString(),
@@ -80,7 +81,7 @@
 
 			await indexedDBService.saveRecord('wagons', receivalData);
 
-		const updatedIds = [...(trainDispatch.linkedWagonIds || []), wagonIndexId];
+		const updatedIds = [...(trainDispatch.linkedWagonIds ?? []), wagonIndexId];
 		await indexedDBService.updateRecord('trainDispatches', dispatchId, {
 		  ...trainDispatch,
 		  linkedWagonIds: updatedIds,
@@ -107,11 +108,10 @@
   </script>
   <ProcessLayout
 	title="Wagon Linkage"
-	processKey="marshaling-dispatch"
 	{steps}
 	{currentStep}
 	isSubmitting={isLoading}
-	cancelPath="/processes"
+	cancelPath="/pmc/processes"
 	on:cancel={() => goto('/pmc/processes')}
 	on:submit={handleReview}
   >
@@ -197,4 +197,3 @@
 	  </div> -->
 	{/if}
   </ProcessLayout>
-  

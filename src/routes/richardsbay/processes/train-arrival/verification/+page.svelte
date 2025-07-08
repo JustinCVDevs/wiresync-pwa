@@ -44,7 +44,7 @@
 			// Find the train by reference number
 			const trains = await indexedDBService.getTrains();
 			const matchingTrain = trains.find(train => train.refNr === trainRefNr);
-			
+			console.log('Matching train:', matchingTrain);
 			if (!matchingTrain) {
 				// Train reference not found in trains database
 				verificationResult = 'not_found';
@@ -94,7 +94,7 @@
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes/train-arrival');
+		goto('/richardsbay/processes');
 	}
 </script>
 
@@ -103,9 +103,11 @@
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
-	cancelPath="/richardsbay/processes/train-arrival"
+	cancelPath="/richardsbay/processes"
 	bind:this={processLayout}
 	on:cancel={handleCancel}
+	showCancel={false}
+	showSubmit={false}
 >
 	<div slot="header">
 		<h5 class="text-xl font-bold text-gray">Train Arrival</h5>
@@ -121,9 +123,9 @@
 			
 			<!-- Train Reference Display -->
 			<div class="mb-4">
-				<label class="block text-sm font-medium text-gray-700 mb-2">
+				<span class="block text-sm font-medium text-gray-700 mb-2">
 					Train Reference Number
-				</label>
+				</span>
 				<div class="bg-gray-50 border border-gray-300 rounded-md px-3 py-2 text-lg font-mono">
 					{trainRefNr || 'No reference provided'}
 				</div>
@@ -131,9 +133,9 @@
 
 			<!-- Photo Section -->
 			<div class="mb-6">
-				<label class="block text-sm font-medium text-gray-700 mb-2">
+				<span class="block text-sm font-medium text-gray-700 mb-2">
 					Train Photo
-				</label>
+				</span>
 				<div class="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
 					{#if capturedPhoto}
 						<img src={capturedPhoto} alt="Train photo" class="max-h-48 mx-auto" />
@@ -217,14 +219,6 @@
 </ProcessLayout>
 
 <style>
-	.space-y-6 > * + * {
-		margin-top: 1.5rem;
-	}
-
-	.space-y-3 > * + * {
-		margin-top: 0.75rem;
-	}
-
 	.space-y-2 > * + * {
 		margin-top: 0.5rem;
 	}

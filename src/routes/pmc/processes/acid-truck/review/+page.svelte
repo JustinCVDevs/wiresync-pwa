@@ -74,7 +74,7 @@
           </div>
           <div class="flex justify-between items-center">
             <span class="font-semibold">🔒 Sampling Time:</span>
-            <span>{new Date(truckLoad.created ?? null).toLocaleString()}</span>
+            <span>{truckLoad?.created ? new Date(truckLoad.created).toLocaleString() : 'N/A'}</span>
           </div>
           {#if assay.name.indexOf("ACID") == -1}
           <div class="flex justify-between items-center">

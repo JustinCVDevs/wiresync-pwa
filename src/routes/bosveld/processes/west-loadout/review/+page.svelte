@@ -40,7 +40,7 @@
 
 	function handleComplete() {
 		// Navigate back to west loadout page for new sample ID
-		goto('/bosveld/processes/west-loadout/');
+		goto('/bosveld/processes');
 	}
 
 	function handleCancel() {

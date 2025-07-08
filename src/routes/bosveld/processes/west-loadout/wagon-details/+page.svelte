@@ -23,7 +23,7 @@
 				id: currentWagon.id || currentWagon.rfidTag,
 				transcoreTag: currentWagon.rfidTag,
 				wagonIdSimple: currentWagon.id,
-				created: new Date().toISOString(),
+				created: new Date(),
 				updated: new Date().toISOString(),
 				weight: currentWagon.weight,
 				samplingStatus: currentWagon.samplingStatus,

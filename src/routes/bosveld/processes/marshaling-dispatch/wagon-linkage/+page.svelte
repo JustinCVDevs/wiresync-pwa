@@ -37,12 +37,10 @@
 		}
 		trainDispatch = record;
 		if(trainDispatch !== undefined && trainDispatch != null){
-
-			train = (await indexedDBService.getTrains()).find(t => trainDispatch.linkedTrainId === t.id);
-			consignment = (await indexedDBService.getAllRecords("consignments")).find(t => trainDispatch.linkedConsignmentId === t.id);
-			wagons = (await indexedDBService.getAllRecords("wagons")).filter(t => trainDispatch.linkedWagonIds?.includes(t.id) || trainDispatch.linkedWagonIds?.includes(t.serverId));
+			train = (await indexedDBService.getTrains()).find(t => trainDispatch?.linkedTrainId === t.id);
+			consignment = (await indexedDBService.getAllRecords("consignments")).find(t => trainDispatch?.linkedConsignmentId === t.id);
+			wagons = (await indexedDBService.getAllRecords("wagons")).filter(t => trainDispatch?.linkedWagonIds?.includes(t.id ?? '') || trainDispatch?.linkedWagonIds?.includes(t.serverId ?? ''));
 			// wagons = (await indexedDBService.getAllRecords("wagons")).filter(t => trainDispatch.linkedWagonIds?.includes(t.id));
-		
 	}
 
 	  } catch (e) {
@@ -70,7 +68,7 @@
 				transcoreTag: event.detail.rfidTag,
 				wagonIdSimple: event.detail.wagonId,
 				wagonPhotoUrl: event.detail.image,
-				created: new Date().toISOString(),
+				created: new Date(),
 				componentType: 'MARSHALING_DISPATCH',
 				id:wagonIndexId,
 				updated: new Date().toISOString(),
@@ -101,17 +99,16 @@
 	}
   
 	function handleReview() {
-	  goto(`/bosveld/processes/complete`);
+	  goto(`/bosveld/processes`);
 	}
 
   </script>
   <ProcessLayout
 	title="Wagon Linkage"
-	processKey="marshaling-dispatch"
 	{steps}
 	{currentStep}
 	isSubmitting={isLoading}
-	cancelPath="/processes"
+	cancelPath="/bosveld/processes"
 	on:cancel={() => goto('/bosveld/processes')}
 	on:submit={handleReview}
   >

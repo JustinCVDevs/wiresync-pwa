@@ -89,7 +89,7 @@
 	isSubmitting={isLoading}
 	cancelPath="/richardsbay/processes"
 	on:cancel={handleCancel}
-	on:submit={handleCompleteLoading}
+	on:submit="{handleCompleteLoading}"
 >
 	<div slot="header">
 		<h5 class="text-xl font-bold text-gray">Review & Complete</h5>
@@ -125,11 +125,10 @@
 			<div class="mb-4 flex items-center justify-between">
 				<p class="text-sm text-gray">Linked Wagons: <span class="font-bold">{wagons.length}</span></p>
 				<button
+					type="button"
 					class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition hover:bg-blue-700"
 					on:click={handleNewWagon}
-				>
-					+ New Wagon
-				</button>
+				>+ New Wagon</button>
 			</div>
 
 			{#if wagons.length > 0}
@@ -157,22 +156,9 @@
 				<p class="text-center text-gray-500">No wagons added yet</p>
 			{/if}
 		</div>
-
-		<!-- Action Buttons -->
-		<div class="flex gap-4">
-			<button
-				class="flex-1 rounded-lg bg-blue-600 px-4 py-3 text-white transition hover:bg-blue-700"
-				on:click={handleNewWagon}
-			>
-				+ New Wagon
-			</button>
-			<button
-				class="flex-1 rounded-lg bg-green-600 px-4 py-3 text-white transition hover:bg-green-700"
-				on:click={handleCompleteLoading}
-				disabled={wagons.length === 0}
-			>
-				Complete Loading
-			</button>
-		</div>
 	{/if}
 </ProcessLayout>
+
+<style>
+
+</style>

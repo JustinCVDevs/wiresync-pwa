@@ -179,7 +179,7 @@
 	currentStep={currentStep}
 	cancelPath="/richardsbay/processes"
 	showSubmit={false}
-	on:cancel={handleCancel}
+	showCancel={false}
 >
 	{#if isLoading}
 		<div class="flex justify-center items-center py-12">

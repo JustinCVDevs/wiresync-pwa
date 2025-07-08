@@ -125,18 +125,20 @@
 				syncStatus: 'pending',
 				process: 'Acid Truck',
 				loadingLocation: tankLocation,
-				acidType: acidType
+				acidType: acidType,
+				siteLocation: 'PMC',
 			};
 
 			// Create assay record
 			const assay: Assay = {
 				id: crypto.randomUUID(),
 				name: sampleId || `ACID_${Date.now()}`,
-				created: new Date().toISOString(),
+				created: new Date(),
 				syncStatus: 'pending',
 				process: 'Acid Truck',
 				productType: acidType,
-				linkedTruckLoadIds: [truckLoadId]
+				linkedTruckLoadIds: [truckLoadId],
+				siteLocation: 'PMC',
 			};
 
 			// Save both records
@@ -162,7 +164,7 @@
 
 	function handleCapture(event: CustomEvent<string>) {
 		capturedImage = event.detail;
-		showCamera = false;
+		//showCamera = false;
 	}
 
 	function handleCancel() {
@@ -172,7 +174,6 @@
 
 <ProcessLayout
 	title="Acid Truck Details"
-	processKey="acid_truck"
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
@@ -185,7 +186,7 @@
 		<p class="text-sm text-gay">Please enter the truck and loading details</p>
 	</div>
 
-	<div class="space-y-4">
+	<div class="container">
 		
 
 			
@@ -238,77 +239,5 @@
 		max-width: 600px;
 		margin: 0 auto;
 		padding: 2rem;
-	}
-
-	.form {
-		margin-top: 2rem;
-	}
-
-	.input-group {
-		margin-bottom: 1.5rem;
-	}
-
-	label {
-		display: block;
-		margin-bottom: 0.5rem;
-		font-weight: bold;
-	}
-
-	input,
-	select {
-		width: 100%;
-		padding: 0.75rem;
-		font-size: 1.1rem;
-		border: 1px solid #ccc;
-		border-radius: 4px;
-	}
-
-	.button-group {
-		display: flex;
-		gap: 1rem;
-		margin-top: 2rem;
-	}
-
-	button {
-		padding: 0.75rem 1.5rem;
-		font-size: 1rem;
-		border: none;
-		border-radius: 4px;
-		cursor: pointer;
-		color: white;
-	}
-
-	.camera-button {
-		background-color: #2196f3;
-		margin-top: 0.5rem;
-	}
-
-	.submit-button {
-		background-color: #4caf50;
-	}
-
-	.cancel-button {
-		background-color: #f44336;
-	}
-
-	.captured-image {
-		margin-top: 1rem;
-		border: 1px solid #ccc;
-		border-radius: 4px;
-		overflow: hidden;
-	}
-
-	.captured-image img {
-		width: 100%;
-		height: auto;
-		display: block;
-	}
-
-	.error {
-		background-color: #ffebee;
-		color: #c62828;
-		padding: 1rem;
-		border-radius: 4px;
-		margin-bottom: 1rem;
 	}
 </style>

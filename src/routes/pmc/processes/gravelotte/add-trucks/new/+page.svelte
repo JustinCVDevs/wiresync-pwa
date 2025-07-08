@@ -8,6 +8,7 @@
 	import type { Assay, Truck } from '$lib/types';
 	import type { TruckLoad } from '$lib/types/truckLoad';
 	import TruckRegistration from '$lib/components/TruckRegistration.svelte';
+	import FormField from '$lib/components/FormField.svelte';
 
 	const assayId = $page.url.searchParams.get('assayId') || '';
 	let assay: Assay | undefined;
@@ -73,7 +74,8 @@
 				process: 'Gravelotte',
 				syncStatus: 'pending',
 				created: new Date(),
-				updated: new Date().toISOString()
+				updated: new Date().toISOString(),
+				siteLocation: 'PMC',
 			};
 
 			// Save truckLoad to IndexedDB
@@ -125,11 +127,10 @@ let currentStep = 2
 />
 
 			<div class="form-field">
-				<label for="felWeight" class="form-label">FEL Weight (kg)</label>
-				<input
+				<FormField 
 					id="felWeight"
+					label="FEL Weight (kg)"
 					type="number"
-					class="form-input"
 					bind:value={felWeight}
 					placeholder="Enter FEL Weight"
 					required
@@ -137,13 +138,13 @@ let currentStep = 2
 			</div>
 
 			<div class="form-field">
-				<label class="form-label">Sample Status</label>
+				<span class="form-label">Sample Status</span>
 				<div class="flex gap-4">
-					<label class="inline-flex items-center">
+					<label class="inline-flex items-center radio-equal">
 						<input type="radio" class="form-radio" name="samplingStatus" value="Yes" bind:group={samplingStatus} />
 						<span class="ml-2">Yes</span>
 					</label>
-					<label class="inline-flex items-center">
+					<label class="inline-flex items-center radio-equal">
 						<input type="radio" class="form-radio" name="samplingStatus" value="No" bind:group={samplingStatus} />
 						<span class="ml-2">No</span>
 					</label>
@@ -175,9 +176,27 @@ let currentStep = 2
 			</div>
 		</div>
 	{/if}
-<div class="button-group">
+	<div class="button-group">
 		<button class="cancel-button" on:click={handleCancel}>Cancel</button>
-	<button class="new-button" on:click={handleSubmit}>Add Truck</button>
+		<button class="new-button" on:click={handleSubmit}>Add Truck</button>
+	</div>
+</div>
 
-</div>
-</div>
+<style>
+	.form-field {
+		margin-bottom: 2rem;
+		width: 350px;
+		max-width: 100%;
+	}
+	.radio-equal {
+        flex: 1 1 0;
+        justify-content: center;
+        display: flex;
+        align-items: center;
+    }
+	.space-y-6 {
+    display: flex;
+    flex-direction: column;
+    align-items: center;  /* Center the form fields horizontally */
+}
+</style>

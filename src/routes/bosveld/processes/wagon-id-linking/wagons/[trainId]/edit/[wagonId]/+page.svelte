@@ -281,14 +281,6 @@
 				</div>
 				
 				<div class="space-y-4">
-					<!-- Name (Read-only) -->
-					<FormField
-						label="Name:"
-						id="wagonName"
-						value={wagon.transcoreTag || wagon.wagonIdSimple || 'Unknown'}
-						disabled={true}
-					/>
-					
 					<!-- Wagon ID (Editable) -->
 					<FormField
 						label="Wagon ID:"

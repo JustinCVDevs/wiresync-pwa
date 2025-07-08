@@ -24,7 +24,7 @@
 		try {
 			// Load the shunting train
 			shuntingTrain = await indexedDBService.getRecord('shuntingTrains', trainId) ?? null;
-			
+
 			if (!shuntingTrain) {
 				error = 'Shunting train not found';
 				return;
@@ -32,13 +32,12 @@
 
 			// Load linked wagons using the IDs from linkedWagons array
 			if (shuntingTrain.linkedWagons && shuntingTrain.linkedWagons.length > 0) {
-				console.log('Loading wagons for IDs:', shuntingTrain.linkedWagons);
-				
+				//Fetch all wagons
+				const allWagons: Wagon[] = await indexedDBService.getAllRecords('wagons');
 				// Fetch each wagon by ID from the wagons collection
-				const wagonPromises = shuntingTrain.linkedWagons.map(async (wagonId) => {
+				const wagonPromises = shuntingTrain.linkedWagons.map(wagonId => {
+					const wagon = allWagons.find(w => w.serverId === wagonId);
 					try {
-						const wagon = await indexedDBService.getRecord('wagons', wagonId);
-						console.log(`Loaded wagon ${wagonId}:`, wagon);
 						return wagon;
 					} catch (e) {
 						console.warn(`Failed to load wagon ${wagonId}:`, e);
@@ -49,8 +48,6 @@
 				const wagonResults = await Promise.all(wagonPromises);
 				// Filter out null results and ensure we have valid wagon objects
 				linkedWagons = wagonResults.filter(wagon => wagon !== null && wagon !== undefined) as Wagon[];
-				
-				console.log('Final linked wagons:', linkedWagons);
 			} else {
 				console.log('No linkedWagons found in shunting train');
 				linkedWagons = [];
@@ -182,16 +179,16 @@
 					
 					<div class="space-y-3">
 						<FormField
-							label="Name:"
+							label="Name (ID):"
 							id="wagonName_{index}"
-							value={wagon.transcoreTag || ''}
+							value={wagon.wagonIdSimple || ''}
 							disabled={true}
 						/>
 						
 						<FormField
-							label="Wagon ID:"
+							label="Wagon RFID:"
 							id="wagonId_{index}"
-							value={wagon.wagonIdSimple || ''}
+							value={wagon.transcoreTag || ''}
 							disabled={true}
 						/>
 						

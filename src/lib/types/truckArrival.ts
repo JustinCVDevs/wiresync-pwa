@@ -5,9 +5,9 @@ export interface TruckArrival extends BaseRecord{
 	id: string;
   
 	/** Core arrival data */
-	truckId: string;                // relation ID or plate number
+	truckId?: string;                // relation ID or plate number
 	port_arrival_sample_id: string;
-	truck_photo: string[];                     // filenames as returned by PocketBase
+	truck_photo?: string;                     // filenames as returned by PocketBase
 	port_truck_arrival_timestamp: string;      // ISO datetime
 	status: 'received' | 'not_pre_registered' | 'registered';
   
@@ -20,5 +20,6 @@ export interface TruckArrival extends BaseRecord{
 	tare_timestamp?: string;                   // ISO datetime
 	truck_origin_location?: 'TLG' | 'RCL' | 'BOP';
 	syncStatus: string;
-	serverId: string;
+	serverId?: string;
+	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"
   }

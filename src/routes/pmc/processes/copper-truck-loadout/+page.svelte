@@ -38,7 +38,8 @@
 		  samplingStatus: true,
 		  syncStatus: 'pending',
 		  process: 'Copper Truck Loadout',
-		  sampleId
+		  sampleId,
+		  siteLocation: 'PMC',
 		};
   
 		const assay: Assay = {
@@ -51,7 +52,8 @@
 		  linkedTruckLoadIds: [truckLoadId],
 		  syncStatus: 'pending',
 		  process: 'Copper Truck Loadout',
-		  sampleId
+		  sampleId,
+		  siteLocation: 'PMC',
 		};
   
 		await Promise.all([
@@ -105,8 +107,14 @@
 	  required
 	/>
 
-	<Camera {showCamera} on:capture={handleCapture} on:close={() => (showCamera = false)} />
-
+	{#if showCamera}
+		<Camera 
+			onPhotoSelected={(file) => {
+				/*Handle the file*/
+			}} 
+			on:capture={handleCapture} 
+			on:close={() => (showCamera = false)} />
+	{/if}
 	<FormField
 	  id="materialType"
 	  label="Material Type"

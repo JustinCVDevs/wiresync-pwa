@@ -12,6 +12,7 @@
 	let trainRefNr = '';
 	let capturedPhoto: File | null = null;
 	let isSubmitting = false;
+	let showCamera = true;
 	let currentStep = 1;
 	let availableTrains: Train[] = [];
 
@@ -34,6 +35,7 @@
 
 	function handlePhotoSelected(file: File) {
 		capturedPhoto = file;
+		//showCamera = false; 
 	}
 
 	async function handleSubmit() {
@@ -69,7 +71,7 @@
 			// Create train arrival record
 			const trainArrival: TrainArrival = {
 				id: crypto.randomUUID(),
-				trainId: selectedTrain.id ?? '',
+				trainId: selectedTrain?.serverId,
 				trainRefNr: selectedTrain.refNr,
 				trainRfidNr: selectedTrain.rfidNr,
 				portRailArrivalTimestamp: new Date().toISOString(),
@@ -77,7 +79,8 @@
 				status: 'pending',
 				created: new Date(),
 				updated: new Date().toISOString(),
-				syncStatus: 'pending'
+				syncStatus: 'pending',
+				siteLocation: 'Richards Bay'
 			};
 
 			// Save to IndexedDB using the generic saveRecord method
@@ -137,8 +140,10 @@
 
 		<!-- Camera Component -->
 		<div class="space-y-2">
-			<label class="block font-medium text-gray text-sm">Train Photo *</label>
-			<Camera onPhotoSelected={handlePhotoSelected} />
+			<span class="block font-medium text-gray text-sm">Train Photo *</span>
+			{#if showCamera}
+				<Camera onPhotoSelected={handlePhotoSelected} />
+			{/if}
 		</div>
 
 		<!-- Form Validation Message -->
