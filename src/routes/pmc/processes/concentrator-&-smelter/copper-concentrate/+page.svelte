@@ -17,16 +17,16 @@
 
 	const processes = [
 		{
-			name: 'Sampling',
+			name: 'HG Concentrate',
 			icon: ArrowRightCircle,
 			color: 'text-green-500',
-			href: '/pmc/processes/magnetite-rail/west-load-out/sampling'
+			href: '/pmc/processes/concentrator-&-smelter/copper-concentrate/hg-concentrate'
 		},
 		{
-			name: 'FEL Operations',
+			name: 'LG Concentrate',
 			icon: ArrowRightCircle,
 			color: 'text-green-500',
-			href: '/pmc/processes/magnetite-rail/west-load-out/fel-operations'
+			href: '/pmc/processes/concentrator-&-smelter/copper-concentrate/lg-concentrate'
 		}
 	] as const;
 
@@ -35,7 +35,7 @@
 <section class="space-y-4 px-4">
 	<!-- Back to Locations Button -->
 	<button
-		on:click={() => goto('/pmc/processes/magnetite-rail')}
+		on:click={() => goto('/pmc/processes/concentrator-&-smelter')}
 		class="flex items-center gap-2 mb-4 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
 	>
 		<ArrowLeft size={20} />

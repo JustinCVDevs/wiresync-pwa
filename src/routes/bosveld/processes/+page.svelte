@@ -11,22 +11,16 @@
 
 	const processes = [
 		{
-			name: 'Wagon ID/RFID Linking',
+			name: 'Marshaling Yard',
 			icon: ReceiptText,
 			color: 'text-blue-500',
-			href: '/bosveld/processes/wagon-id-linking'
+			href: '/bosveld/processes/marshaling-yard'
 		},
 		{
-			name: 'Marshaling Dispatch',
+			name: 'Loading Station',
 			icon: ArrowRightCircle,
 			color: 'text-green-500',
-			href: '/bosveld/processes/marshaling-dispatch'
-		},
-		{
-			name: 'Wagon Loadout',
-			icon: Train,
-			color: 'text-red-500',
-			href: '/bosveld/processes/west-loadout'
+			href: '/bosveld/processes/loading-station'
 		}
 	] as const;
 
