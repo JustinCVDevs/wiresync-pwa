@@ -6,21 +6,27 @@
 		ReceiptText,
 		ArrowRightCircle,
 		Train,
-		ArrowLeft
+		Truck,
+		HardDrive,
+		Package,
+		Droplet,
+		ArrowLeft,
+		HeartOff,
+		Magnet
 	} from 'lucide-svelte';
 
 	const processes = [
 		{
-			name: 'Marshaling Yard',
-			icon: ReceiptText,
-			color: 'text-blue-500',
-			href: '/bosveld/processes/marshaling-yard'
-		},
-		{
-			name: 'Loading Station',
+			name: 'HG Concentrate',
 			icon: ArrowRightCircle,
 			color: 'text-green-500',
-			href: '/bosveld/processes/loading-station'
+			href: '/pmc/processes/concentrator-&-smelter/copper-concentrate/hg-concentrate'
+		},
+		{
+			name: 'LG Concentrate',
+			icon: ArrowRightCircle,
+			color: 'text-green-500',
+			href: '/pmc/processes/concentrator-&-smelter/copper-concentrate/lg-concentrate'
 		}
 	] as const;
 
@@ -29,14 +35,14 @@
 <section class="space-y-4 px-4">
 	<!-- Back to Locations Button -->
 	<button
-		on:click={() => goto('/locations')}
+		on:click={() => goto('/pmc/processes/concentrator-&-smelter')}
 		class="flex items-center gap-2 mb-4 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
 	>
 		<ArrowLeft size={20} />
-		<span>Back to Locations</span>
+		<span>Back to Workflow</span>
 	</button>
 	
-	<p class="mms-title ">Select a Process</p>
+	<p class="mms-title ">Select a Workflow</p>
 		{#each processes as { name, icon: Icon, color, href }}
 			<button
 				on:click={() => goto(href)}

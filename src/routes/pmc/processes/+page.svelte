@@ -10,57 +10,29 @@
 		HardDrive,
 		Package,
 		Droplet,
-		ArrowLeft
+		ArrowLeft,
+		HeartOff,
+		Magnet
 	} from 'lucide-svelte';
 
 	const processes = [
 		{
-			name: 'Wagon ID/RFID Linking',
-			icon: ReceiptText,
-			color: 'text-blue-500',
-			href: '/pmc/processes/wagon-id-linking'
+			name: 'Magnetite Rail',
+			icon: Magnet,
+			color: 'text-gray-500',
+			href: '/pmc/processes/magnetite-rail',
 		},
 		{
-			name: 'Marshaling Dispatch',
+			name: 'Magnetite Road',
 			icon: ArrowRightCircle,
 			color: 'text-green-500',
-			href: '/pmc/processes/marshaling-dispatch'
+			href: '/pmc/processes/magnetite-road'
 		},
 		{
-			name: 'West Loadout (Wagons)',
+			name: 'Concentrator & Smelter',
 			icon: Train,
 			color: 'text-red-500',
-			href: '/pmc/processes/west-loadout'
-		},
-		{
-			name: 'East Loadout (Wagons)',
-			icon: Train,
-			color: 'text-orange-500',
-			href: '/pmc/processes/east-loadout'
-		},
-		{
-			name: 'Gravelotte (Trucks)',
-			icon: Truck,
-			color: 'text-teal-500',
-			href: '/pmc/processes/gravelotte'
-		},
-		{
-			name: 'Truck Loadout',
-			icon: HardDrive,
-			color: 'text-purple-500',
-			href: '/pmc/processes/truck-loadout'
-		},
-		{
-			name: 'Copper Truck Loadout',
-			icon: Package,
-			color: 'text-amber-500',
-			href: '/pmc/processes/copper-truck-loadout'
-		},
-		{
-			name: 'Acid Truck',
-			icon: Droplet,
-			color: 'text-pink-500',
-			href: '/pmc/processes/acid-truck'
+			href: '/pmc/processes/concentrator-&-smelter'
 		}
 	] as const;
 

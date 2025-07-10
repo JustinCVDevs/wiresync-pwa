@@ -11,32 +11,32 @@
 
 	const processes = [
 		{
-			name: 'Marshaling Yard',
+			name: 'Wagon ID/RFID Linking',
 			icon: ReceiptText,
 			color: 'text-blue-500',
-			href: '/bosveld/processes/marshaling-yard'
+			href: '/bosveld/processes/marshaling-yard/wagon-id-linking'
 		},
 		{
-			name: 'Loading Station',
+			name: 'Marshaling Dispatch',
 			icon: ArrowRightCircle,
 			color: 'text-green-500',
-			href: '/bosveld/processes/loading-station'
+			href: '/bosveld/processes/marshaling-yard/marshaling-dispatch'
 		}
 	] as const;
 
 </script>
 
 <section class="space-y-4 px-4">
-	<!-- Back to Locations Button -->
+	<!-- Back to Process Button -->
 	<button
-		on:click={() => goto('/locations')}
+		on:click={() => goto('/bosveld/processes')}
 		class="flex items-center gap-2 mb-4 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
 	>
 		<ArrowLeft size={20} />
-		<span>Back to Locations</span>
+		<span>Back to Process</span>
 	</button>
 	
-	<p class="mms-title ">Select a Process</p>
+	<p class="mms-title ">Select a Workflow</p>
 		{#each processes as { name, icon: Icon, color, href }}
 			<button
 				on:click={() => goto(href)}
