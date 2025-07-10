@@ -15,7 +15,7 @@
 	let selectedTruck = '';
 	let felWeight = '';
 	let samplingStatus: 'Yes' | 'No' = 'No';
-	let loadingLocation = 'West Load Out';
+	let loadingLocation = 'Gavelotte';
 	let loadingHour = '';
 	let availableTrucks: Truck[] = [];
 	let error = '';
@@ -48,7 +48,7 @@
 		}
 	});
 
-	const loadingLocations = ['West Load Out', 'Truck Load Out', 'Gravelotte'];
+	const loadingLocations = ['West Load Out', 'East Load Out', 'Gravelotte'];
 
 	// Add validation function at the top of the script
 	function validateLoadingHour(value: string) {
@@ -92,7 +92,7 @@
 			};
 			await indexedDBService.saveRecord('assays', updatedAssay);
 
-			goto(`/pmc/processes/magnetite-road/west-load-out/add-trucks?assayId=${assay.id}`);
+			goto(`/pmc/processes/magnetite-road/gravelotte/add-trucks?assayId=${assay.id}`);
 		} catch (err) {
 			error = 'Failed to submit truck data';
 			console.error(err);

@@ -1,223 +1,49 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
-	import FormField from '$lib/components/FormField.svelte';
-	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
-	import { indexedDBService } from '$lib/services/indexedDBService';
-	import { formPersistenceService } from '$lib/services/formPersistenceService';
-	import type { Assay } from '$lib/types/assay';
-	import { syncService } from '$lib/services/syncService';
-	import { SamplingStatusEnum } from '$lib/types/enums';
-	import type { ID } from '$lib';
-	import moment from 'moment';
+	import { page } from '$app/stores';
+	import { derived } from 'svelte/store';
+	import {
+		ReceiptText,
+		ArrowRightCircle,
+		Train,
+		Truck,
+		HardDrive,
+		Package,
+		Droplet,
+		ArrowLeft,
+		HeartOff,
+		Magnet
+	} from 'lucide-svelte';
 
-	let samplingStatus: SamplingStatusEnum = SamplingStatusEnum.No;
-	let wagonId: ID = '';
-	let sampleId = '';
-	let productGrade = '';
-	let isSubmitting = false;
-	let currentStep = 1;
-
-	// Process steps
-	const steps = ['Sample Details', 'FEL Weight Capturing', 'Complete'];
-
-	const samplingStatusOptions = [
-		{ value: SamplingStatusEnum.Yes, label: 'Yes' },
-		{ value: SamplingStatusEnum.No, label: 'No' }
-	];
-
-	// Reference to the ProcessLayout component
-	let processLayout: ProcessLayout;
-
-	// Form errors
-	let formErrors = {
-		sampleId: '',
-		productGrade: '',
-		wagonId: '',
-		samplingStatus: ''
-	};
-
-	onMount( async () => {
-		// Load persisted form data
-		loadPersistedData();
-	});
-
-	// Save form data when component is unmounted
-	onMount(() => {
-		return () => {
-			if (sampleId || productGrade) {
-				formPersistenceService.saveForm('east_loadout', {
-					sampleId,
-					productGrade,
-					wagonId,
-					samplingStatus
-				});
-			}
-		};
-	});
-
-	function loadPersistedData() {
-		const savedData = formPersistenceService.loadForm<{
-			sampleId: string;
-			productGrade: string;
-			wagonId: string;
-			samplingStatus: SamplingStatusEnum;
-		}>('east_loadout');
-
-		if (savedData) {
-			sampleId = savedData.sampleId || '';
-			productGrade = savedData.productGrade || '';
+	const processes = [
+		{
+			name: 'Sampling',
+			icon: ArrowRightCircle,
+			color: 'text-green-500',
+			href: '/pmc/processes/magnetite-rail/east-load-out/sampling'
 		}
-	}
+	] as const;
 
-
-	function validateForm() {
-		let isValid = true;
-		formErrors = {
-			sampleId: '',
-			productGrade: '',
-			wagonId: '',
-			samplingStatus: ''
-		};
-
-		if (!sampleId) {
-			formErrors.sampleId = 'Sample ID is required';
-			isValid = false;
-		}
-
-		if (!productGrade) {
-			formErrors.productGrade = 'Product grade is required';
-			isValid = false;
-		}
-
-		return isValid;
-	}
-
-	const productGrades = ['Iron Oxide', 'Magnetite', 'Mag-64', 'Mag-65'];
-
-	async function handleSubmit() {
-		if (!validateForm()) {
-			return;
-		}
-
-		try {
-			isSubmitting = true;
-			processLayout.setError('');
-			processLayout.setSuccess('');
-
-			// Create the assay object according to the Assay interface
-			const assay: Assay = {
-				id: crypto.randomUUID(),
-				name:  sampleId,
-				productGrade: productGrade,
-				commodity: productGrade,
-				sampleId: sampleId,
-				location: 'East Load Out',
-				created: new Date(),
-				updated: new Date().toISOString(),
-				linkedTruckIds: [],
-				syncStatus: 'pending',
-				process: 'East Loadout',
-				siteLocation: 'PMC',
-			};
-
-			// Save to IndexedDB
-			await indexedDBService.saveRecord('assays', assay);
-
-			// Try to sync using the sync service
-			await syncService.syncAssay(assay);
-
-			// Store wagon linkage
-			assay.linkedWagonIds?.push(wagonId);
-			await indexedDBService.saveRecord('assays', assay);
-
-			// Clear persisted form data
-			formPersistenceService.clearForm('east_loadout');
-
-			processLayout.setSuccess('Data saved successfully');
-			currentStep++;
-			setTimeout(() => {
-				// Navigate to next step
-					goto('/pmc/processes/magnetite-rail/east-load-out/verification?sampleId=' + assay.id);
-			}, 1000);
-		} catch (err) {
-			if (currentStep < 4) {
-				currentStep++;
-			} else {
-				processLayout.setError('Failed to save assay data');
-			}
-			console.error(err);
-		} finally {
-			isSubmitting = false;
-		}
-	}
 </script>
 
-<ProcessLayout
-	title="East Loadout"
-	{steps}
-	{currentStep}
-	{isSubmitting}
-	bind:this={processLayout}
-	cancelPath="/pmc/processes/magnetite-rail"
-	on:cancel={() => goto('/pmc/processes/magnetite-rail')}
-	on:submit={handleSubmit}
->
-	<div slot="header">
-		<h5 class="text-xl font-bold ">Sample Details</h5>
-		<p class="text-sm text-gay">Please enter the sample and product details</p>
-	</div>
-
-	<div class="container">
-		{#if currentStep === 1}
-			<FormField
-				id="sampleId"
-				label="Sample ID"
-				bind:value={sampleId}
-				placeholder="Enter Sample ID"
-				required={true}
-				error={formErrors.sampleId}
-			/>
-
-			<FormField
-				id="productGrade"
-				label="Product Grade"
-				bind:value={productGrade}
-				placeholder="Select Product Grade"
-				isSelect={true}
-				options={productGrades.map((grade) => ({ value: grade, label: grade }))}
-				required={true}
-				error={formErrors.productGrade}
-			/>
-		{/if}
-
-		{#if currentStep === 3}
-			<FormField
-				id="wagonId"
-				label="Wagon ID"
-				bind:value={wagonId}
-				placeholder="Scan RFID or enter manually"
-				required={true}
-				error={formErrors.wagonId}
-			/>
-
-			<FormField
-				id="samplingStatus"
-				label="Sampling Completed"
-				bind:value={samplingStatus}
-				isSelect={true}
-				options={samplingStatusOptions}
-				required={true}
-				error={formErrors.samplingStatus}
-			/>
-		{/if}
-	</div>
-</ProcessLayout>
-
-<style>
-	.container {
-		max-width: 600px;
-		margin: 0 auto;
-		padding: 2rem;
-	}
-</style>
+<section class="space-y-4 px-4">
+	<!-- Back to Locations Button -->
+	<button
+		on:click={() => goto('/pmc/processes/magnetite-rail')}
+		class="flex items-center gap-2 mb-4 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+	>
+		<ArrowLeft size={20} />
+		<span>Back to Workflow</span>
+	</button>
+	
+	<p class="mms-title ">Select a Workflow</p>
+		{#each processes as { name, icon: Icon, color, href }}
+			<button
+				on:click={() => goto(href)}
+				class={`flex w-full transform items-center gap-4 rounded-lg border-1 border-gray-100 px-5 py-4 shadow-lg transition-transform
+				  hover:-translate-y-1 hover:shadow-lg focus:ring-2 focus:ring-blue-500 focus:outline-nonem font-bold text-white text-uppercase bg-gray text-center text-white`}
+			>
+				<span class="flex-1 ">{name}</span>
+			</button>
+		{/each}
+</section>

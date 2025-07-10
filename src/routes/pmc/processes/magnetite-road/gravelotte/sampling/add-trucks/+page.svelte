@@ -115,7 +115,7 @@
 			await indexedDBService.saveRecord('assays', updatedAssay);
 
 			loadAssayData();
-			goto(`/pmc/processes/magnetite-road/west-load-out/add-trucks?assayId=${assay.id}`);
+			goto(`/pmc/processes/magnetite-road/gravelotte/add-trucks?assayId=${assay.id}`);
 		} catch (err) {
 			error = 'Failed to submit truck data';
 			console.error(err);
@@ -124,7 +124,7 @@
 	let samplingStatus: string;
 	let felWeight: string | undefined;
 	$: message= '';
-	let loadingLocation: any = 'West Load Out';
+	let loadingLocation: any = 'Gravelotte';
 	let loadingHour: string;
 	const loadingLocations = ['West Load Out', 'East Load Out', 'Gravelotte'];
 
@@ -145,7 +145,7 @@
 {#if message}
 			<div class="bg-green-600 text-white border rounded-lg shadow-lg flex p-4" style="background: #91f1b5;color: #2f3c33;"><CheckCircle class="mr-4"/> {message}</div>
 			{:else}
-<ProcessLayout title="West Load Out" {currentStep} cancelPath="/pmc/processes/magnetite-road" on:cancel={handleCancel} on:submit={handleSubmit}>
+<ProcessLayout title="Gravelotte" {currentStep} cancelPath="/pmc/processes/magnetite-road" on:cancel={handleCancel} on:submit={handleSubmit}>
 	<div class="container">
 		<h1 class="text-2xl font-black ease-in">Adding Trucks to a Lot</h1>
 

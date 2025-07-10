@@ -205,6 +205,7 @@ export const syncService = {
 			} else {
 				// Create new record in PocketBase
 				created = await pocketbaseService.create('trucks', payload);
+				
 			}
 
 			if (truck.id) {
