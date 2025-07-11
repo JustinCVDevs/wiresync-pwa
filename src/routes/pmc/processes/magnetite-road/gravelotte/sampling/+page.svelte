@@ -14,7 +14,7 @@
 	let truckRegistration = '';
 	let productType = '';
 	let sampleId = '';
-	let loadingLocation = 'West Load Out';
+	let loadingLocation = 'Gravelotte';
 	let loadingHour = '';
 	let error = '';
 	let processLayout: ProcessLayout;
@@ -48,7 +48,7 @@
 					commodity: productType,
 					materialType: 'Coarse',
 					registration: sampleId,
-					felMassKg: 0, // get from truck
+					felMassKg: 0,
 					loadingLocation: loadingLocation, 
 					loadingHour: Number(loadingHour), 
 					syncStatus: 'pending',
@@ -90,7 +90,7 @@
 					location: loadingLocation,
 					created: new Date(),
 					updated: new Date().toISOString(),
-					process: 'West Load Out',
+					process: 'Gravelotte',
 					sampleId: sampleId,
 					siteLocation: 'PMC',
 				};
@@ -98,7 +98,7 @@
 				// Save assay to IndexedDB
 				await indexedDBService.saveRecord('assays', assay);
 
-				goto(`/pmc/processes/magnetite-road/west-load-out/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`)
+				goto(`/pmc/processes/magnetite-road/gravelotte/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`)
 			}else {
 				isDedicatedFleet = false;
 
@@ -129,7 +129,7 @@
 					location: loadingLocation,
 					created: new Date(),
 					updated: new Date().toISOString(),
-					process: 'West Load Out',
+					process: 'Gravelotte',
 					sampleId: sampleId,
 					siteLocation: 'PMC',
 				};
@@ -138,7 +138,7 @@
 				await indexedDBService.saveRecord('assays', assay);
 				await syncService.syncAssay(assay);
 
-				goto(`/pmc/processes/magnetite-road/west-load-out/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`)
+				goto(`/pmc/processes/magnetite-road/gravelotte/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`)
 			}
 			
 		} catch (err) {
@@ -153,7 +153,7 @@
 
   </script>
   <ProcessLayout
-  title="West Load Out"
+  title="Gravelotte"
   {steps}
   {currentStep}
   isSubmitting={false}

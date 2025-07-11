@@ -20,13 +20,13 @@
 			name: 'Sampling',
 			icon: ArrowRightCircle,
 			color: 'text-green-500',
-			href: '/pmc/processes/magnetite-road/west-load-out/sampling'
+			href: '/pmc/processes/magnetite-road/gravelotte/sampling'
 		},
 		{
 			name: 'FEL Operations',
 			icon: ArrowRightCircle,
 			color: 'text-green-500',
-			href: '/pmc/processes/magnetite-road/west-load-out/fel-operations'
+			href: '/pmc/processes/magnetite-road/gravelotte/fel-operations'
 		}
 	] as const;
 

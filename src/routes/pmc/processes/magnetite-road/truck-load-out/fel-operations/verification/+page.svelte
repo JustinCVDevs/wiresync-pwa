@@ -24,12 +24,11 @@
 				(t) => t.registration === truckRegistration
 			)[0];
 			truck = result ?? null;
-			console.log('Truck Data:', truck);
 		}
 	}
 
 	function handleCancel() {
-		goto('/pmc/processes/magnetite-road/west-load-out');
+		goto('/pmc/processes/magnetite-road/truck-load-out');
 	}
 
 	function handleSubmit() {
@@ -39,35 +38,33 @@
 </script>
 
 <ProcessLayout
-	title="  Sample Details Verification"
+	title="Sample Details Verification"
 	steps={processSteps}
 	{currentStep}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
-	cancelPath="/pmc/processes/magnetite-road/west-load-out"
+	cancelPath="/pmc/processes/magnetite-road/truck-load-out"
 >
-<!-- t -->
-
 	<div class="space-y-4">
 		{#if truck}
-				<div class="bg-white p-4 rounded-lg shadow-sm">
-					<div class="grid grid-cols-1 gap-4">
-						<div>
-							<p class="text-sm text-gray-500 font-bold">Truck Registration Nr</p>
-							<p class="font-medium">{truck.registration}</p>
-						</div>
+			<div class="bg-white p-4 rounded-lg shadow-sm">
+				<div class="grid grid-cols-1 gap-4">
+					<div>
+						<p class="text-sm text-gray-500 font-bold">Truck Registration Nr</p>
+						<p class="font-medium">{truck.registration}</p>
+					</div>
 
-						<div>
-							<p class="text-sm text-gray-500 font-bold">FEL Weight (Ton)</p>
-							<p class="font-medium">{truck.felWeight}</p>
-						</div>
-						
-						<div>
-							<p class="text-sm text-gray-500 font-bold">Loading Location</p>
-							<p class="font-medium">{truck.loadingLocation}</p>
-						</div>
+					<div>
+						<p class="text-sm text-gray-500 font-bold">FEL Weight (Ton)</p>
+						<p class="font-medium">{truck.felWeight}</p>
+					</div>
+					
+					<div>
+						<p class="text-sm text-gray-500 font-bold">Loading Location</p>
+						<p class="font-medium">{truck.loadingLocation}</p>
 					</div>
 				</div>
+			</div>
 		{:else}
 			<div class="text-center py-8">
 				<p class="text-gray-500">Loading sample details...</p>

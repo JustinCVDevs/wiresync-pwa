@@ -36,12 +36,11 @@
 				(t) => t.registration === truckRegistration
 			)[0];
 			truck = result ?? null;
-			console.log('Truck Data:', truck);
 		}
 	}
 
 	function handleCancel() {
-		goto('/pmc/processes/magnetite-road/west-load-out');
+		goto('/pmc/processes/magnetite-road/truck-load-out');
 	}
 
 	function handleSubmit() {
@@ -51,15 +50,13 @@
 </script>
 
 <ProcessLayout
-	title="  Sample Details Verification"
+	title="Sample Details Verification"
 	steps={processSteps}
 	{currentStep}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
-	cancelPath="/pmc/processes/magnetite-road/west-load-out"
+	cancelPath="/pmc/processes/magnetite-road/truck-load-out"
 >
-<!-- t -->
-
 	<div class="space-y-4">
 		{#if assay && truck}
 			{#if assay.dedicatedFleet === false}
@@ -69,17 +66,14 @@
 							<p class="text-sm text-gray-500 font-bold">Truck Registration Nr</p>
 							<p class="font-medium">{truck.registration}</p>
 						</div>
-
 						<div>
 							<p class="text-sm text-gray-500 font-bold">Sample ID</p>
 							<p class="font-medium">{assay.sampleId}</p>
 						</div>
-
 						<div>
 							<p class="text-sm text-gray-500 font-bold">Product</p>
 							<p class="font-medium">{assay.productType}</p>
 						</div>
-						
 						<div>
 							<p class="text-sm text-gray-500 font-bold">Loading Location</p>
 							<p class="font-medium">{assay.location}</p>
@@ -93,22 +87,18 @@
 							<p class="text-sm text-gray-500 font-bold">Truck Registration Nr</p>
 							<p class="font-medium">{truck.registration}</p>
 						</div>
-
 						<div>
 							<p class="text-sm text-gray-500 font-bold">Sample ID</p>
 							<p class="font-medium">{assay.sampleId}</p>
 						</div>
-
 						<div>
 							<p class="text-sm text-gray-500 font-bold">Product</p>
 							<p class="font-medium">{assay.productType}</p>
 						</div>
-						
 						<div>
 							<p class="text-sm text-gray-500 font-bold">Loading Location</p>
 							<p class="font-medium">{truck.loadingLocation}</p>
 						</div>
-
 						<div>
 							<p class="text-sm text-gray-500 font-bold">Loading Time (Hours)</p>
 							<p class="font-medium">{truck.loadingHour}</p>

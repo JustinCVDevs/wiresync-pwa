@@ -107,7 +107,7 @@
 
 					selectedTruck.dedicatedFleet = true;
 					selectedTruck.loadingLocation = loadingLocation;
-					//selectedTruck.updated = new Date().toISOString();
+					selectedTruck.updated = new Date().toISOString();
 					selectedTruck.felWeight = Number(felWeight);
 					selectedTruck.syncStatus = 'pending';
 
