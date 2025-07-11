@@ -45,6 +45,13 @@ export const syncService = {
 						.filter((id): id is string => id !== undefined);
 				}
 
+				if (assay.linkedFleetId) {
+					const fleet = await indexedDBService.getRecord('fleet', assay.linkedFleetId);
+					if (fleet?.serverId) {
+						payload.linkedFleetId = fleet.serverId;
+					}
+				}
+
 				// Check all linked truck loads have server IDs before updating
 				if (assay.linkedTruckLoadIds?.length) {
 					const truckLoads = await Promise.all(
@@ -187,9 +194,6 @@ export const syncService = {
 					serverId: truck.id,
 					loadingLocation: truck.loadingLocation,
 					loadingHour: truck.loadingHour,
-					dedicatedFleet: truck.dedicatedFleet,
-					linkedFleetIds: truck.linkedFleetIds,
-					felWeight: truck.felWeight
 				});
 			}
 			return true;
@@ -202,23 +206,6 @@ export const syncService = {
 	async syncTruck(truck: Truck) {
 		try {
 			const { id, syncStatus, ...payload } = truck;
-
-			if (truck.linkedFleetIds?.length) {
-				const fleets = await Promise.all(
-					truck.linkedFleetIds.map((id) => indexedDBService.getRecord('fleet', id))
-				);
-				console.log('Fleets to sync:', fleets);
-				// Check if all wagons have server IDs
-				const allFleetsHaveServerId = fleets.every((fleet) => fleet?.serverId);
-				if (!allFleetsHaveServerId) {
-					return false;
-				}
-
-				// Replace local IDs with server IDs
-				payload.linkedFleetIds = fleets
-					.map((fleet) => fleet?.serverId)
-					.filter((id): id is string => id !== undefined);
-			}
 
 			let created;
 			if (truck.serverId) {

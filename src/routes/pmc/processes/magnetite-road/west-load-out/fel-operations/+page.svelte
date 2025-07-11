@@ -38,15 +38,34 @@
 				truck => truck.loadingLocation === 'West Load Out' && !truck.updated
 			);
 			
-			let filteredTrucks;
+			let filteredTrucks: any[] = [];
+
 			if (dedicatedFleet === 'Yes') {
+				const allAssays = (await indexedDBService.getAllRecords('assays')).filter(
+					(a) => a.location === 'West Load Out' && a.dedicatedFleet === true
+				);
+
+				// Collect all linkedTruckIds from all relevant assays
+				const linkedTruckIds = allAssays
+					.flatMap(a => a.linkedTruckIds ?? []);
+
+				// Filter trucks whose serverId matches any linkedTruckId
 				filteredTrucks = allTrucks.filter(
-					(t) => t.dedicatedFleet === true
-				)
+					truck => linkedTruckIds.includes(truck.serverId ?? '')
+				);
 			} else {
+				const allAssays = (await indexedDBService.getAllRecords('assays')).filter(
+					(a) => a.location === 'West Load Out' && a.dedicatedFleet === false
+				);
+
+				// Collect all linkedTruckIds from all relevant assays
+				const linkedTruckIds = allAssays
+					.flatMap(a => a.linkedTruckIds ?? []);
+
+				// Filter trucks whose serverId matches any linkedTruckId
 				filteredTrucks = allTrucks.filter(
-					(t) => t.dedicatedFleet === false
-				)
+					truck => linkedTruckIds.includes(truck.serverId ?? '')
+				);
 			}
 			return filteredTrucks;
 		} catch (error) {

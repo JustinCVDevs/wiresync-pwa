@@ -10,6 +10,7 @@ export interface Assay extends BaseRecord {
 	serverId?: string;
 	syncStatus: 'pending' | 'synced';
 	linkedTruckLoadIds?: ID[]; // many-to-many with TruckLoad.id
+	linkedFleetId?: string;
 	sampleSize?: string; // e.g. "1000"
 	commodity?: string; // e.g. "Cotton"
 	productType?: string; // e.g. "Cotton"
