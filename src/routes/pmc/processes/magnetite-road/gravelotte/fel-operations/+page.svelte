@@ -12,7 +12,7 @@
 	let isDedicatedFleet = false;
 
 	let felWeight = '';
-	let loadingLocation = 'West Load Out';
+	let loadingLocation = 'Gravelotte';
 	let error = '';
 	let processLayout: ProcessLayout;
 
@@ -35,7 +35,7 @@
 	async function getTrucks() {
 		try {
 			const allTrucks = (await indexedDBService.getAllRecords('trucks')).filter(
-				truck => truck.loadingLocation === 'West Load Out' && !truck.updated
+				truck => truck.loadingLocation === 'Gravelotte' && !truck.updated
 			);
 			
 			let filteredTrucks;
@@ -107,22 +107,21 @@
 
 					selectedTruck.dedicatedFleet = true;
 					selectedTruck.loadingLocation = loadingLocation;
-					//selectedTruck.updated = new Date().toISOString();
+					selectedTruck.updated = new Date().toISOString();
 					selectedTruck.felWeight = Number(felWeight);
 					selectedTruck.syncStatus = 'pending';
 
 					await indexedDBService.updateRecord('trucks', selectedTruck.id, selectedTruck);
 
-					
 					await indexedDBService.updateRecord('fleet', fleet.id ?? '', {
 						loadingLocation: loadingLocation,
 						felMassKg: Number(felWeight),
 					})
 				}
 
-				formPersistenceService.clearForm('fel-operations-west-load-out');
+				formPersistenceService.clearForm('fel-operations-gravelotte');
 
-				goto(`/pmc/processes/magnetite-road/west-load-out/fel-operations/verification?&truckRegistration=${encodeURIComponent(selectedTruck?.registration || '')}`);
+				goto(`/pmc/processes/magnetite-road/gravelotte/fel-operations/verification?&truckRegistration=${encodeURIComponent(selectedTruck?.registration || '')}`);
 			}else {
 				isDedicatedFleet = false;
 				
@@ -136,9 +135,9 @@
 					await indexedDBService.updateRecord('trucks', selectedTruck.id, selectedTruck);
 				}
 
-				formPersistenceService.clearForm('fel-operations-west-load-out');
+				formPersistenceService.clearForm('fel-operations-gravelotte');
 
-				goto(`/pmc/processes/magnetite-road/west-load-out/fel-operations/verification?&truckRegistration=${encodeURIComponent(selectedTruck?.registration || '')}`);
+				goto(`/pmc/processes/magnetite-road/gravelotte/fel-operations/verification?&truckRegistration=${encodeURIComponent(selectedTruck?.registration || '')}`);
 			}
 			
 		} catch (err) {
@@ -158,7 +157,7 @@
 	}
 </script>
 	<ProcessLayout
-  	title="West Load Out"
+      title="Gravelotte"
 	{steps}
 	{currentStep}
 	isSubmitting={false}
