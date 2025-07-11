@@ -178,13 +178,18 @@ export const syncService = {
 
 	async syncTruckList() {
 		try {
-			const response = await pocketbaseService.list('trucks');
+			const response = await pocketbaseService.list('trucks');											
 			for (const truck of response.items) {
 				await indexedDBService.saveRecord('trucks', {
 					id: truck.id,
 					registration: truck.registration,
 					syncStatus: 'synced',
-					serverId: truck.id
+					serverId: truck.id,
+					loadingLocation: truck.loadingLocation,
+					loadingHour: truck.loadingHour,
+					dedicatedFleet: truck.dedicatedFleet,
+					linkedFleetIds: truck.linkedFleetIds,
+					felWeight: truck.felWeight
 				});
 			}
 			return true;
@@ -198,14 +203,28 @@ export const syncService = {
 		try {
 			const { id, syncStatus, ...payload } = truck;
 
+			if (truck.linkedFleetIds?.length) {
+				const fleets = await Promise.all(
+					truck.linkedFleetIds.map((id) => indexedDBService.getRecord('fleet', id))
+				);
+				console.log('Fleets to sync:', fleets);
+				// Check if all wagons have server IDs
+				const allFleetsHaveServerId = fleets.every((fleet) => fleet?.serverId);
+				if (!allFleetsHaveServerId) {
+					return false;
+				}
+
+				// Replace local IDs with server IDs
+				payload.linkedFleetIds = fleets
+					.map((fleet) => fleet?.serverId)
+					.filter((id): id is string => id !== undefined);
+			}
+
 			let created;
 			if (truck.serverId) {
-				// Update existing record in PocketBase
 				created = await pocketbaseService.update('trucks', truck.serverId, payload);
 			} else {
-				// Create new record in PocketBase
 				created = await pocketbaseService.create('trucks', payload);
-				
 			}
 
 			if (truck.id) {
@@ -800,7 +819,6 @@ export const syncService = {
 			console.warn('Failed to sync fleet with PocketBase:', err);
 			return false;
 		}
-
 	},
 
 	async syncPendingFleet() {

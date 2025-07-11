@@ -101,15 +101,10 @@
 	// Fetch all wagons from IndexedDB that just got scanned in from sampling
 	async function getWagons() {
 		try {
-			const now = Date.now();
-			const fiveHoursMs = 5 * 60 * 60 * 1000;
 			const wagons = (await indexedDBService.getAllRecords('wagons')).filter((w) => {
-				const createdTime = w.created ? new Date(w.created).getTime() : 0;
-				const isRecent = Date.now() - createdTime < fiveHoursMs;
 				const notUpdated = !w.updated;
 				return (
 					w.loadingLocation === 'West Load Out' &&
-					isRecent &&
 					notUpdated
 				);
 			});
@@ -309,10 +304,10 @@
 	}
 
 	.suggestions-list li:nth-child(even) {
-		background: #f6f8fa; /* Light gray for even rows */
+		background: #f6f8fa;
 	}
 	.suggestions-list li:nth-child(odd) {
-		background: #fff; /* White for odd rows */
+		background: #fff;
 	}
 
 	.suggestions-list button {
@@ -328,7 +323,7 @@
 
 	.suggestions-list button.selected,
 	.suggestions-list button:hover {
-		background: #2563eb;   /* Strong blue for selected/hover */
+		background: #2563eb;
 		color: #fff;
 	}
 

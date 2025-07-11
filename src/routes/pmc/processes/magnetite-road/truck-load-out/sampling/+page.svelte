@@ -14,7 +14,7 @@
 	let truckRegistration = '';
 	let productType = '';
 	let sampleId = '';
-	let loadingLocation = 'West Load Out';
+	let loadingLocation = 'Truck Load Out'; // <-- updated default value
 	let loadingHour = '';
 	let error = '';
 	let processLayout: ProcessLayout;
@@ -90,7 +90,7 @@
 					location: loadingLocation,
 					created: new Date(),
 					updated: new Date().toISOString(),
-					process: 'West Load Out',
+					process: 'Truck Load Out', // <-- updated
 					sampleId: sampleId,
 					siteLocation: 'PMC',
 				};
@@ -98,7 +98,7 @@
 				// Save assay to IndexedDB
 				await indexedDBService.saveRecord('assays', assay);
 
-				goto(`/pmc/processes/magnetite-road/west-load-out/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`)
+				goto(`/pmc/processes/magnetite-road/truck-load-out/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`)
 			}else {
 				isDedicatedFleet = false;
 
@@ -129,7 +129,7 @@
 					location: loadingLocation,
 					created: new Date(),
 					updated: new Date().toISOString(),
-					process: 'West Load Out',
+					process: 'Truck Load Out',
 					sampleId: sampleId,
 					siteLocation: 'PMC',
 				};
@@ -138,7 +138,7 @@
 				await indexedDBService.saveRecord('assays', assay);
 				await syncService.syncAssay(assay);
 
-				goto(`/pmc/processes/magnetite-road/west-load-out/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`)
+				goto(`/pmc/processes/magnetite-road/truck-load-out/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`)
 			}
 			
 		} catch (err) {
@@ -153,7 +153,7 @@
 
   </script>
   <ProcessLayout
-  title="West Load Out"
+  title="Truck Load Out"
   {steps}
   {currentStep}
   isSubmitting={false}
