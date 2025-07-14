@@ -29,7 +29,7 @@
 	async function getTrucks() {
 		try {
 			const allTrucks = (await indexedDBService.getAllRecords('trucks')).filter(
-				truck => truck.loadingLocation === 'LG Concentrate' && !truck.updated
+				truck => truck.loadingLocation === 'Unrefined Copper' && !truck.updated
 			);
 			return allTrucks;
 		} catch (error) {
@@ -88,9 +88,9 @@
 				await indexedDBService.updateRecord('trucks', selectedTruck.id, selectedTruck);
 			}
 
-			formPersistenceService.clearForm('fel-operations-lg-concentrate');
+			formPersistenceService.clearForm('fel-operations-unrefined-copper');
 
-			goto(`/pmc/processes/concentrator-&-smelter/copper-concentrate/lg-concentrate/fel-operations/verification?truckRegistration=${encodeURIComponent(selectedTruck?.registration || '')}`);
+			goto(`/pmc/processes/concentrator-&-smelter/unrefined-copper/fel-operations/verification?truckRegistration=${encodeURIComponent(selectedTruck?.registration || '')}`);
 		} catch (err) {
 			error = 'Failed to submit data';
 			console.error(err);
@@ -98,7 +98,7 @@
 	  }
 	  let currentStep = 1;
 	  function handleCancel() {
-		  goto('/pmc/processes/concentrator-&-smelter/copper-concentrate');
+		  goto('/pmc/processes/concentrator-&-smelter/unrefined-copper');
 	  }
 
 	$: if (truckInput !== '') {
@@ -113,7 +113,7 @@
     {currentStep}
     isSubmitting={false}
     bind:this={processLayout}
-    cancelPath="/pmc/processes/concentrator-&-smelter/copper-concentrate"
+    cancelPath="/pmc/processes/concentrator-&-smelter/unrefined-copper"
     on:cancel={handleCancel}
     on:submit={handleSubmit}
     on:error={({ detail }) => (error = detail)}

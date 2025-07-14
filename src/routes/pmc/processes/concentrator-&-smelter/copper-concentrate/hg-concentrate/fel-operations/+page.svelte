@@ -108,7 +108,7 @@
 	}
 </script>
 	<ProcessLayout
-    title="West Load Out"
+    title="Copper Concentrate"
     {steps}
     {currentStep}
     isSubmitting={false}
