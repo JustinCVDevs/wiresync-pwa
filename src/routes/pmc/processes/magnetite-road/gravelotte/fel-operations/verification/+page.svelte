@@ -4,11 +4,13 @@
 	import { goto } from '$app/navigation';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
-	import type { Assay } from '$lib/types/assay';
+	import type { Fleet } from '$lib/types/fleet';
 	import type { Truck } from '$lib/types/truck';
 
 	const truckRegistration = $page.url.searchParams.get('truckRegistration') || '';
+	const fleetServerId = $page.url.searchParams.get('fleetServerId') || '';
 	let truck: Truck | null = null;
+	let fleet: Fleet | null = null;
 	let currentStep = 2;
 	
 	// Process steps
@@ -16,6 +18,7 @@
 
 	onMount(async () => {
 		await loadTruckData();
+		await loadFleetData();
 	});
 
 	async function loadTruckData() {
@@ -24,6 +27,15 @@
 				(t) => t.registration === truckRegistration
 			)[0];
 			truck = result ?? null;
+		}
+	}
+
+	async function loadFleetData() {
+		if (fleetServerId) {
+			const result = (await indexedDBService.getAllRecords('fleet')).filter(
+				(f) => f.serverId === fleetServerId
+			)[0];
+			fleet = result ?? null;
 		}
 	}
 
@@ -46,25 +58,25 @@
 	cancelPath="/pmc/processes/magnetite-road/gravelotte"
 >
 	<div class="space-y-4">
-		{#if truck}
-			<div class="bg-white p-4 rounded-lg shadow-sm">
-				<div class="grid grid-cols-1 gap-4">
-					<div>
-						<p class="text-sm text-gray-500 font-bold">Truck Registration Nr</p>
-						<p class="font-medium">{truck.registration}</p>
-					</div>
+		{#if truck && fleet}
+				<div class="bg-white p-4 rounded-lg shadow-sm">
+					<div class="grid grid-cols-1 gap-4">
+						<div>
+							<p class="text-sm text-gray-500 font-bold">Truck Registration Nr</p>
+							<p class="font-medium">{truck.registration}</p>
+						</div>
 
-					<div>
-						<p class="text-sm text-gray-500 font-bold">FEL Weight (Ton)</p>
-						<p class="font-medium">{truck.felWeight}</p>
-					</div>
-					
-					<div>
-						<p class="text-sm text-gray-500 font-bold">Loading Location</p>
-						<p class="font-medium">{truck.loadingLocation}</p>
+						<div>
+							<p class="text-sm text-gray-500 font-bold">FEL Weight (Ton)</p>
+							<p class="font-medium">{fleet.felMassKg}</p>
+						</div>
+						
+						<div>
+							<p class="text-sm text-gray-500 font-bold">Loading Location</p>
+							<p class="font-medium">{truck.loadingLocation}</p>
+						</div>
 					</div>
 				</div>
-			</div>
 		{:else}
 			<div class="text-center py-8">
 				<p class="text-gray-500">Loading sample details...</p>

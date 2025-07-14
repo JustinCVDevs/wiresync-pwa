@@ -38,15 +38,34 @@
 				truck => truck.loadingLocation === 'Truck Load Out' && !truck.updated
 			);
 			
-			let filteredTrucks;
+			let filteredTrucks: any[] = [];
+
 			if (dedicatedFleet === 'Yes') {
+				const allAssays = (await indexedDBService.getAllRecords('assays')).filter(
+					(a) => a.location === 'Truck Load Out' && a.dedicatedFleet === true
+				);
+
+				// Collect all linkedTruckIds from all relevant assays
+				const linkedTruckIds = allAssays
+					.flatMap(a => a.linkedTruckIds ?? []);
+
+				// Filter trucks whose serverId matches any linkedTruckId
 				filteredTrucks = allTrucks.filter(
-					(t) => t.dedicatedFleet === true
-				)
+					truck => linkedTruckIds.includes(truck.serverId ?? '')
+				);
 			} else {
+				const allAssays = (await indexedDBService.getAllRecords('assays')).filter(
+					(a) => a.location === 'Truck Load Out' && a.dedicatedFleet === false
+				);
+
+				// Collect all linkedTruckIds from all relevant assays
+				const linkedTruckIds = allAssays
+					.flatMap(a => a.linkedTruckIds ?? []);
+
+				// Filter trucks whose serverId matches any linkedTruckId
 				filteredTrucks = allTrucks.filter(
-					(t) => t.dedicatedFleet === false
-				)
+					truck => linkedTruckIds.includes(truck.serverId ?? '')
+				);
 			}
 			return filteredTrucks;
 		} catch (error) {
@@ -108,20 +127,20 @@
 					selectedTruck.dedicatedFleet = true;
 					selectedTruck.loadingLocation = loadingLocation;
 					selectedTruck.updated = new Date().toISOString();
-					selectedTruck.felWeight = Number(felWeight);
 					selectedTruck.syncStatus = 'pending';
 
 					await indexedDBService.updateRecord('trucks', selectedTruck.id, selectedTruck);
 
+					
 					await indexedDBService.updateRecord('fleet', fleet.id ?? '', {
 						loadingLocation: loadingLocation,
 						felMassKg: Number(felWeight),
-					})
-				}
+					});
 
-				formPersistenceService.clearForm('fel-operations-truck-load-out');
+					formPersistenceService.clearForm('fel-operations-truck-load-out');
 
-				goto(`/pmc/processes/magnetite-road/truck-load-out/fel-operations/verification?&truckRegistration=${encodeURIComponent(selectedTruck?.registration || '')}`);
+				goto(`/pmc/processes/magnetite-road/truck-load-out/fel-operations/verification?truckRegistration=${encodeURIComponent(selectedTruck?.registration || '')}&fleetServerId=${encodeURIComponent(fleet?.serverId || '')}`);
+				}	
 			}else {
 				isDedicatedFleet = false;
 				
@@ -137,7 +156,7 @@
 
 				formPersistenceService.clearForm('fel-operations-truck-load-out');
 
-				goto(`/pmc/processes/magnetite-road/truck-load-out/fel-operations/verification?&truckRegistration=${encodeURIComponent(selectedTruck?.registration || '')}`);
+				goto(`/pmc/processes/magnetite-road/truck-load-out/fel-operations/verification?truckRegistration=${encodeURIComponent(selectedTruck?.registration || '')}`);
 			}
 			
 		} catch (err) {
@@ -157,7 +176,7 @@
 	}
 </script>
 	<ProcessLayout
-      title="Truck Load Out"
+  	title="Truck Load Out"
 	{steps}
 	{currentStep}
 	isSubmitting={false}

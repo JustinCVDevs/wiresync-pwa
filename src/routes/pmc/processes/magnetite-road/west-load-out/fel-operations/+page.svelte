@@ -127,7 +127,6 @@
 					selectedTruck.dedicatedFleet = true;
 					selectedTruck.loadingLocation = loadingLocation;
 					selectedTruck.updated = new Date().toISOString();
-					selectedTruck.felWeight = Number(felWeight);
 					selectedTruck.syncStatus = 'pending';
 
 					await indexedDBService.updateRecord('trucks', selectedTruck.id, selectedTruck);
@@ -136,12 +135,12 @@
 					await indexedDBService.updateRecord('fleet', fleet.id ?? '', {
 						loadingLocation: loadingLocation,
 						felMassKg: Number(felWeight),
-					})
-				}
+					});
 
-				formPersistenceService.clearForm('fel-operations-west-load-out');
+					formPersistenceService.clearForm('fel-operations-west-load-out');
 
-				goto(`/pmc/processes/magnetite-road/west-load-out/fel-operations/verification?&truckRegistration=${encodeURIComponent(selectedTruck?.registration || '')}`);
+				goto(`/pmc/processes/magnetite-road/west-load-out/fel-operations/verification?truckRegistration=${encodeURIComponent(selectedTruck?.registration || '')}&fleetServerId=${encodeURIComponent(fleet?.serverId || '')}`);
+				}	
 			}else {
 				isDedicatedFleet = false;
 				
@@ -157,7 +156,7 @@
 
 				formPersistenceService.clearForm('fel-operations-west-load-out');
 
-				goto(`/pmc/processes/magnetite-road/west-load-out/fel-operations/verification?&truckRegistration=${encodeURIComponent(selectedTruck?.registration || '')}`);
+				goto(`/pmc/processes/magnetite-road/west-load-out/fel-operations/verification?truckRegistration=${encodeURIComponent(selectedTruck?.registration || '')}`);
 			}
 			
 		} catch (err) {

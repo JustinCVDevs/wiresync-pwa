@@ -14,7 +14,7 @@
 	let truckRegistration = '';
 	let productType = '';
 	let sampleId = '';
-	let loadingLocation = 'Truck Load Out'; // <-- updated default value
+	let loadingLocation = 'Truck Load Out';
 	let loadingHour = '';
 	let error = '';
 	let processLayout: ProcessLayout;
@@ -48,7 +48,7 @@
 					commodity: productType,
 					materialType: 'Coarse',
 					registration: sampleId,
-					felMassKg: 0, // get from truck
+					felMassKg: 0,
 					loadingLocation: loadingLocation, 
 					loadingHour: Number(loadingHour), 
 					syncStatus: 'pending',
@@ -57,6 +57,7 @@
 				};
 
 				await indexedDBService.saveRecord('fleet', fleet);
+				await syncService.syncFleet(fleet);
 
 				let newFleet = (await indexedDBService.getAllRecords('fleet')).filter(
 					(fleet: Fleet) => fleet.registration === sampleId
@@ -70,11 +71,10 @@
 					created: new Date(),
 					loadingLocation: loadingLocation,
 					loadingHour: Number(loadingHour),
-					dedicatedFleet: isDedicatedFleet,
-					linkedFleetIds: [newFleet.serverId || newFleet.id || ''],
 				};
 
 				await indexedDBService.saveRecord('trucks', truck);
+				await syncService.syncTruck(truck);
 
 				let newTruck = (await indexedDBService.getAllRecords('trucks')).filter(
 					(truck: Truck) => truck.registration === truckRegistration
@@ -86,17 +86,19 @@
 					productType: productType,
 					dedicatedFleet: isDedicatedFleet,
 					linkedTruckIds: [newTruck?.serverId || ''],
+					linkedFleetId: newFleet?.serverId || '',
 					syncStatus: 'pending',
 					location: loadingLocation,
 					created: new Date(),
 					updated: new Date().toISOString(),
-					process: 'Truck Load Out', // <-- updated
+					process: 'Truck Load Out',
 					sampleId: sampleId,
 					siteLocation: 'PMC',
 				};
 
 				// Save assay to IndexedDB
 				await indexedDBService.saveRecord('assays', assay);
+				await syncService.syncAssay(assay);
 
 				goto(`/pmc/processes/magnetite-road/truck-load-out/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`)
 			}else {
@@ -109,7 +111,6 @@
 					syncStatus: 'pending',
 					created: new Date(),
 					loadingLocation: loadingLocation,
-					dedicatedFleet: isDedicatedFleet,
 				};	
 
 				await indexedDBService.saveRecord('trucks', truck);
