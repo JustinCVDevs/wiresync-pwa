@@ -29,7 +29,7 @@
 	async function getTrucks() {
 		try {
 			const allTrucks = (await indexedDBService.getAllRecords('trucks')).filter(
-				truck => truck.loadingLocation === 'HG Concentrate' && !truck.updated
+				truck => truck.loadingLocation === 'LG Concentrate' && !truck.updated
 			);
 			return allTrucks;
 		} catch (error) {
@@ -88,9 +88,9 @@
 				await indexedDBService.updateRecord('trucks', selectedTruck.id, selectedTruck);
 			}
 
-			formPersistenceService.clearForm('fel-operations-hg-concentrate');
+			formPersistenceService.clearForm('fel-operations-lg-concentrate');
 
-			goto(`/pmc/processes/concentrator-&-smelter/copper-concentrate/hg-concentrate/fel-operations/verification?truckRegistration=${encodeURIComponent(selectedTruck?.registration || '')}`);
+			goto(`/pmc/processes/concentrator-&-smelter/copper-concentrate/lg-concentrate/fel-operations/verification?truckRegistration=${encodeURIComponent(selectedTruck?.registration || '')}`);
 		} catch (err) {
 			error = 'Failed to submit data';
 			console.error(err);
