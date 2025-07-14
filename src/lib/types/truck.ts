@@ -8,4 +8,5 @@ export interface Truck extends BaseRecord {
 	loadingLocation?: string;
 	loadingHour?: number;
 	updatedAt?: Date;
+	felWeight?: number;
 }
