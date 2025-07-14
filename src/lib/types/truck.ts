@@ -4,5 +4,8 @@ export interface Truck extends BaseRecord {
 	id: string;
 	registration: string;
 	syncStatus: string;
-	serverId: string;
+	serverId?: string;
+	loadingLocation?: string;
+	loadingHour?: number;
+	updatedAt?: Date;
 }

@@ -13,16 +13,22 @@
 		name: string;
 	}
 
-	let sampleId = '';
-	let productGrade = '';
-	let consignment = '';
+	let wagonInput = '';
+	let availableWagons: any[] = [];
+	let filteredSuggestions: any[] = [];
+	let showSuggestions = false;
+	let showNotFound = false;
+	let selectedWagon: any = null;
+	let highlightedIndex = -1;
+
+	let wagonId = '';
+	let felWeight = '';
 	let loadingLocation = 'West Load Out';
-	let consignments: Consignment[] = [];
 	let isSubmitting = false;
 	let currentStep = 1;
 
 	// Process steps
-	const processSteps = ['Sample Details', 'FEL Weight Capturing', 'Complete'];
+	const processSteps = ['FEL Weight Capturing', 'Complete'];
 
 	// Reference to the ProcessLayout component
 	let processLayout: ProcessLayout;
@@ -34,29 +40,24 @@
 	let formErrors = {
 		sampleId: '',
 		productGrade: '',
-		consignment: ''
+		consignment: '',
+		wagonId: '',
+		felWeight: '',
 	};
-
-	const productGrades = ['Iron Oxide', 'Magnetite', 'Mag-64', 'Mag-65'];
 
 	const loadingLocations = ['East Load Out', 'West Load Out', 'Bosveld'];
 
 	onMount(async () => {
-		consignments = await indexedDBService.getRecords(
-			  'consignments', )
+		availableWagons = await getWagons();
 
-		// Load persisted form data
 		loadPersistedData();
 	});
 
 	// Save form data when component is unmounted
 	onMount(() => {
 		return () => {
-			if (sampleId || productGrade || consignment) {
+			if (loadingLocation) {
 				formPersistenceService.saveForm('west_loadout', {
-					sampleId,
-					productGrade,
-					consignment,
 					loadingLocation
 				});
 			}
@@ -65,16 +66,10 @@
 
 	function loadPersistedData() {
 		const savedData = formPersistenceService.loadForm<{
-			sampleId: string;
-			productGrade: string;
-			consignment: string;
 			loadingLocation: string;
 		}>('west_loadout');
 
 		if (savedData) {
-			sampleId = savedData.sampleId || '';
-			productGrade = savedData.productGrade || '';
-			consignment = savedData.consignment || '';
 			loadingLocation = savedData.loadingLocation || 'West Load Out';
 		}
 	}
@@ -84,21 +79,83 @@
 		formErrors = {
 			sampleId: '',
 			productGrade: '',
-			consignment: ''
+			consignment: '',
+			wagonId: '',
+			felWeight: '',
 		};
 
-		if (!sampleId) {
-			formErrors.sampleId = 'Sample ID is required';
+		if (!wagonId) {
+			formErrors.sampleId = 'Wagon ID is required';
 			isValid = false;
 		}
 
-		if (!productGrade) {
-			formErrors.productGrade = 'Product grade is required';
+		if (!felWeight || isNaN(Number(felWeight)) || Number(felWeight) <= 0) {
+			formErrors.productGrade = 'FEL Weight is required';
 			isValid = false;
 		}
 
 
 		return isValid;
+	}
+
+	// Fetch all wagons from IndexedDB that just got scanned in from sampling
+	async function getWagons() {
+		try {
+			const wagons = (await indexedDBService.getAllRecords('wagons')).filter((w) => {
+				const notUpdated = !w.updated;
+				return (
+					w.loadingLocation === 'West Load Out' &&
+					notUpdated
+				);
+			});
+
+			return wagons;
+		} catch (error) {
+			console.error('No wagons available', error);
+			return [];
+		}
+	}
+
+	//Search for wagons based on user input
+	function handleWagonInput() {
+		const value = wagonInput.trim();
+		selectedWagon = null;
+		showNotFound = false;
+		highlightedIndex = -1;
+
+		if (value.length === 0) {
+			showSuggestions = false;
+			filteredSuggestions = [];
+			return;
+		}
+
+		filteredSuggestions = availableWagons.filter(wagon =>
+			wagon.wagonIdSimple?.toLowerCase().includes(value.toLowerCase()) ||
+			wagon.transcoreTag?.toLowerCase().includes(value.toLowerCase())
+		).slice(0, 6);
+
+		const exactMatch = availableWagons.find(wagon =>
+			wagon.wagonIdSimple?.toLowerCase() === value.toLowerCase() ||
+			wagon.transcoreTag?.toLowerCase() === value.toLowerCase()
+		);
+
+		if (exactMatch) {
+			selectedWagon = exactMatch;
+			wagonId = exactMatch.transcoreTag || exactMatch.wagonIdSimple;
+			showSuggestions = false;
+		} else if (value.length >= 2) {
+			showSuggestions = filteredSuggestions.length > 0;
+			if (value.length >= 3 && filteredSuggestions.length === 0) {
+				showNotFound = true;
+			}
+		}
+	}
+
+	function showAllSuggestions() {
+		if (availableWagons.length > 0) {
+			filteredSuggestions = availableWagons.slice(0, 6);
+			showSuggestions = true;
+		}
 	}
 
 	async function handleSubmit() {
@@ -111,27 +168,13 @@
 			processLayout.setError('');
 			processLayout.setSuccess('');
 
-			// Create the assay object according to the Assay interface
-			const assay: Assay = {
-				id: crypto.randomUUID(),
-				name: sampleId,
-				sampleId: sampleId,
-				productGrade: productGrade,
-				commodity: productGrade,
-				location: loadingLocation,
-				created: new Date(),
-				updated: new Date().toISOString(),
-				linkedTruckIds: [],
-				syncStatus: 'pending',
-				process: 'West Loadout',
-				siteLocation: 'PMC',
-			};
+			if (selectedWagon) {
+				selectedWagon.loadingLocation = loadingLocation;
+				selectedWagon.felWeight = felWeight;
+				selectedWagon.updated = new Date().toISOString();
 
-			// Save to IndexedDB
-			await indexedDBService.saveRecord('assays', assay);
-
-			// Try to sync using the sync service
-			await syncService.syncAssay(assay);
+				await indexedDBService.updateRecord('wagons', selectedWagon.id, selectedWagon);
+			}
 
 			// Clear persisted form data
 			formPersistenceService.clearForm('west_loadout');
@@ -139,7 +182,7 @@
 			processLayout.setSuccess('Data saved successfully');
 			setTimeout(() => {
 				// Navigate to verification page
-				goto('/pmc/processes/magnetite-rail/west-load-out/fel-operations/verification?sampleId=' + assay.id);
+				goto(`/pmc/processes/magnetite-rail/west-load-out/fel-operations/verification?wagonId=${encodeURIComponent(wagonId)}`);
 			}, 1000);
 		} catch (err) {
 			processLayout.setError('Failed to save assay data');
@@ -151,7 +194,7 @@
 </script>
 
 <ProcessLayout
-	title="Sample Details"
+	title="Wagon Details"
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
@@ -161,53 +204,76 @@
 	on:cancel={handleCancel}
 >
 	<div slot="header">
-		<h5 class="text-xl font-bold ">Sample Details Capturing</h5>
-		<p class="text-sm text-gay">Please enter the sample and product details</p>
+		<h5 class="text-xl font-bold ">Wagon Details Capturing</h5>
+		<p class="text-sm text-gay">Please enter the wagon details</p>
 	</div>
 
 <div class="container">
 	<div class="form">
-		<FormField
-			id="sampleId"
-			label="Sample ID"
-			bind:value={sampleId}
-			placeholder="Enter Sample ID"
+		<label for="wagonId">Please enter Wagon ID</label>
+		<input
+			id="wagonId"
+			type="text"
+			bind:value={wagonInput}
+			placeholder="Enter Wagon ID"
+			on:input={handleWagonInput}
+			on:focus={showAllSuggestions}
+			on:blur={() => setTimeout(() => showSuggestions = false, 100)}
+			required
+			class="form-input"
+		/>
+		{#if formErrors.wagonId}
+			<div class="text-red-500 mt-1">{formErrors.wagonId}</div>
+		{/if}
+	
+		{#if showSuggestions}
+			<ul class="suggestions-list">
+				{#each filteredSuggestions as suggestion, i}
+					<li>
+						<button
+							type="button"
+							class:selected={i === highlightedIndex}
+							on:click={() => {
+								wagonInput = suggestion.transcoreTag;
+								wagonId = wagonInput;
+								showSuggestions = false;
+								selectedWagon = suggestion;
+							}}
+						>
+							{suggestion.transcoreTag} ({suggestion.wagonIdSimple})
+						</button>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+		{#if showNotFound}
+			<div class="text-red-500 mt-1">No matching wagons found.</div>
+		{/if}
+	</div>
+
+	<div class="form">
+		<FormField 
+			id="felWeight"
+			label="FEL Weight (Tons)"
+			type="number"
+			bind:value={felWeight}
+			placeholder="Enter FEL Weight"
 			required={true}
-			error={formErrors.sampleId}
+			error={formErrors.felWeight}
 		/>
+	</div>	
 
-		<FormField
-			id="productGrade"
-			label="Product Grade"
-			bind:value={productGrade}
-			placeholder="Select Product Grade"
-			isSelect={true}
-			options={productGrades.map((grade) => ({ value: grade, label: grade }))}
-			required={true}
-			error={formErrors.productGrade}
-		/>
-
-		<FormField
-			id="consignment"
-			label="Consignment Number (Optional)"
-			bind:value={consignment}
-			placeholder="Select Consignment"
-			isSelect={true}
-			options={consignments.map((con) => ({ value: con.name, label: con.name }))}
-			error={formErrors.consignment}
-		/>
-
+	<div class="form">	
 		<FormField
 			id="loadingLocation"
 			label="Loading Location"
-			disabled
 			bind:value={loadingLocation}
 			placeholder="Select Loading Location"
 			isSelect={true}
 			options={loadingLocations.map((location) => ({ value: location, label: location }))}
 			required={true}
 		/>
-	</div>
+	</div>	
 </div>
 </ProcessLayout>
 
@@ -215,10 +281,53 @@
 	.container {
 		max-width: 600px;
 		margin: 0 auto;
-		padding: 2rem;
+	}
+	.form {
+		margin-top: 1rem;
+		position: relative;
+	}
+	.form #wagonId {
+		min-height: 40px;
 	}
 
-	.form {
-		margin-top: 2rem;
+	.suggestions-list {
+		border: 1px solid #ccc;
+		background: #fff;
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		max-height: 150px;
+		overflow-y: auto;
+		position: absolute;
+		z-index: 10;
+		width: 100%;
+	}
+
+	.suggestions-list li:nth-child(even) {
+		background: #f6f8fa;
+	}
+	.suggestions-list li:nth-child(odd) {
+		background: #fff;
+	}
+
+	.suggestions-list button {
+		width: 100%;
+		text-align: left;
+		padding: 0.5rem;
+		background: transparent;
+		border: none;
+		cursor: pointer;
+		color: #222;
+		transition: background 0.2s;
+	}
+
+	.suggestions-list button.selected,
+	.suggestions-list button:hover {
+		background: #2563eb;
+		color: #fff;
+	}
+
+	.suggestions-list li {
+		padding: 0;
 	}
 </style>

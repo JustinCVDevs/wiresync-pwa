@@ -28,7 +28,13 @@ type PBModelMap = {
 	wagons: Wagon;
 	samples: Sample;
 	assays: Assay;
-	trucks: { id: string; registration: string };
+	trucks: {
+	loadingLocation: string | undefined;
+	loadingHour: number | undefined;
+	dedicatedFleet: boolean | undefined;
+	linkedFleetId: string | undefined;
+	felWeight: number | undefined; id: string; registration: string 
+};
 	consignments: Consignment;
 	trainDispatches: TrainDispatch;
 	truckLoads: TruckLoad;
@@ -36,7 +42,6 @@ type PBModelMap = {
 	truckArrivals: TruckArrival;
 	trainArrivals: TrainArrival;
 	fleet: Fleet;
-	// add other mappings here...
 };
 
 /**

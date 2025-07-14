@@ -138,6 +138,7 @@
 				</span>
 				<div class="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
 					{#if capturedPhoto}
+						<!-- svelte-ignore a11y_img_redundant_alt -->
 						<img src={capturedPhoto} alt="Train photo" class="max-h-48 mx-auto" />
 					{:else}
 						<div class="text-gray-500">Photo not available</div>

@@ -19,7 +19,7 @@
 	let trainNumber = '';
 	let productGrade = '';
 	let consignment = '';
-	let loadingLocation = 'West Load Out';
+	let loadingLocation = 'East Load Out';
 	let consignments: Consignment[] = [];
 	let isSubmitting = false;
 	let currentStep = 1;
@@ -31,7 +31,7 @@
 	let processLayout: ProcessLayout;
 
 	function handleCancel() {
-		goto('/pmc/processes/magnetite-rail/west-load-out');
+		goto('/pmc/processes/magnetite-rail/east-load-out');
 	}
 	// Form errors
 	let formErrors = {
@@ -58,7 +58,7 @@
 	onMount(() => {
 		return () => {
 			if (sampleId || productGrade || consignment) {
-				formPersistenceService.saveForm('west_loadout', {
+				formPersistenceService.saveForm('east_loadout', {
 					sampleId,
 					productGrade,
 					consignment,
@@ -74,13 +74,13 @@
 			productGrade: string;
 			loadingLocation: string;
 			trainNumber: string;
-		}>('west_loadout');
+		}>('east_loadout');
 
 		if (savedData) {
 			sampleId = savedData.sampleId || '';
 			trainNumber = savedData.trainNumber || '';
 			productGrade = savedData.productGrade || '';
-			loadingLocation = savedData.loadingLocation || 'West Load Out';
+			loadingLocation = savedData.loadingLocation || 'East Load Out';
 		}
 	}
 
@@ -167,7 +167,7 @@
 				linkedTruckIds: [],
 				linkedWagonIds: [foundWagon?.id || ''],
 				syncStatus: 'pending',
-				process: 'West Loadout',
+				process: 'East Loadout',
 				siteLocation: 'PMC',
 			};
 
@@ -180,12 +180,12 @@
 			
 
 			// Clear persisted form data
-			formPersistenceService.clearForm('west_loadout');
+			formPersistenceService.clearForm('east_loadout');
 
 			processLayout.setSuccess('Data saved successfully');
 			setTimeout(() => {
 				goto(
-					`/pmc/processes/magnetite-rail/west-load-out/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&wagonId=${encodeURIComponent(wagonId)}`
+					`/pmc/processes/magnetite-rail/east-load-out/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&wagonId=${encodeURIComponent(wagonId)}`
 				);
 			}, 1000);
 		} catch (err) {
@@ -203,7 +203,7 @@
 	{currentStep}
 	{isSubmitting}
 	bind:this={processLayout}
-	cancelPath="/pmc/processes/magnetite-rail/west-load-out"
+	cancelPath="/pmc/processes/magnetite-rail/east-load-out"
 	on:submit={handleSubmit}
 	on:cancel={handleCancel}
 >

@@ -6,18 +6,31 @@
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Assay } from '$lib/types/assay';
+	import type { Wagon } from '$lib/types/wagon';
 	import { ScanBarcode, WashingMachine } from 'lucide-svelte';
 
+	const sampleId = $page.url.searchParams.get('sampleId') || '';
 	const wagonId = $page.url.searchParams.get('wagonId') || '';
-	let wagon: any | null = null;
+	let assay: Assay | null = null;
+	let wagon: Wagon | null = null;
 	let currentStep = 2;
 	
 	// Process steps
-	const processSteps = ['FEL Weight Capturing', 'Complete'];
+	const processSteps = ['Sample Details', 'Complete'];
 
 	onMount(async () => {
+		await loadAssayData();
 		await loadWagonData();
 	});
+
+	async function loadAssayData() {
+		if (sampleId) {
+			const result = (await indexedDBService.getAllRecords('assays')).filter(
+				(a) => a.sampleId === sampleId
+			)[0];
+			assay = result ?? null;
+		}
+	}
 
 	async function loadWagonData() {
 		if (wagonId) {
@@ -35,6 +48,7 @@
 	function handleSubmit() {
 		goto('/pmc/processes/complete');
 	}
+
 </script>
 
 <ProcessLayout
@@ -48,27 +62,38 @@
 <!-- t -->
 
 	<div class="space-y-4">
-		{#if wagon}
+		{#if assay && wagon}
 			<div class="bg-white p-4 rounded-lg shadow-sm">
-				<h6 class="text-lg font-semibold mb-2">Transaction Details</h6>
-				<div class="grid grid-cols-1 gap-4">
+				<div class="grid grid-cols-2 gap-4">
 					<div>
 						<p class="text-sm text-gray-500 font-bold">Wagon ID</p>
 						<p class="font-medium">{wagon.transcoreTag}</p>
 					</div>
+
 					<div>
-						<p class="text-sm text-gray-500 font-bold">FEL Weight (Ton)</p>
-						<p class="font-medium">{wagon.felWeight}</p>
+						<p class="text-sm text-gray-500 font-bold">Product Selection</p>
+						<p class="font-medium">{assay.productGrade}</p>
 					</div>
+
+					<div>
+						<p class="text-sm text-gray-500 font-bold">Sample ID</p>
+						<p class="font-medium">{assay.name}</p>
+					</div>
+					
 					<div>
 						<p class="text-sm text-gray-500 font-bold">Loading Location</p>
-						<p class="font-medium">{wagon.loadingLocation}</p>
+						<p class="font-medium">{assay.location}</p>
+					</div>
+
+					<div>
+						<p class="text-sm text-gray-500 font-bold">Train Number</p>
+						<p class="font-medium">{wagon.trainNumber}</p>
 					</div>
 				</div>
 			</div>
 		{:else}
 			<div class="text-center py-8">
-				<p class="text-gray-500">Loading wagon details...</p>
+				<p class="text-gray-500">Loading sample details...</p>
 			</div>
 		{/if}
 	</div>
