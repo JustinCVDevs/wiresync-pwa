@@ -1,239 +1,55 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import FormField from '$lib/components/FormField.svelte';
-	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
-	import { indexedDBService } from '$lib/services/indexedDBService';
-	import { formPersistenceService } from '$lib/services/formPersistenceService';
-	import type { Assay } from '$lib/types/assay';
-	import { pocketbaseService } from '$lib/services/pocketbaseService';
-	import { syncService } from '$lib/services/syncService';
-	import Camera from '$lib/components/Camera.svelte';
-	import Button from '$lib/components/ui/button/button.svelte';
+	import { page } from '$app/stores';
+	import { derived } from 'svelte/store';
+	import {
+		ReceiptText,
+		ArrowRightCircle,
+		Train,
+		Truck,
+		HardDrive,
+		Package,
+		Droplet,
+		ArrowLeft,
+		HeartOff,
+		Magnet
+	} from 'lucide-svelte';
 
-	interface Consignment {
-		name: string;
-	}
-
-	let sampleId = '';
-	let productGrade = '';
-	let consignment = '';
-	let loadingLocation = 'West Load Out';
-	let consignments: Consignment[] = [];
-	let isSubmitting = false;
-	let currentStep = 1;
-	let showCamera = true;
-	let capturedImage: string | null = null;
-
-	// Process steps
-	const processSteps = ['Sample Details', 'FEL Weight Capturing', 'Complete'];
-
-	// Reference to the ProcessLayout component
-	let processLayout: ProcessLayout;
-
-	function handleCancel() {
-		goto('/bosveld/processes');
-	}
-	// Form errors
-	let formErrors = {
-		sampleId: '',
-		productGrade: '',
-		consignment: ''
-	};
-
-	const productGrades = ['Iron Oxide', 'Magnetite', 'Mag-64', 'Mag-65'];
-
-	const loadingLocations = ['East Load Out', 'West Load Out', 'Bosveld'];
-
-	onMount(async () => {
-		consignments = await indexedDBService.getRecords(
-			  'consignments', )
-
-		// Load persisted form data
-		loadPersistedData();
-	});
-
-	// Save form data when component is unmounted
-	onMount(() => {
-		return () => {
-			if (sampleId || productGrade || consignment) {
-				formPersistenceService.saveForm('west_loadout', {
-					sampleId,
-					productGrade,
-					consignment,
-					loadingLocation
-				});
-			}
-		};
-	});
-
-	function loadPersistedData() {
-		const savedData = formPersistenceService.loadForm<{
-			sampleId: string;
-			productGrade: string;
-			consignment: string;
-			loadingLocation: string;
-		}>('west_loadout');
-
-		if (savedData) {
-			sampleId = savedData.sampleId || '';
-			productGrade = savedData.productGrade || '';
-			consignment = savedData.consignment || '';
-			loadingLocation = savedData.loadingLocation || 'West Load Out';
+	const processes = [
+		{
+			name: 'Sampling',
+			icon: ArrowRightCircle,
+			color: 'text-green-500',
+			href: '/bosveld/processes/loading-station/sampling'
+		},
+		{
+			name: 'FEL Operations',
+			icon: ArrowRightCircle,
+			color: 'text-green-500',
+			href: '/bosveld/processes/loading-station/fel-operations'
 		}
-	}
+	] as const;
 
-	function validateForm() {
-		let isValid = true;
-		formErrors = {
-			sampleId: '',
-			productGrade: '',
-			consignment: ''
-		};
-
-		if (!sampleId) {
-			formErrors.sampleId = 'Sample ID is required';
-			isValid = false;
-		}
-
-		if (!productGrade) {
-			formErrors.productGrade = 'Product grade is required';
-			isValid = false;
-		}
-
-
-		return isValid;
-	}
-
-	async function handleSubmit() {
-		if (!validateForm()) {
-			return;
-		}
-
-		try {
-			isSubmitting = true;
-			processLayout.setError('');
-			processLayout.setSuccess('');
-
-			// Create the assay object according to the Assay interface
-			const assay: Assay = {
-				id: crypto.randomUUID(),
-				name: sampleId,
-				productGrade: productGrade,
-				location: loadingLocation,
-				created: new Date(),
-				updated: new Date().toISOString(),
-				linkedWagonIds: [],
-				linkedTruckIds: [],
-				syncStatus: 'pending',
-				process: 'West Loadout',
-				siteLocation: 'Bosveld',
-			};
-
-			// Save to IndexedDB
-			await indexedDBService.saveRecord('assays', assay);
-
-			// Try to sync using the sync service
-			await syncService.syncAssay(assay);
-
-			// Clear persisted form data
-			formPersistenceService.clearForm('west_loadout');
-
-			processLayout.setSuccess('Data saved successfully');
-			setTimeout(() => {
-				// Navigate to verification page
-				goto('/bosveld/processes/loading-station/verification?sampleId=' + assay.id + '&consignment=' + consignment);
-			}, 1000);
-		} catch (err) {
-			processLayout.setError('Failed to save assay data');
-			console.error(err);
-		} finally {
-			isSubmitting = false;
-		}
-	}
-
-	function handlePhotoSelected(file: File) {
-		capturedImage = URL.createObjectURL(file);
-	}
-
-	function handleCameraClose() {
-		showCamera = false;
-	}
 </script>
 
-<ProcessLayout
-	title="Sample Details"
-	steps={processSteps}
-	{currentStep}
-	{isSubmitting}
-	cancelPath="/bosveld/processes"
-	bind:this={processLayout}
-	on:submit={handleSubmit}
-	on:cancel={handleCancel}
->
-	<div slot="header">
-		<h5 class="text-xl font-bold ">Sample Details Capturing</h5>
-		<p class="text-sm text-gay">Please enter the sample and product details</p>
-	</div>
-
-	<div class="container">
-		<div class="formfield">
-			<FormField
-				id="sampleId"
-				label="Sample ID"
-				bind:value={sampleId}
-				placeholder="Enter Sample ID"
-				required={true}
-				error={formErrors.sampleId}
-			/>
-		</div>
-		
-		<div class="formfield">
-			<FormField
-				id="productGrade"
-				label="Product Grade"
-				bind:value={productGrade}
-				placeholder="Select Product Grade"
-				isSelect={true}
-				options={productGrades.map((grade) => ({ value: grade, label: grade }))}
-				required={true}
-				error={formErrors.productGrade}
-			/>
-		</div>
-
-		<div class="formfield">
-			<FormField
-				id="consignment"
-				label="Consignment Number (Optional)"
-				bind:value={consignment}
-				placeholder="Select Consignment"
-				isSelect={true}
-				options={consignments.map((con) => ({ value: con.name, label: con.name }))}
-				error={formErrors.consignment}
-			/>
-		</div>
-
-		<div class="formfield">
-			<FormField
-				id="loadingLocation"
-				label="Loading Location"
-				disabled
-				bind:value={loadingLocation}
-				placeholder="Select Loading Location"
-				isSelect={true}
-				options={loadingLocations.map((location) => ({ value: location, label: location }))}
-				required={true}
-			/>
-		</div>
-		<!-- Show Camera component only when showCamera is true -->
-		{#if showCamera}
-			<Camera onPhotoSelected={handlePhotoSelected} on:close={handleCameraClose} />
-		{/if}
-	</div>
-</ProcessLayout>
-
-<style>
-	.formfield {
-		margin-bottom: 1rem
-	}
-</style>
+<section class="space-y-4 px-4">
+	<!-- Back to Locations Button -->
+	<button
+		on:click={() => goto('/bosveld/processes/')}
+		class="flex items-center gap-2 mb-4 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+	>
+		<ArrowLeft size={20} />
+		<span>Back to Processes</span>
+	</button>
+	
+	<p class="mms-title ">Select a Workflow</p>
+		{#each processes as { name, icon: Icon, color, href }}
+			<button
+				on:click={() => goto(href)}
+				class={`flex w-full transform items-center gap-4 rounded-lg border-1 border-gray-100 px-5 py-4 shadow-lg transition-transform
+				  hover:-translate-y-1 hover:shadow-lg focus:ring-2 focus:ring-blue-500 focus:outline-nonem font-bold text-white text-uppercase bg-gray text-center text-white`}
+			>
+				<span class="flex-1 ">{name}</span>
+			</button>
+		{/each}
+</section>
