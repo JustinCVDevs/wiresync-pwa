@@ -7,5 +7,4 @@ export interface Truck extends BaseRecord {
 	serverId?: string;
 	loadingLocation?: string;
 	loadingHour?: number;
-	updatedAt?: Date;
 }

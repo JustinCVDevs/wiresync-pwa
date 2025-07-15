@@ -15,14 +15,24 @@
 
 	const processes = [
 		{
-			name: 'Road',
+			name: 'Train Arrival',
 			color: 'text-blue-500',
-			href: '/richardsbay/processes/road'
+			href: '/richardsbay/processes/rail/train-arrival'
 		},
 		{
-			name: 'Rail',
+			name: 'Train Staging',
 			color: 'text-green-500',
-			href: '/richardsbay/processes/rail'
+			href: '/richardsbay/processes/rail/train-staging'
+		},
+		{
+			name: 'Train Sampling',
+			color: 'text-green-500',
+			href: '/richardsbay/processes/rail/train-sampling'
+		},
+		{
+			name: 'Empty Release',
+			color: 'text-green-500',
+			href: '/richardsbay/processes/rail/empty-release'
 		}
 	] as const;
 
@@ -31,14 +41,14 @@
 <section class="space-y-4 px-4">
 	<!-- Back to Locations Button -->
 	<button
-		on:click={() => goto('/locations')}
+		on:click={() => goto('/richardsbay/processes')}
 		class="flex items-center gap-2 mb-4 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
 	>
 		<ArrowLeft size={20} />
-		<span>Back to Locations</span>
+		<span>Back to processes</span>
 	</button>
 	
-	<p class="mms-title ">Select a Process</p>
+	<p class="mms-title ">Select a Workflow</p>
 		{#each processes as { name, color, href }}
 			<button
 				on:click={() => goto(href)}

@@ -213,7 +213,7 @@ export const syncService = {
 			} else {
 				created = await pocketbaseService.create('trucks', payload);
 			}
-
+			
 			if (truck.id) {
 				await indexedDBService.updateRecord('trucks', truck.id, {
 					...truck,
@@ -668,7 +668,7 @@ export const syncService = {
 	async syncPendingTruckArrivals() {
 		const pending = await indexedDBService.getRecords(
 			'truckArrivals',
-			(rec: { syncStatus: string }) => rec.syncStatus === 'pending'
+			(record: TruckArrival) => record.syncStatus === 'pending'
 		);
 
 		for (const truckArrival of pending) {
