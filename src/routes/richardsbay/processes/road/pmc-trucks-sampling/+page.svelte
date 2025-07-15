@@ -9,7 +9,7 @@
 
 	let truckRegistration = '';
 	let sampleId = '';
-	let loadingLocation = 'BOP';
+	let loadingLocation = 'PMC';
 	let error = '';
 	let processLayout: ProcessLayout;
 
@@ -23,7 +23,7 @@
 	onMount(async () => {
 		const trucks = await indexedDBService.getAllRecords('trucks');
 		truckOptions = trucks
-			.filter(truck => truck.loadingLocation === 'BOP')
+			.filter(truck => truck.loadingLocation === 'PMC')
 			.map((truck: Truck) => ({ value: truck.registration, label: truck.registration }));
 	});
 
@@ -44,7 +44,7 @@
 				location: loadingLocation,
 				created: new Date(),
 				updated: new Date().toISOString(),
-				process: 'BOP Sampling',
+				process: 'PMC Sampling',
 				sampleId: sampleId,
 				siteLocation: 'Richards Bay',
 			};
@@ -53,7 +53,7 @@
 			await indexedDBService.saveRecord('assays', assay);
 			await syncService.syncAssay(assay);
 
-			goto(`/richardsbay/processes/road/bop-trucks-sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`);
+			goto(`/richardsbay/processes/road/pmc-trucks-sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`);
 		} catch (err) {
 			error = 'Failed to submit data';
 			console.error(err);
@@ -66,7 +66,7 @@
 </script>
 
 <ProcessLayout
-	title="BOP Truck Sampling"
+	title="PMC Truck Sampling"
 	{steps}
 	{currentStep}
 	isSubmitting={false}
