@@ -42,29 +42,29 @@
 	}
 
 	function handleCancel() {
-		goto('/pmc/processes/magnetite-rail/west-load-out');
+		goto('/bosveld/processes/loading-station');
 	}
 
 	function handleSubmit() {
-		goto('/pmc/processes/complete');
+		goto('/bosveld/processes/complete');
 	}
 
 </script>
 
 <ProcessLayout
-	title="  Sample Details Verification"
+	title="Sample Details Verification"
 	steps={processSteps}
 	{currentStep}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
-	cancelPath="/pmc/processes/magnetite-rail/west-load-out"
+	cancelPath="/bosveld/processes/loading-station"
 >
 <!-- t -->
 
 	<div class="space-y-4">
 		{#if assay && wagon}
 			<div class="bg-white p-4 rounded-lg shadow-sm">
-				<div class="grid grid-cols-2 gap-4">
+				<div class="grid grid-cols-1 gap-4">
 					<div>
 						<p class="text-sm text-gray-500 font-bold">Wagon ID</p>
 						<p class="font-medium">{wagon.transcoreTag}</p>

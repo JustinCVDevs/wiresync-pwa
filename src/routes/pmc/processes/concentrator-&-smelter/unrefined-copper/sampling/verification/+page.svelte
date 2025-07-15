@@ -2,17 +2,15 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import FormField from '$lib/components/FormField.svelte';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Assay } from '$lib/types/assay';
-	import type { Wagon } from '$lib/types/wagon';
-	import { ScanBarcode, WashingMachine } from 'lucide-svelte';
+	import type { Truck } from '$lib/types/truck';
 
 	const sampleId = $page.url.searchParams.get('sampleId') || '';
-	const wagonId = $page.url.searchParams.get('wagonId') || '';
+	const truckRegistration = $page.url.searchParams.get('truckRegistration') || '';
 	let assay: Assay | null = null;
-	let wagon: Wagon | null = null;
+	let truck: Truck | null = null;
 	let currentStep = 2;
 	
 	// Process steps
@@ -20,29 +18,30 @@
 
 	onMount(async () => {
 		await loadAssayData();
-		await loadWagonData();
+		await loadTruckData();
 	});
 
 	async function loadAssayData() {
 		if (sampleId) {
 			const result = (await indexedDBService.getAllRecords('assays')).filter(
-				(a) => a.sampleId === sampleId
+				(a) => a.sampleId === sampleId && a.siteLocation === 'PMC'
 			)[0];
 			assay = result ?? null;
 		}
 	}
 
-	async function loadWagonData() {
-		if (wagonId) {
-			const result = (await indexedDBService.getAllRecords('wagons')).filter(
-				(w) => w.transcoreTag === wagonId
+	async function loadTruckData() {
+		if (truckRegistration) {
+			const result = (await indexedDBService.getAllRecords('trucks')).filter(
+				(t) => t.registration === truckRegistration
 			)[0];
-			wagon = result ?? null;
+			truck = result ?? null;
+			console.log('Truck Data:', truck);
 		}
 	}
 
 	function handleCancel() {
-		goto('/pmc/processes/magnetite-rail/west-load-out');
+		goto('/pmc/processes/concentrator-&-smelter/unrefined-copper');
 	}
 
 	function handleSubmit() {
@@ -57,37 +56,25 @@
 	{currentStep}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
-	cancelPath="/pmc/processes/magnetite-rail/west-load-out"
+	cancelPath="/pmc/processes/concentrator-&-smelter/unrefined-copper"
 >
-<!-- t -->
-
 	<div class="space-y-4">
-		{#if assay && wagon}
+		{#if assay && truck}
 			<div class="bg-white p-4 rounded-lg shadow-sm">
-				<div class="grid grid-cols-2 gap-4">
+				<div class="grid grid-cols-1 gap-4">
 					<div>
-						<p class="text-sm text-gray-500 font-bold">Wagon ID</p>
-						<p class="font-medium">{wagon.transcoreTag}</p>
+						<p class="text-sm text-gray-500 font-bold">Truck Registration Nr</p>
+						<p class="font-medium">{truck.registration}</p>
 					</div>
 
 					<div>
-						<p class="text-sm text-gray-500 font-bold">Product Selection</p>
-						<p class="font-medium">{assay.productType}</p>
+						<p class="text-sm text-gray-500 font-bold">Material Type</p>
+						<p class="font-medium">{assay.materialType}</p>
 					</div>
-
+						
 					<div>
 						<p class="text-sm text-gray-500 font-bold">Sample ID</p>
-						<p class="font-medium">{assay.name}</p>
-					</div>
-					
-					<div>
-						<p class="text-sm text-gray-500 font-bold">Loading Location</p>
-						<p class="font-medium">{assay.location}</p>
-					</div>
-
-					<div>
-						<p class="text-sm text-gray-500 font-bold">Train Number</p>
-						<p class="font-medium">{wagon.trainNumber}</p>
+						<p class="font-medium">{assay.sampleId}</p>
 					</div>
 				</div>
 			</div>

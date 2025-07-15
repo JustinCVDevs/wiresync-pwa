@@ -5,7 +5,7 @@
 
     onMount(async () => {
        setTimeout(() => {
-            goto("/pmc/processes");
+            goto("/bosveld/processes");
        }, 3000);
     });
 
