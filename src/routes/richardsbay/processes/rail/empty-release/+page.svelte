@@ -21,7 +21,7 @@
 
 	const steps = [
 		'Select Wagon',
-		'Review & Dispatch'
+		'Review & Release'
 	];
 	let currentStep = 1;
 
@@ -31,7 +31,7 @@
 			const allWagons = await indexedDBService.getAllRecords('wagons');
 			// Filter wagons that don't have verification dates set
 			availableWagons = allWagons.filter(wagon => 
-				!wagon.verificationTs || wagon.verificationTs === ''
+				!wagon.releaseTimestamp && wagon.dispatchTimestamp
 			);
 		} catch (e) {
 			console.error('Error loading wagons:', e);
@@ -53,13 +53,7 @@
 		error = '';
 		highlightedIndex = -1;
 
-		if (value.length === 0) {
-			showSuggestions = false;
-			filteredSuggestions = [];
-			return;
-		}
-
-		// Filter suggestions based on input
+		// Always filter suggestions, even for the first character
 		filteredSuggestions = availableWagons.filter(wagon => 
 			wagon.wagonIdSimple?.toLowerCase().includes(value.toLowerCase()) ||
 			wagon.transcoreTag?.toLowerCase().includes(value.toLowerCase())
@@ -74,38 +68,11 @@
 		if (exactMatch) {
 			selectedWagon = exactMatch;
 			showSuggestions = false;
-		} else if (value.length >= 2) {
+		} else {
 			showSuggestions = filteredSuggestions.length > 0;
-			// Show "not found" only if user has typed enough and no suggestions
 			if (value.length >= 3 && filteredSuggestions.length === 0) {
 				showNotFound = true;
 			}
-		}
-	}
-
-	// Handle keyboard navigation
-	function handleKeydown(event: KeyboardEvent) {
-		if (!showSuggestions || filteredSuggestions.length === 0) return;
-
-		switch (event.key) {
-			case 'ArrowDown':
-				event.preventDefault();
-				highlightedIndex = Math.min(highlightedIndex + 1, filteredSuggestions.length - 1);
-				break;
-			case 'ArrowUp':
-				event.preventDefault();
-				highlightedIndex = Math.max(highlightedIndex - 1, -1);
-				break;
-			case 'Enter':
-				event.preventDefault();
-				if (highlightedIndex >= 0 && highlightedIndex < filteredSuggestions.length) {
-					selectSuggestion(filteredSuggestions[highlightedIndex]);
-				}
-				break;
-			case 'Escape':
-				showSuggestions = false;
-				highlightedIndex = -1;
-				break;
 		}
 	}
 
@@ -150,18 +117,19 @@
 
 		try {
 			// Update wagon with verification date
-			await indexedDBService.updateRecord('wagons', selectedWagon.id!, {
+			await indexedDBService.updateRecord('wagons', selectedWagon.id, {
 				...selectedWagon,
-				verificationTs: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
-				process: 'Wagon_Dispatch',
-				componentType: 'WAGON_DISPATCH',
+				process: 'Wagon_Release',
+				componentType: 'WAGON_Release',
+				dispatchTimestamp: undefined,
+				releaseTimestamp: new Date(),
 				updated: new Date().toISOString()
 			});
 
 			success = 'Wagon selected successfully';
 			// Navigate to review page with wagon ID
 			setTimeout(() => {
-				goto(`/richardsbay/processes/wagon-dispatch/review?wagonId=${selectedWagon!.id}`);
+				goto(`/richardsbay/processes/rail/empty-release/review?wagonId=${selectedWagon?.id}`);
 			}, 1000);
 
 		} catch (e) {
@@ -174,7 +142,7 @@
 </script>
 
 <ProcessLayout
-	title="Wagon Dispatch"
+	title="Empty Wagon Release"
 	steps={steps}
 	currentStep={currentStep}
 	cancelPath="/richardsbay/processes"
@@ -194,12 +162,12 @@
 			<div class="space-y-6">
 				<div class="flex items-center gap-3 text-gray-800">
 					
-					<h2 class="text-xl font-semibold">Find Wagon for Dispatch</h2>
+					<h2 class="text-xl font-semibold">Find Empty Wagon for Release</h2>
 				</div>
 
 				<div class="relative">
 					<label for="wagonSearch" class="block text-sm font-medium text-gray-700 mb-3">
-						Wagon ID or Transcore Tag *
+						Wagon ID *
 					</label>
 					
 					<div class="relative">
@@ -212,8 +180,7 @@
 							on:input={handleInput}
 							on:focus={handleFocus}
 							on:blur={handleBlur}
-							on:keydown={handleKeydown}
-							placeholder="Start typing wagon ID or transcore tag..."
+							placeholder="Start typing wagon ID..."
 							class="w-full pl-12 pr-12 py-4 rounded-xl border-2 text-base font-medium transition-all duration-300 shadow-sm {
 								selectedWagon 
 									? 'border-green-400 bg-green-50 focus:border-green-500 focus:ring-4 focus:ring-green-100 text-green-800' 
@@ -244,10 +211,10 @@
 									<button
 										type="button"
 										on:click={() => selectSuggestion(suggestion)}
-										class="w-full px-5 py-4 text-left transition-all duration-150 border-b border-gray-100 last:border-b-0 {
+										class="w-full px-5 py-4 text-left transition-all duration-150 border-b border-gray-100 last:border-b-0 text-white {
 											index === highlightedIndex 
-												? 'bg-blue-50 border-blue-200' 
-												: 'hover:bg-gray-50 focus:bg-blue-50'
+												? 'bg-blue-700 border-blue-400' 
+												: 'bg-gray-900 hover:bg-gray-800 focus:bg-blue-700'
 										} focus:outline-none group"
 									>
 										<div class="flex items-center justify-between">
@@ -256,11 +223,11 @@
 													<Package size={16} class="text-gray-600 group-hover:text-blue-600" />
 												</div>
 												<div>
-													<div class="font-semibold text-gray-900 text-base">
+													<div class="font-semibold text-white text-base">
 														{suggestion.wagonIdSimple || 'No Wagon ID'}
 													</div>
 													{#if suggestion.transcoreTag && suggestion.transcoreTag !== suggestion.wagonIdSimple}
-														<div class="text-sm text-gray-600 mt-1">
+														<div class="text-sm text-white mt-1">
 															Transcore: <span class="font-medium">{suggestion.transcoreTag}</span>
 														</div>
 													{/if}
@@ -272,14 +239,6 @@
 										</div>
 									</button>
 								{/each}
-							</div>
-							
-							<!-- Dropdown Footer -->
-							<div class="px-4 py-3 bg-gray-50 border-t border-gray-200">
-								<div class="flex items-center justify-between text-xs text-gray-600">
-									<span>Use ↑↓ to navigate, Enter to select</span>
-									<span>{filteredSuggestions.length} of {availableWagons.length} wagons</span>
-								</div>
 							</div>
 						</div>
 					{/if}
@@ -324,24 +283,6 @@
 						</p>
 					</div>
 				{/if}
-
-				<div class="bg-blue-50 border border-blue-200 rounded-xl p-5">
-					<h3 class="font-semibold text-blue-900 mb-3">How it works:</h3>
-					<ul class="space-y-2 text-sm text-blue-800">
-						<li class="flex items-center gap-2">
-							<div class="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
-							Start typing to see available wagons
-						</li>
-						<li class="flex items-center gap-2">
-							<div class="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
-							Only wagons without verification dates are shown
-						</li>
-						<li class="flex items-center gap-2">
-							<div class="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
-							Verification date will be automatically assigned upon selection
-						</li>
-					</ul>
-				</div>
 			</div>
 
 			<!-- Error/Success Messages -->
