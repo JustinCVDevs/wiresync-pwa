@@ -7,7 +7,6 @@
 	import { formPersistenceService } from '$lib/services/formPersistenceService';
 	import type { Assay } from '$lib/types/assay';
 	import type { Wagon } from '$lib/types/wagon';
-	import { pocketbaseService } from '$lib/services/pocketbaseService';
 	import { syncService } from '$lib/services/syncService';
 
 	interface Consignment {
@@ -18,8 +17,7 @@
 	let wagonId = '';
 	let trainNumber = '';
 	let productGrade = '';
-	let consignment = '';
-	let loadingLocation = 'West Load Out';
+	let loadingLocation = 'Bosveld';
 	let consignments: Consignment[] = [];
 	let isSubmitting = false;
 	let currentStep = 1;
@@ -31,7 +29,7 @@
 	let processLayout: ProcessLayout;
 
 	function handleCancel() {
-		goto('/pmc/processes/magnetite-rail/west-load-out');
+		goto('/bosveld/processes/loading-station');
 	}
 	// Form errors
 	let formErrors = {
@@ -57,11 +55,10 @@
 	// Save form data when component is unmounted
 	onMount(() => {
 		return () => {
-			if (sampleId || productGrade || consignment) {
-				formPersistenceService.saveForm('west_loadout', {
+			if (sampleId || productGrade) {
+				formPersistenceService.saveForm('loading-station', {
 					sampleId,
 					productGrade,
-					consignment,
 					loadingLocation
 				});
 			}
@@ -74,13 +71,13 @@
 			productGrade: string;
 			loadingLocation: string;
 			trainNumber: string;
-		}>('west_loadout');
+		}>('loading-station');
 
 		if (savedData) {
 			sampleId = savedData.sampleId || '';
 			trainNumber = savedData.trainNumber || '';
 			productGrade = savedData.productGrade || '';
-			loadingLocation = savedData.loadingLocation || 'West Load Out';
+			loadingLocation = savedData.loadingLocation || 'Bosveld';
 		}
 	}
 
@@ -164,10 +161,10 @@
 				created: new Date(),
 				updated: new Date().toISOString(),
 				linkedTruckIds: [],
-				linkedWagonIds: [foundWagon?.id || ''],
+				linkedWagonIds: [foundWagon?.serverId || foundWagon?.id || ''],
 				syncStatus: 'pending',
-				process: 'West Loadout',
-				siteLocation: 'PMC',
+				process: 'Loading Station',
+				siteLocation: 'Bosveld',
 			};
 
 			// Save to IndexedDB
@@ -179,12 +176,12 @@
 			
 
 			// Clear persisted form data
-			formPersistenceService.clearForm('west_loadout');
+			formPersistenceService.clearForm('loading-station');
 
 			processLayout.setSuccess('Data saved successfully');
 			setTimeout(() => {
 				goto(
-					`/pmc/processes/magnetite-rail/west-load-out/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&wagonId=${encodeURIComponent(wagonId)}`
+					`/bosveld/processes/loading-station/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&wagonId=${encodeURIComponent(wagonId)}`
 				);
 			}, 1000);
 		} catch (err) {
@@ -197,12 +194,12 @@
 </script>
 
 <ProcessLayout
-	title="Sample Details"
+	title="Wagon Details"
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
 	bind:this={processLayout}
-	cancelPath="/pmc/processes/magnetite-rail/west-load-out"
+	cancelPath="/bosveld/processes/loading-station"
 	on:submit={handleSubmit}
 	on:cancel={handleCancel}
 >
@@ -244,17 +241,7 @@
 			error={formErrors.trainNumber}
 		/>
 	</div>	
-	<div class="form">	
-		<FormField
-			id="consignment"
-			label="Consignment Number (Optional)"
-			bind:value={consignment}
-			placeholder="Select Consignment"
-			isSelect={true}
-			options={consignments.map((con) => ({ value: con.name, label: con.name }))}
-			error={formErrors.consignment}
-		/>
-	</div>	
+
 	<div class="form">	
 		<FormField
 			id="loadingLocation"

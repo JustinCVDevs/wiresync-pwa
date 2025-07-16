@@ -588,7 +588,7 @@ export const syncService = {
 					verificationTs: wagon.verificationTs,
 					linkedTrainId: wagon.linkedTrainId,
 					linkedConsignmentId: wagon.linkedConsignmentId,
-					weight: wagon.weight,
+					felWeight: wagon.felWeight,
 					samplingStatus: wagon.samplingStatus,
 					serverId: wagon.id,
 					syncStatus: 'synced',
