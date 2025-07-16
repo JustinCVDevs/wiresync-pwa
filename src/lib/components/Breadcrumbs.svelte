@@ -1,67 +1,87 @@
 <!-- Breadcrumbs.svelte -->
 <script lang="ts">
-	import { derived } from 'svelte/store';
-	import { page } from '$app/stores';
+    import { derived } from 'svelte/store';
+    import { page } from '$app/stores';
 
-	// derive array of { name, href } from current path
-	const crumbs = derived(page, ($page) => {
-		const segments = $page.url.pathname.split('/').filter(Boolean);
+    // Helper to truncate a string to a max length, adding ellipsis if needed
+    function truncate(str: string, max: number) {
+        return str.length > max ? str.slice(0, max - 1) + '…' : str;
+    }
 
-		const editIndex = segments.findIndex(seg => decodeURIComponent(seg).toLowerCase() === 'edit');
-		let list = segments.map((seg, i) => {
-			const href = '/' + segments.slice(0, i + 1).join('/');
-			const name = decodeURIComponent(seg)
-				.replace(/[-_]/g, ' ')
-				.replace(/\b\w/g, (c) => c.toUpperCase());
-			
-			// Check if this is a 'processes' segment and get the location from previous segment
-			if (name === 'Processes' && i > 0) {
-				const location = decodeURIComponent(segments[i-1])
-					.replace(/[-_]/g, ' ')
-					.replace(/\b\w/g, (c) => c.toUpperCase());
-				return { name: `${location} Processes`, href };
-			}
-			return { name, href };
-		});
+    const MAX_TOTAL_LENGTH = 40; // Adjust this for your layout
 
-		if (list.length > 2) {
-			let filtered = list.slice(1, -1);
-			if (editIndex > 1 &&  editIndex < list.length) {
-				filtered = filtered.filter((_, i) => i !== editIndex - 2);
-			}
-			list = filtered;
-		}else{
-			list = [];
-		}
-		return [...list];
-	});
+    const crumbs = derived(page, ($page) => {
+        const segments = $page.url.pathname.split('/').filter(Boolean);
+		console.log('Breadcrumb segments:', segments);
+
+        const editIndex = segments.findIndex(seg => decodeURIComponent(seg).toLowerCase() === 'edit');
+        const forceCaps = ['PMC', 'BOP', 'FEL', 'HG', 'LG'];
+
+        const format = (str: string) =>
+            str
+                .replace(/[-_]/g, ' ')
+                .split(' ')
+                .map(word =>
+                    forceCaps.includes(word.toUpperCase())
+                        ? word.toUpperCase()
+                        : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                )
+                .join(' ');
+
+        let list = segments.map((seg, i) => {
+            const href = '/' + segments.slice(0, i + 1).join('/');
+            const raw = decodeURIComponent(seg).replace(/[-_]/g, ' ').trim();
+
+            return { name: format(raw), href };
+        });
+		
+        return [...list];
+    });
+
+    let lastCrumb: { name: string; href: string } | undefined;
+    let otherCrumbs: { name: string; href: string }[] = [];
+    let available: number = 8;
+
+    $: if ($crumbs.length > 0) {
+        lastCrumb = $crumbs[$crumbs.length - 1];
+        otherCrumbs = $crumbs.slice(0, -1);
+        available = Math.max(8, Math.floor((MAX_TOTAL_LENGTH - lastCrumb.name.length) / otherCrumbs.length));
+    }
 </script>
+
 {#if $crumbs.length > 0}
 <nav aria-label="Breadcrumb" class="text-center text-xs text-gray mb-4">
-	<ol class="flex items-center justify-center space-x-2">
-		{#each $crumbs as crumb, i}
-			<li class="flex items-center">
-				{#if i > 0}
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="h-4 w-4 text-gray-400"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M9 5l7 7-7 7"
-						/>
-					</svg>
-				{/if}
-				<a href={crumb.href} class="hover:text-gray ml-2">
-					{crumb.name}
-				</a>
-			</li>
-		{/each}
-	</ol>
+    <ol class="flex items-center justify-center space-x-2 whitespace-nowrap min-w-0 px-2" style="max-width:100vw;">
+        {#each $crumbs as crumb, i (crumb.href)}
+            <li class="flex items-center min-w-0">
+                {#if i > 0}
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4 text-gray-400 flex-shrink-0"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M9 5l7 7-7 7"
+                        />
+                    </svg>
+                {/if}
+                {#if i === $crumbs.length - 1}
+                    <!-- Last crumb: always full -->
+                    <a href={crumb.href} class="hover:text-gray ml-2 block font-semibold" title={crumb.name}>
+                        {crumb.name}
+                    </a>
+                {:else}
+                    <a href={crumb.href} class="hover:text-gray ml-2 block" title={crumb.name}>
+                        {truncate(crumb.name, available)}
+                    </a>
+                {/if}
+            </li>
+        {/each}
+    </ol>
 </nav>
 {/if}
