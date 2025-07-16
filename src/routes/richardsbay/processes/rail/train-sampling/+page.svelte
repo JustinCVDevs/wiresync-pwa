@@ -5,7 +5,6 @@
 	import FormField from '$lib/components/FormField.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Wagon } from '$lib/types/wagon';
-	import { page } from '$app/stores';
 
 	// Form state
 	let wagonID = '';
@@ -26,13 +25,11 @@
 	// Reference to the ProcessLayout component
 	let processLayout: ProcessLayout;
 
-	let existingIdsArray: string[] = [];
-	$: existingIdsArray = ($page.url.searchParams.get('wagonIds') || '').split(',').filter(Boolean);
-
 	onMount(async () => {
 		availableWagons = (await indexedDBService.getAllRecords('wagons')).filter(
 			wagon => !wagon.dispatchTimestamp
 		);
+		console.log('Avaible wagon count', availableWagons.length);
 	});
 
 	function handleWagonInput() {
@@ -97,16 +94,18 @@
 				return;
 			}
 
-			// Update wagon
-			await indexedDBService.updateRecord('wagons', wagonToUse.id, {
+			// Update truck
+			await indexedDBService.updateRecord('wagons', wagonToUse.serverId ?? wagonToUse.id ?? '', {
 				...wagonToUse,
 				syncStatus: 'pending',
 				dispatchTimestamp: new Date(),
 			});
 
-			// Add the new wagon's id to the list and pass as a query param
-			const dispatchedIds = [...(existingIdsArray), wagonToUse.id];
-			goto(`/richardsbay/processes/rail/train-staging/review?wagonIds=${dispatchedIds.join(',')}`);
+			processLayout.setSuccess('Truck Successfully Received!');
+
+			setTimeout(() => {
+				goto('/richardsbay/processes/rail');
+			}, 2000);
 		} catch (error) {
 			console.error('Failed to submit truck arrival:', error);
 			processLayout.setError('Failed to submit truck arrival. Please try again.');
@@ -140,12 +139,12 @@
 	
 
 		<div class="form">
-			<label for="wagonId">Wagon ID</label>
+			<label for="truckRegistration">Truck Registration</label>
 			<input
-				id="wagonId"
+				id="truckRegistration"
 				type="text"
 				bind:value={wagonID}
-				placeholder="Scan/Enter Wagon ID"
+				placeholder="Enter Truck Registration"
 				on:input={handleWagonInput}
 				on:focus={showAllTruckSuggestions}
 				on:blur={() => setTimeout(() => showWagonSuggestions = false, 100)}
@@ -201,7 +200,7 @@
 		margin-top: 1rem;
 		position: relative;
 	}
-	.form #wagonId {
+	.form #truckRegistration {
 		min-height: 40px;
 	}
 

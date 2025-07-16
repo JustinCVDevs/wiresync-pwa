@@ -1,6 +1,7 @@
 import type { BaseRecord, ID } from './baserecord';
 
 export interface Wagon extends BaseRecord {
+	id: string; // WAGON_ID
 	transcoreTag?: string; // TRANSCORE_TAG
 	wagonIdSimple?: string; // WAGON_ID_SIMPLE
 	wagonPhotoUrl?: File | null; // URL of captured photo
