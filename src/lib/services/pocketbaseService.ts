@@ -8,7 +8,7 @@ import type { Train, Wagon, Sample, Assay, Consignment, TrainDispatch, TruckLoad
 
 const POCKETBASE_URL = "https://pb.claervolker.com";
 // make sure you have VITE_POCKETBASE_URL set in your .env
-type PBCollection =
+export type PBCollection =
 	| 'trains'
 	| 'wagons'
 	| 'samples'
