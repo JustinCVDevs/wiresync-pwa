@@ -139,7 +139,7 @@
 	
 
 		<div class="form">
-			<label for="truckRegistration">Truck Registration</label>
+			<label for="truckRegistration" class="block font-medium text-gray text-sm">Truck Registration *</label>
 			<input
 				id="truckRegistration"
 				type="text"
@@ -149,7 +149,7 @@
 				on:focus={showAllTruckSuggestions}
 				on:blur={() => setTimeout(() => showWagonSuggestions = false, 100)}
 				required
-				class="form-input"
+				class="w-full rounded-lg text-sm border px-3 py-2 text-gray border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none"
 			/>
 			{#if showWagonSuggestions}
 				<ul class="suggestions-list">
