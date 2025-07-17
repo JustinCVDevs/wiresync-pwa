@@ -72,7 +72,7 @@
 
 					<div>
 						<p class="text-sm text-gray-500 font-bold">Product Selection</p>
-						<p class="font-medium">{assay.productGrade}</p>
+						<p class="font-medium">{assay.productType}</p>
 					</div>
 
 					<div>
