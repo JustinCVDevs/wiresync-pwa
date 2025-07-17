@@ -298,6 +298,6 @@
 	.form-input {
 		width: 100%;
 		box-sizing: border-box;
-		height: 50px;
+		height: 40px;
 	}
   </style>
