@@ -13,7 +13,7 @@
 
     const crumbs = derived(page, ($page) => {
         const segments = $page.url.pathname.split('/').filter(Boolean);
-        const excludeCrumbs = ['sampling', 'verification', 'fel operations'];
+        const excludeCrumbs = ['sampling', 'verification', 'fel operations', 'locations'];
 
         // Do not show breadcrumbs if "complete" is in the URL
         if (segments.some(seg => decodeURIComponent(seg).toLowerCase() === 'complete')) {

@@ -845,6 +845,9 @@ export const syncService = {
 		await this.syncConsignmentList();
 		await this.syncTruckList();
 		await this.syncWagonList();
+		await this.syncShuntingTrainList();
+		await this.syncTrainList();
+		await this.syncTruckArrivalList();
 
 		// Delete records that no longer exist on the server
 		await this.syncDeletedRecords('assays');
