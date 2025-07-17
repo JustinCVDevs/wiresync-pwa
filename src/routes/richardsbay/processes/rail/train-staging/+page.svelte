@@ -140,7 +140,7 @@
 	
 
 		<div class="form">
-			<label for="wagonId">Wagon ID</label>
+			<label for="wagonId" class="block font-medium text-gray text-sm">Wagon ID *</label>
 			<input
 				id="wagonId"
 				type="text"
@@ -150,7 +150,7 @@
 				on:focus={showAllTruckSuggestions}
 				on:blur={() => setTimeout(() => showWagonSuggestions = false, 100)}
 				required
-				class="form-input"
+				class="w-full rounded-lg text-sm border px-3 py-2 text-gray border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none"
 			/>
 			{#if showWagonSuggestions}
 				<ul class="suggestions-list">
