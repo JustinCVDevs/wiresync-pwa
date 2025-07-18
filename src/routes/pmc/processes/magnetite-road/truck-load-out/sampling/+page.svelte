@@ -47,7 +47,7 @@
 					sampleId,
 					commodity: productType,
 					materialType: 'Coarse',
-					registration: sampleId,
+					registration: truckRegistration,
 					felMassKg: 0,
 					loadingLocation: loadingLocation, 
 					loadingHour: Number(loadingHour), 

@@ -8,16 +8,11 @@
     import type { Wagon } from '$lib/types/wagon';
     import { syncService } from '$lib/services/syncService';
 
-    interface Consignment {
-        name: string;
-    }
-
     let sampleId = '';
     let wagonId = '';
     let trainNumber = '';
     let productGrade = '';
     let loadingLocation = 'Bosveld';
-    let consignments: Consignment[] = [];
     let isSubmitting = false;
     let currentStep = 1;
 
@@ -39,13 +34,9 @@
         trainNumber: ''
     };
 
-    const productGrades = ['Iron Oxide', 'Magnetite-DMS', 'Mag-64', 'Mag-65'];
+    const productGrades = ['Iron Oxide', 'Mag-64', 'Mag-65'];
 
     const loadingLocations = ['East Load Out', 'West Load Out', 'Bosveld'];
-
-    onMount(async () => {
-        consignments = await indexedDBService.getRecords('consignments');
-    });
 
     function validateForm() {
         let isValid = true;

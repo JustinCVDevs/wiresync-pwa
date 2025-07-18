@@ -121,7 +121,7 @@
 				
 				if (selectedTruck) {
 					const fleet = (await indexedDBService.getAllRecords('fleet')).filter(
-						(f) => f.id === selectedTruck.linkedFleetIds[0] || f.serverId === selectedTruck.linkedFleetIds[0]
+						(f) => f.registration === selectedTruck.registration
 					)[0];
 
 					selectedTruck.dedicatedFleet = true;

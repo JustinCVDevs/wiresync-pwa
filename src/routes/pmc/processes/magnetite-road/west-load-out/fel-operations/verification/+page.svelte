@@ -77,6 +77,25 @@
 						</div>
 					</div>
 				</div>
+		{:else if truck && !fleet}
+				<div class="bg-white p-4 rounded-lg shadow-sm">
+					<div class="grid grid-cols-1 gap-4">
+						<div>
+							<p class="text-sm text-gray-500 font-bold">Truck Registration Nr</p>
+							<p class="font-medium">{truck.registration}</p>
+						</div>
+
+						<div>
+							<p class="text-sm text-gray-500 font-bold">FEL Weight (Ton)</p>
+							<p class="font-medium">{truck.felWeight}</p>
+						</div>
+						
+						<div>
+							<p class="text-sm text-gray-500 font-bold">Loading Location</p>
+							<p class="font-medium">{truck.loadingLocation}</p>
+						</div>
+					</div>
+				</div>
 		{:else}
 			<div class="text-center py-8">
 				<p class="text-gray-500">Loading sample details...</p>

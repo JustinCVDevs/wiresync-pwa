@@ -200,8 +200,8 @@ export const syncService = {
 
 	async syncTruckList() {
 		try {
-			const response = await pocketbaseService.list('trucks');											
-			for (const truck of response.items) {
+			const allTrucks = await fetchAllFromPocketBase('trucks');
+			for (const truck of allTrucks) {
 				await indexedDBService.saveRecord('trucks', {
 					id: truck.id,
 					registration: truck.registration,
@@ -209,6 +209,7 @@ export const syncService = {
 					serverId: truck.id,
 					loadingLocation: truck.loadingLocation,
 					loadingHour: truck.loadingHour,
+					felWeight: truck.felWeight
 				});
 			}
 			return true;
