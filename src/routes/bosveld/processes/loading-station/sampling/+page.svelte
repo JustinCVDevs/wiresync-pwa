@@ -34,7 +34,7 @@
         trainNumber: ''
     };
 
-    const productGrades = ['Iron Oxide', 'Mag-64', 'Mag-65'];
+    const productGrades = ['Iron Oxide', 'Mag-62', 'Mag-65'];
 
     const loadingLocations = ['East Load Out', 'West Load Out', 'Bosveld'];
 
