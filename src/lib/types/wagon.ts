@@ -1,6 +1,7 @@
 import type { BaseRecord, ID } from './baserecord';
 
 export interface Wagon extends BaseRecord {
+	id: string; // WAGON_ID
 	transcoreTag?: string; // TRANSCORE_TAG
 	wagonIdSimple?: string; // WAGON_ID_SIMPLE
 	wagonPhotoUrl?: File | null; // URL of captured photo
@@ -14,6 +15,7 @@ export interface Wagon extends BaseRecord {
 	syncStatus: 'pending' | 'synced';
 	process?: string; // e.g. "Loading" / "Unloading" / "Transferring"
 	dispatchTimestamp?: Date;
+	releaseTimestamp?: Date;
 	loadingLocation?: string; // Location where the wagon is loaded
 	trainNumber?: string; // Train number associated with the wagon
 }

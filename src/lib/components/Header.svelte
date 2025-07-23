@@ -69,12 +69,6 @@
 		background: var(--red);
 	}
 
-	.online-status {
-		@apply bg-red-500;
-		&.Online {
-			background-color: var(--green);
-		}
-	}
 	.sync-indicator.Online {
 		background:  var(--green);
 	}

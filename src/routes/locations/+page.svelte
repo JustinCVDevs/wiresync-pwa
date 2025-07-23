@@ -17,7 +17,6 @@
 
 	
 </script>
-<Header lastSyncTime={null}/>
 <section class="space-y-4 px-4">
 	<h1 class="text-2xl font-semibold text-gray text-center">Locations</h1>
 		{#each locations as { name, route }}

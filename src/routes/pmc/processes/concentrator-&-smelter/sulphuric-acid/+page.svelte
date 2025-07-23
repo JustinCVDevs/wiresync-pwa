@@ -39,9 +39,6 @@
 		// Fetch trucks from IndexedDB
 		const trucks = await indexedDBService.getRecords('trucks');
 		availableTrucks = trucks;
-
-		// Load persisted form data
-		loadPersistedData();
 	});
 
 	// Save form data when component is unmounted
@@ -58,24 +55,6 @@
 			}
 		};
 	});
-
-	function loadPersistedData() {
-		const savedData = formPersistenceService.loadForm<{
-			truckServerId: string;
-			tankLocation: string;
-			acidType: string;
-			sampleId: string;
-			capturedImage: string;
-		}>('acid_truck');
-
-		if (savedData) {
-			truckServerId = savedData.truckServerId || '';
-			tankLocation = savedData.tankLocation || '';
-			acidType = savedData.acidType || '';
-			sampleId = savedData.sampleId || '';
-			capturedImage = savedData.capturedImage || '';
-		}
-	}
 
 	function validateForm() {
 		let isValid = true;

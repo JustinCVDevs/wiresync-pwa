@@ -1,196 +1,148 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import FormField from '$lib/components/FormField.svelte';
-	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
-	import { indexedDBService } from '$lib/services/indexedDBService';
-	import { formPersistenceService } from '$lib/services/formPersistenceService';
-	import type { Assay } from '$lib/types/assay';
-	import type { Wagon } from '$lib/types/wagon';
-	import { syncService } from '$lib/services/syncService';
+    import { onMount } from 'svelte';
+    import { goto } from '$app/navigation';
+    import FormField from '$lib/components/FormField.svelte';
+    import ProcessLayout from '$lib/components/ProcessLayout.svelte';
+    import { indexedDBService } from '$lib/services/indexedDBService';
+    import type { Assay } from '$lib/types/assay';
+    import type { Wagon } from '$lib/types/wagon';
+    import { syncService } from '$lib/services/syncService';
 
-	interface Consignment {
-		name: string;
-	}
+    let sampleId = '';
+    let wagonId = '';
+    let trainNumber = '';
+    let productGrade = '';
+    let loadingLocation = 'Bosveld';
+    let isSubmitting = false;
+    let currentStep = 1;
 
-	let sampleId = '';
-	let wagonId = '';
-	let trainNumber = '';
-	let productGrade = '';
-	let loadingLocation = 'Bosveld';
-	let consignments: Consignment[] = [];
-	let isSubmitting = false;
-	let currentStep = 1;
+    // Process steps
+    const processSteps = ['Sample Details', 'Complete'];
 
-	// Process steps
-	const processSteps = ['Sample Details', 'Complete'];
+    // Reference to the ProcessLayout component
+    let processLayout: ProcessLayout;
 
-	// Reference to the ProcessLayout component
-	let processLayout: ProcessLayout;
+    function handleCancel() {
+        goto('/bosveld/processes/loading-station');
+    }
+    // Form errors
+    let formErrors = {
+        sampleId: '',
+        productGrade: '',
+        consignment: '',
+        wagonId: '',
+        trainNumber: ''
+    };
 
-	function handleCancel() {
-		goto('/bosveld/processes/loading-station');
-	}
-	// Form errors
-	let formErrors = {
-		sampleId: '',
-		productGrade: '',
-		consignment: '',
-		wagonId: '',
-		trainNumber: ''
-	};
+    const productGrades = ['Iron Oxide', 'Mag-62', 'Mag-65'];
 
-	const productGrades = ['Iron Oxide', 'Magnetite-DMS', 'Mag-64', 'Mag-65'];
+    const loadingLocations = ['East Load Out', 'West Load Out', 'Bosveld'];
 
-	const loadingLocations = ['East Load Out', 'West Load Out', 'Bosveld'];
+    function validateForm() {
+        let isValid = true;
+        formErrors = {
+            sampleId: '',
+            productGrade: '',
+            consignment: '',
+            wagonId: '',
+            trainNumber: ''
+        };
 
-	onMount(async () => {
-		consignments = await indexedDBService.getRecords(
-			  'consignments', )
+        if (!sampleId) {
+            formErrors.sampleId = 'Sample ID is required';
+            isValid = false;
+        }
 
-		// Load persisted form data
-		loadPersistedData();
-	});
+        if (!productGrade) {
+            formErrors.productGrade = 'Product grade is required';
+            isValid = false;
+        }
 
-	// Save form data when component is unmounted
-	onMount(() => {
-		return () => {
-			if (sampleId || productGrade) {
-				formPersistenceService.saveForm('loading-station', {
-					sampleId,
-					productGrade,
-					loadingLocation
-				});
-			}
-		};
-	});
+        if (!wagonId) {
+            formErrors.wagonId = 'Wagon ID is required';
+            isValid = false;
+        }
 
-	function loadPersistedData() {
-		const savedData = formPersistenceService.loadForm<{
-			sampleId: string;
-			productGrade: string;
-			loadingLocation: string;
-			trainNumber: string;
-		}>('loading-station');
+        if (!trainNumber) {
+            formErrors.trainNumber = 'Train number is required';
+            isValid = false;
+        }
 
-		if (savedData) {
-			sampleId = savedData.sampleId || '';
-			trainNumber = savedData.trainNumber || '';
-			productGrade = savedData.productGrade || '';
-			loadingLocation = savedData.loadingLocation || 'Bosveld';
-		}
-	}
+        return isValid;
+    }
 
-	function validateForm() {
-		let isValid = true;
-		formErrors = {
-			sampleId: '',
-			productGrade: '',
-			consignment: '',
-			wagonId: '',
-			trainNumber: ''
-		};
+    async function handleSubmit() {
+        if (!validateForm()) {
+            return;
+        }
+        try {
+            isSubmitting = true;
+            processLayout.setError('');
+            processLayout.setSuccess('');
 
-		if (!sampleId) {
-			formErrors.sampleId = 'Sample ID is required';
-			isValid = false;
-		}
+            let wagons = await indexedDBService.getAllRecords('wagons');
+            // Check if the wagon already exists
+            const existingWagon = wagons.find((w) => w.transcoreTag === wagonId);
+            if (existingWagon) {
+                processLayout.setError('Wagon ID has already been scanned. Please use a different Wagon ID.');
+                return;
+            }
 
-		if (!productGrade) {
-			formErrors.productGrade = 'Product grade is required';
-			isValid = false;
-		}
+            //Create the wagon object
+            const wagon: Wagon = {
+                id: crypto.randomUUID(),
+                transcoreTag: wagonId,
+                trainNumber: trainNumber,
+                loadingLocation: loadingLocation,
+                created: new Date(),
+                wagonIdSimple: sampleId,
+                syncStatus: 'pending',
+            }
 
-		if (!wagonId) {
-			formErrors.wagonId = 'Wagon ID is required';
-			isValid = false;
-		}
+            // Save the wagon to IndexedDB
+            await indexedDBService.saveRecord('wagons', wagon);
 
-		if (!trainNumber) {
-			formErrors.trainNumber = 'Train number is required';
-			isValid = false;
-		}
+            // Try to sync the wagon
+            await syncService.syncWagon(wagon);
 
-		return isValid;
-	}
+            let allWagons = await indexedDBService.getAllRecords('wagons');
+            const foundWagon = allWagons.find((w) => w.transcoreTag === wagonId);
 
-	async function handleSubmit() {
-		if (!validateForm()) {
-			return;
-		}
-		try {
-			isSubmitting = true;
-			processLayout.setError('');
-			processLayout.setSuccess('');
+            // Create the assay object according to the Assay interface
+            const assay: Assay = {
+                id: crypto.randomUUID(),
+                name: sampleId,
+                sampleId: sampleId,
+                productType: productGrade,
+                location: loadingLocation,
+                created: new Date(),
+                updated: new Date().toISOString(),
+                linkedTruckIds: [],
+                linkedWagonIds: [foundWagon?.serverId || foundWagon?.id || ''],
+                syncStatus: 'pending',
+                process: 'Loading Station',
+                siteLocation: 'Bosveld',
+            };
 
-			let wagons = await indexedDBService.getAllRecords('wagons');
-			// Check if the wagon already exists
-			const existingWagon = wagons.find((w) => w.transcoreTag === wagonId);
-			if (existingWagon) {
-				processLayout.setError('Wagon ID has already been scanned. Please use a different Wagon ID.');
-				return;
-			}
+            // Save to IndexedDB
+            await indexedDBService.saveRecord('assays', assay);
 
-			//Create the wagon object
-			const wagon: Wagon = {
-				id: crypto.randomUUID(),
-				transcoreTag: wagonId,
-				trainNumber: trainNumber,
-				loadingLocation: loadingLocation,
-				created: new Date(),
-				wagonIdSimple: sampleId,
-				syncStatus: 'pending',
-			}
+            // Try to sync using the sync service
+            await syncService.syncAssay(assay);
 
-			// Save the wagon to IndexedDB
-			await indexedDBService.saveRecord('wagons', wagon);
-
-			// Try to sync the wagon
-			await syncService.syncWagon(wagon);
-
-			let allWagons = await indexedDBService.getAllRecords('wagons');
-			const foundWagon = allWagons.find((w) => w.transcoreTag === wagonId);
-
-			// Create the assay object according to the Assay interface
-			const assay: Assay = {
-				id: crypto.randomUUID(),
-				name: sampleId,
-				sampleId: sampleId,
-				productType: productGrade,
-				location: loadingLocation,
-				created: new Date(),
-				updated: new Date().toISOString(),
-				linkedTruckIds: [],
-				linkedWagonIds: [foundWagon?.serverId || foundWagon?.id || ''],
-				syncStatus: 'pending',
-				process: 'Loading Station',
-				siteLocation: 'Bosveld',
-			};
-
-			// Save to IndexedDB
-			await indexedDBService.saveRecord('assays', assay);
-
-			// Try to sync using the sync service
-			await syncService.syncAssay(assay);
-
-			
-
-			// Clear persisted form data
-			formPersistenceService.clearForm('loading-station');
-
-			processLayout.setSuccess('Data saved successfully');
-			setTimeout(() => {
-				goto(
-					`/bosveld/processes/loading-station/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&wagonId=${encodeURIComponent(wagonId)}`
-				);
-			}, 1000);
-		} catch (err) {
-			processLayout.setError('Failed to save assay data');
-			console.error(err);
-		} finally {
-			isSubmitting = false;
-		}
-	}
+            processLayout.setSuccess('Data saved successfully');
+            setTimeout(() => {
+                goto(
+                    `/bosveld/processes/loading-station/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&wagonId=${encodeURIComponent(wagonId)}`
+                );
+            }, 1000);
+        } catch (err) {
+            processLayout.setError('Failed to save assay data');
+            console.error(err);
+        } finally {
+            isSubmitting = false;
+        }
+    }
 </script>
 
 <ProcessLayout

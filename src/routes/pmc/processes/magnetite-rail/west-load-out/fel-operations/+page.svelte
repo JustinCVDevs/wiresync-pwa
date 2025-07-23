@@ -210,7 +210,7 @@
 
 <div class="container">
 	<div class="form">
-		<label for="wagonId">Please enter Wagon ID</label>
+		<label for="wagonId" class="block font-medium text-gray text-sm">Please enter Wagon ID *</label>
 		<input
 			id="wagonId"
 			type="text"
@@ -220,7 +220,7 @@
 			on:focus={showAllSuggestions}
 			on:blur={() => setTimeout(() => showSuggestions = false, 100)}
 			required
-			class="form-input"
+			class="w-full rounded-lg text-sm border px-3 py-2 text-gray border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none"
 		/>
 		{#if formErrors.wagonId}
 			<div class="text-red-500 mt-1">{formErrors.wagonId}</div>
@@ -285,9 +285,6 @@
 	.form {
 		margin-top: 1rem;
 		position: relative;
-	}
-	.form #wagonId {
-		min-height: 40px;
 	}
 
 	.suggestions-list {

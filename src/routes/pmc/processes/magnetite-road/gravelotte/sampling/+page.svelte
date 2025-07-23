@@ -47,7 +47,7 @@
 					sampleId,
 					commodity: productType,
 					materialType: 'Coarse',
-					registration: sampleId,
+					registration: truckRegistration,
 					felMassKg: 0,
 					loadingLocation: loadingLocation, 
 					loadingHour: Number(loadingHour), 
@@ -273,16 +273,16 @@
 					/>
 					
 					<div class="form-field">
-						<label for="loadingHour" class="form-label">Loading Hour (00-23)</label>
+						<label for="loadingHour" class="block font-medium text-gray text-sm">Loading Hour (00-23) *</label>
 						<input
 							id="loadingHour"
 							type="text"
-							class="form-input"
 							bind:value={loadingHour}
 							maxlength="2"
 							pattern="[0-9]*"
 							placeholder="Enter hour (00-23)"
 							required
+							class="w-full rounded-lg text-sm border px-3 py-2 text-gray border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none"
 						/>
 					</div>
 				{/if}
@@ -294,10 +294,5 @@
 	.form-field {
 		width: 100%;
 		margin-bottom: 1.5rem;
-	}
-	.form-input {
-		width: 100%;
-		box-sizing: border-box;
-		height: 50px;
 	}
   </style>

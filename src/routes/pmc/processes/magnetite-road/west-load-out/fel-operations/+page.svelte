@@ -121,7 +121,7 @@
 				
 				if (selectedTruck) {
 					const fleet = (await indexedDBService.getAllRecords('fleet')).filter(
-						(f) => f.id === selectedTruck.linkedFleetIds[0] || f.serverId === selectedTruck.linkedFleetIds[0]
+						(f) => f.registration === selectedTruck.registration
 					)[0];
 
 					selectedTruck.dedicatedFleet = true;
@@ -203,7 +203,7 @@
 				{#if dedicatedFleet}
 					{#if dedicatedFleet === 'No'}
 						<div class="form">
-							<label for="truckRegistration">Select the Truck Registration</label>
+							<label for="truckRegistration" class="block font-medium text-gray text-sm">Select the Truck Registration *</label>
 							<input
 								id="truckRegistration"
 								type="text"
@@ -213,7 +213,7 @@
 								on:focus={showAllTruckSuggestions}
 								on:blur={() => setTimeout(() => showTruckSuggestions = false, 100)}
 								required
-								class="form-input"
+								class="w-full rounded-lg text-sm border px-3 py-2 text-gray border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none"
 							/>
 							{#if showTruckSuggestions}
 								<ul class="suggestions-list">
@@ -261,7 +261,7 @@
 						/>
 					{:else}
 						<div class="form">
-							<label for="truckRegistration">Select the Truck Registration</label>
+							<label for="truckRegistration" class="block font-medium text-gray text-sm">Select the Truck Registration *</label>
 							<input
 								id="truckRegistration"
 								type="text"
@@ -271,7 +271,7 @@
 								on:focus={showAllTruckSuggestions}
 								on:blur={() => setTimeout(() => showTruckSuggestions = false, 100)}
 								required
-								class="form-input"
+								class="w-full rounded-lg text-sm border px-3 py-2 text-gray border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none"
 							/>
 							{#if showTruckSuggestions}
 								<ul class="suggestions-list">

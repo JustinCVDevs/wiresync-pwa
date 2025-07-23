@@ -1,5 +1,6 @@
 import { indexedDBService } from './indexedDBService';
 import { pocketbaseService } from './pocketbaseService';
+import type { PBCollection } from './pocketbaseService';
 import type { Assay } from '$lib/types/assay';
 import type { Wagon } from '$lib/types/wagon';
 import type { TruckLoad } from '$lib/types/truckLoad';
@@ -17,6 +18,20 @@ function base64ToBlob(base64: string, mime: string) {
         ia[i] = byteString.charCodeAt(i);
     }
     return new Blob([ab], { type: mime });
+}
+
+async function fetchAllFromPocketBase(collection: PBCollection, perPage = 50) {
+	let page = 1;
+	let items: any[] = [];
+	let allItems: any[] = [];
+	let response;
+	do {
+		response = await pocketbaseService.list(collection, { page, perPage });
+		items = response.items;
+		allItems = allItems.concat(items);
+		page++;
+	} while (items.length === perPage);
+	return allItems;
 }
 
 export const syncService = {
@@ -185,8 +200,8 @@ export const syncService = {
 
 	async syncTruckList() {
 		try {
-			const response = await pocketbaseService.list('trucks');											
-			for (const truck of response.items) {
+			const allTrucks = await fetchAllFromPocketBase('trucks');
+			for (const truck of allTrucks) {
 				await indexedDBService.saveRecord('trucks', {
 					id: truck.id,
 					registration: truck.registration,
@@ -194,6 +209,7 @@ export const syncService = {
 					serverId: truck.id,
 					loadingLocation: truck.loadingLocation,
 					loadingHour: truck.loadingHour,
+					felWeight: truck.felWeight
 				});
 			}
 			return true;
@@ -213,7 +229,7 @@ export const syncService = {
 			} else {
 				created = await pocketbaseService.create('trucks', payload);
 			}
-
+			
 			if (truck.id) {
 				await indexedDBService.updateRecord('trucks', truck.id, {
 					...truck,
@@ -241,8 +257,8 @@ export const syncService = {
 
 	async syncTrainList() {
 		try {
-			const response = await pocketbaseService.list('trains');
-			for (const train of response.items) {
+			const allTrains = await fetchAllFromPocketBase('trains');
+			for (const train of allTrains) {
 				await indexedDBService.saveRecord('trains', {
 					id: train.id,
 					refNr: train.refNr,
@@ -260,8 +276,8 @@ export const syncService = {
 
 	async syncConsignmentList() {
 		try {
-			const response = await pocketbaseService.list('consignments');
-			for (const consignment of response.items) {
+			const allConsignments = await fetchAllFromPocketBase('consignments');
+			for (const consignment of allConsignments) {
 				await indexedDBService.saveRecord('consignments', {
 					id: consignment.id,
 					name: consignment.name,
@@ -542,20 +558,18 @@ export const syncService = {
 	async syncShuntingTrainList() {
 		try {
 			const response = await pocketbaseService.list('shuntingTrains');
-			
-			for (const train of response.items) {
-				console.log(`💾 Saving shunting train ${train.id} to IndexedDB...`);
-				await indexedDBService.saveRecord('shuntingTrains', {
-					id: train.id,
-					postDate: train.postDate,
-					syncStatus: 'synced',
-					created: train.created,
-					updated: train.updated,
-					linkedWagons: train.linkedWagons,
-					verificationTimestamp: train.verificationTimestamp
-				});
-			}
-			return true;
+            for (const train of response.items) {
+                await indexedDBService.saveRecord('shuntingTrains', {
+                    id: train.id,
+                    postDate: train.postDate,
+                    syncStatus: 'synced',
+                    created: train.created,
+                    updated: train.updated,
+                    linkedWagons: train.linkedWagons,
+                    verificationTimestamp: train.verificationTimestamp
+                });
+            }
+            return true;
 		} catch (err) {
 			console.warn('Failed to sync shunting train list:', err);
 			return false;
@@ -563,14 +577,9 @@ export const syncService = {
 	},
 
 	async syncWagonList() {
-		console.log('🚛 Starting syncWagonList...');
 		try {
-			console.log('📡 Fetching wagons from PocketBase...');
-			const response = await pocketbaseService.list('wagons');
-			console.log(`✅ Received ${response.items.length} wagons from server`);
-			
-			for (const wagon of response.items) {
-				console.log(`💾 Saving wagon ${wagon.id} to IndexedDB...`);
+			const allWagons = await fetchAllFromPocketBase('wagons');
+			for (const wagon of allWagons) {
 				await indexedDBService.saveRecord('wagons', {
 					id: wagon.id,
 					transcoreTag: wagon.transcoreTag,
@@ -589,7 +598,6 @@ export const syncService = {
 					updated: wagon.updated
 				});
 			}
-			console.log('🎉 syncWagonList completed successfully');
 			return true;
 		} catch (err) {
 			console.error('❌ Failed to sync wagon list:', err);
@@ -606,7 +614,6 @@ export const syncService = {
 
 			// Prepare a payload for PocketBase with Blob if needed
 			let apiPayload: any = { ...payload };
-			console.log('🚛 Syncing truck arrival:', apiPayload);
 			// Convert base64 to Blob for PocketBase file upload
 			if (payload.truck_photo && typeof payload.truck_photo === 'string' && payload.truck_photo.startsWith('data:')) {
 				const [meta] = payload.truck_photo.split(',');
@@ -668,7 +675,7 @@ export const syncService = {
 	async syncPendingTruckArrivals() {
 		const pending = await indexedDBService.getRecords(
 			'truckArrivals',
-			(rec: { syncStatus: string }) => rec.syncStatus === 'pending'
+			(record: TruckArrival) => record.syncStatus === 'pending'
 		);
 
 		for (const truckArrival of pending) {
@@ -822,24 +829,32 @@ export const syncService = {
 	// Update syncAllPending to include train dispatches
 	async syncAllPending() {
 		await Promise.all([
+			// Sync all pending records
 			this.syncPendingAssays(),
 			this.syncPendingWagons(),
 			this.syncPendingTrucks(),
 			this.syncPendingTruckLoads(),
-			this.syncConsignmentList(),
 			this.syncPendingConsignment(),
 			this.syncPendingTrainDispatches(),
 			this.syncPendingTrainArrivals(),
-			this.syncDeletedRecords('assays'),
-			this.syncDeletedRecords('wagons'),
-			this.syncDeletedRecords('truckLoads'),
-			this.syncDeletedRecords('trainDispatches'),
 			this.syncPendingShuntingTrains(),
 			this.syncPendingTruckArrivals(),
-			this.syncTruckArrivalList(),
-			this.syncPendingFleet()
+			this.syncPendingFleet(),
 		]);
 
+		// Sync records from PocketBase
+		await this.syncConsignmentList();
+		await this.syncTruckList();
+		await this.syncWagonList();
+		await this.syncShuntingTrainList();
+		await this.syncTrainList();
+		await this.syncTruckArrivalList();
+
+		// Delete records that no longer exist on the server
+		await this.syncDeletedRecords('assays');
+		await this.syncDeletedRecords('wagons');
+		await this.syncDeletedRecords('truckLoads');
+		await this.syncDeletedRecords('trainDispatches');
 	}
 };
 

@@ -35,7 +35,7 @@
 <section class="space-y-4 px-4">
 	<!-- Back to Locations Button -->
 	<button
-		on:click={() => goto('/pmc/processes/concentrator-&-smelter/copper-concentrate')}
+		on:click={() => goto('/pmc/processes/concentrator-&-smelter')}
 		class="flex items-center gap-2 mb-4 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
 	>
 		<ArrowLeft size={20} />

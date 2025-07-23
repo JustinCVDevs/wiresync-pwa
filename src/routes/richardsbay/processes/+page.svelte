@@ -15,24 +15,14 @@
 
 	const processes = [
 		{
-			name: 'Truck Arrival',
+			name: 'Road',
 			color: 'text-blue-500',
-			href: '/richardsbay/processes/truck-arrival'
+			href: '/richardsbay/processes/road'
 		},
 		{
-			name: 'Train Arrival',
+			name: 'Rail',
 			color: 'text-green-500',
-			href: '/richardsbay/processes/train-arrival'
-		},
-		{
-			name: 'Train Staging',
-			color: 'text-red-500',
-			href: '/richardsbay/processes/train-staging'
-		},
-		{
-			name: 'Wagon Dispatch',
-			color: 'text-orange-500',
-			href: '/richardsbay/processes/wagon-dispatch'
+			href: '/richardsbay/processes/rail'
 		}
 	] as const;
 

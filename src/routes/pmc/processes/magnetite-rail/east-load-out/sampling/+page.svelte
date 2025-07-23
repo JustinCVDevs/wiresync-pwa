@@ -20,7 +20,6 @@
 	let productGrade = '';
 	let consignment = '';
 	let loadingLocation = 'East Load Out';
-	let consignments: Consignment[] = [];
 	let isSubmitting = false;
 	let currentStep = 1;
 
@@ -42,17 +41,9 @@
 		trainNumber: ''
 	};
 
-	const productGrades = ['Iron Oxide', 'Magnetite-DMS', 'Mag-64', 'Mag-65'];
+	const productGrades = ['Iron Oxide', 'Magnetite-DMS', 'Mag-62', 'Mag-65'];
 
 	const loadingLocations = ['East Load Out', 'West Load Out', 'Bosveld'];
-
-	onMount(async () => {
-		consignments = await indexedDBService.getRecords(
-			  'consignments', )
-
-		// Load persisted form data
-		loadPersistedData();
-	});
 
 	// Save form data when component is unmounted
 	onMount(() => {
@@ -67,22 +58,6 @@
 			}
 		};
 	});
-
-	function loadPersistedData() {
-		const savedData = formPersistenceService.loadForm<{
-			sampleId: string;
-			productGrade: string;
-			loadingLocation: string;
-			trainNumber: string;
-		}>('east_loadout');
-
-		if (savedData) {
-			sampleId = savedData.sampleId || '';
-			trainNumber = savedData.trainNumber || '';
-			productGrade = savedData.productGrade || '';
-			loadingLocation = savedData.loadingLocation || 'East Load Out';
-		}
-	}
 
 	function validateForm() {
 		let isValid = true;
@@ -243,18 +218,7 @@
 			placeholder="Enter Train Number"
 			error={formErrors.trainNumber}
 		/>
-	</div>	
-	<div class="form">	
-		<FormField
-			id="consignment"
-			label="Consignment Number (Optional)"
-			bind:value={consignment}
-			placeholder="Select Consignment"
-			isSelect={true}
-			options={consignments.map((con) => ({ value: con.name, label: con.name }))}
-			error={formErrors.consignment}
-		/>
-	</div>	
+	</div>		
 	<div class="form">	
 		<FormField
 			id="loadingLocation"
