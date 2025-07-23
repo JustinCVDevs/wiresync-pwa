@@ -2,12 +2,11 @@
 	import YesNo from '$lib/components/YesNo.svelte';
 	import { goto } from '$app/navigation';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
+	import FormField from '$lib/components/FormField.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Assay, Fleet, Truck } from '$lib/types';
-	import FormField from '$lib/components/FormField.svelte';
-	import TruckRegistration from '$lib/components/TruckRegistration.svelte';
 	import { syncService } from '$lib/services/syncService';
-  
+
 	let dedicatedFleet = '';
 	let isDedicatedFleet = false;
 
@@ -15,29 +14,66 @@
 	let productType = '';
 	let sampleId = '';
 	let loadingLocation = 'Truck Load Out';
-	let loadingHour = '';
+	let loadingTime = '';
 	let error = '';
 	let processLayout: ProcessLayout;
 
-	const steps = [
-		"Sample Details",
-		"Complete"
-	]
+	const steps = ["Sample Details", "Complete"];
+
+    let sampleNumber = 1;
+
+    // Function to get or reset the sample number for the day
+    function getSampleNumber() {
+        const currentDate = new Date().toISOString().split('T')[0];
+        const storedData = JSON.parse(localStorage.getItem('sampleNumber') || '{}');
+
+        if (storedData.date === currentDate) {
+            sampleNumber = storedData.number + 1;
+        } else {
+            sampleNumber = 1;
+        }
+
+        // Save the updated sample number in localStorage
+        localStorage.setItem(
+            'sampleNumber',
+            JSON.stringify({ date: currentDate, number: sampleNumber })
+        );
+    }
+
+    // Call the function to initialize the sample number
+    getSampleNumber();
+
+	$: {
+		const currentDate = new Date();
+		const YYMMDD = `${currentDate.getFullYear().toString().slice(-2)}${String(currentDate.getMonth() + 1).padStart(2, '0')}${String(currentDate.getDate()).padStart(2, '0')}`;
+
+		const productCode = {
+			'Iron Oxide': 'IOX',
+			'Magnetite-DMS': 'DMS',
+			'Magnetite-62%': 'MAG62',
+			'Magnetite-65%': 'MAG65'
+		}[productType];
+
+		if (dedicatedFleet === 'Yes') {
+			sampleId = `${YYMMDD}${truckRegistration ? `_${truckRegistration}` : ''}${sampleNumber ? `_#${sampleNumber}` : ''}${productCode ? `_${productCode}` : ''}`;
+		} else {
+			sampleId = `${YYMMDD}${truckRegistration ? `_${truckRegistration}` : ''}${productCode ? `_${productCode}` : ''}`;
+		}
+	}
+
+	$: {
+        if (dedicatedFleet === 'Yes') {
+            const currentHour = new Date().getHours();
+            loadingTime = String(currentHour).padStart(2, '0');
+        }
+    }
+
+	const productTypes = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite-62%', 'Magnetite-65%'];
 
 	async function handleSubmit() {
 		try {
 			processLayout.setError('');
 			processLayout.setSuccess('');
-
-			//Check if truck is already registered
-			let existingTruck = (await indexedDBService.getAllRecords('trucks')).filter(
-				(truck: Truck) => truck.registration === truckRegistration
-			)[0];
-
-			if (existingTruck) {
-				processLayout.setError('Truck already been registered');
-				return;
-			}
 
 			if (dedicatedFleet === 'Yes') {
 				isDedicatedFleet = true;
@@ -49,8 +85,8 @@
 					materialType: 'Coarse',
 					registration: truckRegistration,
 					felMassKg: 0,
-					loadingLocation: loadingLocation, 
-					loadingHour: Number(loadingHour), 
+					loadingLocation: loadingLocation,
+					loadingHour: Number(loadingTime),
 					syncStatus: 'pending',
 					siteLocation: 'PMC',
 					created: new Date(),
@@ -70,7 +106,7 @@
 					syncStatus: 'pending',
 					created: new Date(),
 					loadingLocation: loadingLocation,
-					loadingHour: Number(loadingHour),
+					loadingHour: Number(loadingTime),
 				};
 
 				await indexedDBService.saveRecord('trucks', truck);
@@ -149,7 +185,7 @@
 	  }
 	  let currentStep = 1;
 	  function handleCancel() {
-		  goto('/pmc/processes/magnetite-road');
+		  goto('/pmc/processes/magnetite-road/truck-load-out');
 	  }
 
   </script>
@@ -159,7 +195,7 @@
   {currentStep}
   isSubmitting={false}
   bind:this={processLayout}
-  cancelPath="/pmc/processes/magnetite-road"
+  cancelPath="/pmc/processes/magnetite-road/truck-load-out"
   on:cancel={handleCancel}
   on:submit={handleSubmit}
   on:error={({ detail }) => (error = detail)}
@@ -177,16 +213,16 @@
 			<YesNo 
 				bind:selected={dedicatedFleet} 
 				label={"Dedicated Fleet"} 
-				description={"Please specify wether the truck is part of a fleet."}
+				description={"Please specify whether the truck is part of a fleet."}
 			/>
 			{#if dedicatedFleet}
 		  		{#if dedicatedFleet === 'No'}
 		  			<FormField
 						id="truckRegistration"
-						label="Enter the Truck Registration"
+						label="Select the Truck Registration"
 						type="text"
 						bind:value={truckRegistration}
-						placeholder="Enter Truck Registration"
+						placeholder="Select Truck Registration"
 						required
 					/>
 
@@ -194,14 +230,9 @@
 						id="productType"
 						label="Product Type"
 						isSelect={true}
-						options={[
-							{ value: 'Magnetite', label: 'Magnetite-DMS' },
-							{ value: 'Magnetite 62%', label: 'Magnetite 62%' },
-							{ value: 'Magnetite 65%', label: 'Magnetite 65%' },
-							{ value: 'Iron Oxide', label: 'Iron Oxide' }
-						]}
+						options={productTypes.map((type) => ({ value: type, label: type }))}
 						bind:value={productType}
-						placeholder="Enter Commodity"
+						placeholder="Select Product Type"
 						required
 					/>
 
@@ -229,10 +260,10 @@
 				{:else}
 					<FormField
 						id="truckRegistration"
-						label="Enter the Truck Registration"
+						label="Select the Truck Registration"
 						type="text"
 						bind:value={truckRegistration}
-						placeholder="Enter Truck Registration"
+						placeholder="Select Truck Registration"
 						required
 					/>
 
@@ -240,13 +271,9 @@
 						id="productType"
 						label="Product Type"
 						isSelect={true}
-						options={[
-							{ value: 'Magnetite 62%', label: 'Magnetite 62%' },
-							{ value: 'Magnetite 65%', label: 'Magnetite 65%' },
-							{ value: 'Iron Oxide', label: 'Iron Oxide' }
-						]}
+						options={productTypes.map((type) => ({ value: type, label: type }))}
 						bind:value={productType}
-						placeholder="Enter Commodity"
+						placeholder="Select Product Type"
 						required
 					/>
 
@@ -255,6 +282,7 @@
 						label="Sample ID"
 						type="text"
 						bind:value={sampleId}
+						disabled={true}
 						placeholder="Enter Sample ID"
 						required
 					/>
@@ -273,11 +301,11 @@
 					/>
 					
 					<div class="form-field">
-						<label for="loadingHour" class="block font-medium text-gray text-sm">Loading Hour (00-23) *</label>
+						<label for="loadingTime" class="block font-medium text-gray text-sm">Loading Time (00-23) *</label>
 						<input
-							id="loadingHour"
+							id="loadingTime"
 							type="text"
-							bind:value={loadingHour}
+							bind:value={loadingTime}
 							maxlength="2"
 							pattern="[0-9]*"
 							placeholder="Enter hour (00-23)"

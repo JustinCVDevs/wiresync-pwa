@@ -12,6 +12,7 @@
 	let assay: Assay | null = null;
 	let truck: Truck | null = null;
 	let currentStep = 2;
+	let processLayout: ProcessLayout;
 	
 	// Process steps
 	const processSteps = ['Sample Details', 'Complete'];
@@ -44,9 +45,12 @@
 	}
 
 	function handleSubmit() {
-		goto('/pmc/processes/complete');
-	}
+		processLayout.setSuccess('Data saved successfully');
 
+		setTimeout(() => {
+			goto('/pmc/processes/magnetite-road/truck-load-out');
+		}, 1000);
+	}
 </script>
 
 <ProcessLayout
@@ -55,7 +59,8 @@
 	{currentStep}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
-	cancelPath="/pmc/processes/magnetite-road/truck-load-out"
+	bind:this={processLayout}
+	cancelPath="/pmc/processes/magnetite-road/west-load-out"
 >
 	<div class="space-y-4">
 		{#if assay && truck}

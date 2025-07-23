@@ -2,15 +2,13 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import FormField from '$lib/components/FormField.svelte';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
-	import type { Assay } from '$lib/types/assay';
-	import { ScanBarcode, WashingMachine } from 'lucide-svelte';
 
 	const wagonId = $page.url.searchParams.get('wagonId') || '';
 	let wagon: any | null = null;
 	let currentStep = 2;
+	let processLayout: ProcessLayout;
 	
 	// Process steps
 	const processSteps = ['FEL Weight Capturing', 'Complete'];
@@ -22,7 +20,7 @@
 	async function loadWagonData() {
 		if (wagonId) {
 			const result = (await indexedDBService.getAllRecords('wagons')).filter(
-				(w) => w.transcoreTag === wagonId
+				(w) => w.wagonId === wagonId
 			)[0];
 			wagon = result ?? null;
 		}
@@ -33,7 +31,11 @@
 	}
 
 	function handleSubmit() {
-		goto('/pmc/processes/complete');
+		processLayout.setSuccess('Data saved successfully');
+
+		setTimeout(() => {
+			goto('/pmc/processes/magnetite-rail/west-load-out');
+		}, 1000);
 	}
 </script>
 
@@ -44,6 +46,7 @@
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
 	cancelPath="/pmc/processes/magnetite-rail/west-load-out"
+	bind:this={processLayout}
 >
 <!-- t -->
 
@@ -54,7 +57,7 @@
 				<div class="grid grid-cols-1 gap-4">
 					<div>
 						<p class="text-sm text-gray-500 font-bold">Wagon ID</p>
-						<p class="font-medium">{wagon.transcoreTag}</p>
+						<p class="font-medium">{wagon.wagonId}</p>
 					</div>
 					<div>
 						<p class="text-sm text-gray-500 font-bold">FEL Weight (Ton)</p>

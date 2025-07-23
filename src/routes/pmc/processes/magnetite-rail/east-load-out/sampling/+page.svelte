@@ -7,18 +7,12 @@
 	import { formPersistenceService } from '$lib/services/formPersistenceService';
 	import type { Assay } from '$lib/types/assay';
 	import type { Wagon } from '$lib/types/wagon';
-	import { pocketbaseService } from '$lib/services/pocketbaseService';
 	import { syncService } from '$lib/services/syncService';
-
-	interface Consignment {
-		name: string;
-	}
 
 	let sampleId = '';
 	let wagonId = '';
 	let trainNumber = '';
 	let productGrade = '';
-	let consignment = '';
 	let loadingLocation = 'East Load Out';
 	let isSubmitting = false;
 	let currentStep = 1;
@@ -36,23 +30,35 @@
 	let formErrors = {
 		sampleId: '',
 		productGrade: '',
-		consignment: '',
 		wagonId: '',
 		trainNumber: ''
 	};
 
-	const productGrades = ['Iron Oxide', 'Magnetite-DMS', 'Mag-62', 'Mag-65'];
+	$: {
+		const currentDate = new Date();
+		const YYMMDD = `${currentDate.getFullYear().toString().slice(-2)}${String(currentDate.getMonth() + 1).padStart(2, '0')}${String(currentDate.getDate()).padStart(2, '0')}`;
+
+		const productCode = {
+			'Iron Oxide': 'IOX',
+			'Magnetite-DMS': 'DMS',
+			'Magnetite-62%': 'MAG62',
+			'Magnetite-65%': 'MAG65'
+		}[productGrade];
+
+		sampleId = `${YYMMDD}${wagonId ? `_${wagonId}` : ''}${trainNumber ? `_${trainNumber}` : ''}${productCode ? `_${productCode}` : ''}`;
+	}
+
+	const productGrades = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite-62%', 'Magnetite-65%'];
 
 	const loadingLocations = ['East Load Out', 'West Load Out', 'Bosveld'];
 
 	// Save form data when component is unmounted
 	onMount(() => {
 		return () => {
-			if (sampleId || productGrade || consignment) {
+			if (sampleId || productGrade) {
 				formPersistenceService.saveForm('east_loadout', {
 					sampleId,
 					productGrade,
-					consignment,
 					loadingLocation
 				});
 			}
@@ -64,7 +70,6 @@
 		formErrors = {
 			sampleId: '',
 			productGrade: '',
-			consignment: '',
 			wagonId: '',
 			trainNumber: ''
 		};
@@ -112,7 +117,7 @@
 			//Create the wagon object
 			const wagon: Wagon = {
 				id: crypto.randomUUID(),
-				transcoreTag: wagonId,
+				wagonId: wagonId,
 				trainNumber: trainNumber,
 				loadingLocation: loadingLocation,
 				created: new Date(),
@@ -138,8 +143,7 @@
 				location: loadingLocation,
 				created: new Date(),
 				updated: new Date().toISOString(),
-				linkedTruckIds: [],
-				linkedWagonIds: [foundWagon?.id || ''],
+				linkedWagonIds: [foundWagon?.serverId || ''],
 				syncStatus: 'pending',
 				process: 'East Loadout',
 				siteLocation: 'PMC',

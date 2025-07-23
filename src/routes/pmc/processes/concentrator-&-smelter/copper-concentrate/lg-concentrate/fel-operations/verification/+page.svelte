@@ -9,6 +9,7 @@
 	const truckRegistration = $page.url.searchParams.get('truckRegistration') || '';
 	let truck: Truck | null = null;
 	let currentStep = 2;
+	let processLayout: ProcessLayout;
 	
 	// Process steps
 	const processSteps = ['Sample Details', 'Complete'];
@@ -27,11 +28,15 @@
 	}
 
 	function handleCancel() {
-		goto('/pmc/processes/concentrator-&-smelter/copper-concentrate');
+		goto('/pmc/processes/concentrator-&-smelter/copper-concentrate/lg-concentrate');
 	}
 
 	function handleSubmit() {
-		goto('/pmc/processes/complete');
+		processLayout.setSuccess('Data saved successfully');
+
+		setTimeout(() => {
+			goto('/pmc/processes/concentrator-&-smelter/copper-concentrate/lg-concentrate');
+		}, 1000);
 	}
 
 </script>
@@ -42,6 +47,7 @@
 	{currentStep}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
+	bind:this={processLayout}
 	cancelPath="/pmc/processes/concentrator-&-smelter/copper-concentrate"
 >
 	<div class="space-y-4">

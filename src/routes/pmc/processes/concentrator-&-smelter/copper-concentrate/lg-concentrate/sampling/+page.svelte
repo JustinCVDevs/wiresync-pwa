@@ -13,10 +13,20 @@
 	let error = '';
 	let processLayout: ProcessLayout;
 
-	const steps = [
-		"Sample Details",
-		"Complete"
-	]
+	const steps = ["Sample Details", "Complete"]
+
+	$: {
+		const currentDate = new Date();
+		const YYMMDD = `${currentDate.getFullYear().toString().slice(-2)}${String(currentDate.getMonth() + 1).padStart(2, '0')}${String(currentDate.getDate()).padStart(2, '0')}`;
+
+		const productCode = {
+			'HG': 'HG',
+			'LG': 'LG',
+			'Reverts': 'REV'
+		}[materialType];
+
+		sampleId = `${YYMMDD}${truckRegistration ? `_${truckRegistration}` : ''}${productCode ? `_${productCode}` : ''}`;
+	}
 
 	async function handleSubmit() {
 		try {
@@ -99,13 +109,14 @@
 	<span class='note' style="margin-top: -0.2rem; display: block; font-size: 12px;">Please note that every truck has to be sampled</span>
 
 	<div>
-		<div class='form-field'>	
+		<div class='form-field'>
 			<FormField
 				id="truckRegistration"
-				label="Enter the Truck Registration"
-				type="text"
+				label="Select the Truck Registration"
+				isSelect={true}
+				options={[]} 
 				bind:value={truckRegistration}
-				placeholder="Enter Truck Registration"
+				placeholder="Select Truck Registration"
 				required
 			/>
 		</div>

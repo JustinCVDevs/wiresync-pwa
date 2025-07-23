@@ -12,6 +12,7 @@
 	let truck: Truck | null = null;
 	let fleet: Fleet | null = null;
 	let currentStep = 2;
+	let processLayout: ProcessLayout;
 	
 	// Process steps
 	const processSteps = ['Sample Details', 'Complete'];
@@ -44,7 +45,11 @@
 	}
 
 	function handleSubmit() {
-		goto('/pmc/processes/complete');
+		processLayout.setSuccess('Data saved successfully');
+
+		setTimeout(() => {
+			goto('/pmc/processes/magnetite-road/gravelotte');
+		}, 1000);
 	}
 
 </script>
@@ -56,6 +61,7 @@
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
 	cancelPath="/pmc/processes/magnetite-road/gravelotte"
+	bind:this={processLayout}
 >
 	<div class="space-y-4">
 		{#if truck && fleet}
@@ -78,24 +84,24 @@
 					</div>
 				</div>
 		{:else if truck && !fleet}
-			<div class="bg-white p-4 rounded-lg shadow-sm">
-				<div class="grid grid-cols-1 gap-4">
-					<div>
-						<p class="text-sm text-gray-500 font-bold">Truck Registration Nr</p>
-						<p class="font-medium">{truck.registration}</p>
-					</div>
+				<div class="bg-white p-4 rounded-lg shadow-sm">
+					<div class="grid grid-cols-1 gap-4">
+						<div>
+							<p class="text-sm text-gray-500 font-bold">Truck Registration Nr</p>
+							<p class="font-medium">{truck.registration}</p>
+						</div>
 
-					<div>
-						<p class="text-sm text-gray-500 font-bold">FEL Weight (Ton)</p>
-						<p class="font-medium">{truck.felWeight}</p>
-					</div>
+						<div>
+							<p class="text-sm text-gray-500 font-bold">FEL Weight (Ton)</p>
+							<p class="font-medium">{truck.felWeight}</p>
+						</div>
 						
-					<div>
-						<p class="text-sm text-gray-500 font-bold">Loading Location</p>
-						<p class="font-medium">{truck.loadingLocation}</p>
+						<div>
+							<p class="text-sm text-gray-500 font-bold">Loading Location</p>
+							<p class="font-medium">{truck.loadingLocation}</p>
+						</div>
 					</div>
 				</div>
-			</div>
 		{:else}
 			<div class="text-center py-8">
 				<p class="text-gray-500">Loading sample details...</p>
