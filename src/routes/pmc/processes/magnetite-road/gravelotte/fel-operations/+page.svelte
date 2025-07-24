@@ -175,7 +175,7 @@
 						<FormField
 							id="truckRegistration"
 							label="Truck Registration"
-							isSelect={true}
+							search={true}
 							options={availableTrucks.map(truck => ({value: truck.registration, label: truck.registration}))}
 							bind:value={selectedTruck}
 							placeholder="Select Truck Registration"
@@ -207,7 +207,7 @@
 						<FormField
 							id="truckRegistration"
 							label="Truck Registration"
-							isSelect={true}
+							search={true}
 							options={availableTrucks.map(truck => ({value: truck.registration, label: truck.registration}))}
 							bind:value={selectedTruck}
 							placeholder="Select Truck Registration"

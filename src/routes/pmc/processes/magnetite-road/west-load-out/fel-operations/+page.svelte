@@ -17,12 +17,17 @@
 	let processLayout: ProcessLayout;
 
 	let availableTrucks: any[] = [];
+	let filteredTrucks: any[] = [];
 	let selectedTruck: any = '';
+	let searchQuery = ''; // Search query for filtering trucks
+	let showSearch = false; // Control the visibility of the search box
+	let showDropdown = false; // Control the visibility of the custom dropdown
 
-	const steps = ["FEL Details", "Complete"]
+	const steps = ["FEL Details", "Complete"];
 
 	onMount(async () => {
 		availableTrucks = await getTrucks();
+		filteredTrucks = availableTrucks; // Initialize filtered trucks
 	});
 
 	async function getTrucks() {
@@ -144,6 +149,13 @@
 			availableTrucks = await getTrucks();
 		})();
 	}
+
+	// Reactive statement to filter trucks based on the search query
+	$: {
+		filteredTrucks = availableTrucks.filter(truck =>
+			truck.registration.toLowerCase().includes(searchQuery.toLowerCase())
+		);
+	}
 </script>
 	<ProcessLayout
   	title="West Load Out"
@@ -175,11 +187,13 @@
 						<FormField
 							id="truckRegistration"
 							label="Truck Registration"
-							isSelect={true}
-							options={availableTrucks.map(truck => ({value: truck.registration, label: truck.registration}))}
+							search={true}
+							options={filteredTrucks.map(truck => ({ value: truck.registration, label: truck.registration }))}
 							bind:value={selectedTruck}
 							placeholder="Select Truck Registration"
 							required
+							on:focus={() => showSearch = true}
+							on:blur={() => setTimeout(() => (showSearch = false), 200)}
 						/>
 
 						<FormField
@@ -207,7 +221,7 @@
 						<FormField
 							id="truckRegistration"
 							label="Truck Registration"
-							isSelect={true}
+							search={true}
 							options={availableTrucks.map(truck => ({value: truck.registration, label: truck.registration}))}
 							bind:value={selectedTruck}
 							placeholder="Select Truck Registration"
@@ -239,6 +253,7 @@
 				{/if}
 			
 	</ProcessLayout>
+
 <style>
-	
+    
 </style>
