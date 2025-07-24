@@ -22,6 +22,7 @@
 
 	onMount(async () => {
 		availableTrucks = await getTrucks();
+		console.log('Available Trucks:', availableTrucks);
 	});
 
 	async function getTrucks() {
@@ -166,10 +167,7 @@
 							id="truckRegistration"
 							label="Truck Registration"
 							isSelect={true}
-							options={availableTrucks.map(truck => ({
-								value: truck.registration,
-								label: truck.registration
-							}))}
+							options={availableTrucks.map(truck => ({value: truck.registration, label: truck.registration}))}
 							bind:value={selectedTruck}
 							placeholder="Select Truck Registration"
 							required
@@ -201,10 +199,7 @@
 							id="truckRegistration"
 							label="Truck Registration"
 							isSelect={true}
-							options={availableTrucks.map(truck => ({
-								value: truck.registration,
-								label: truck.registration
-							}))}
+							options={availableTrucks.map(truck => ({value: truck.registration, label: truck.registration}))}
 							bind:value={selectedTruck}
 							placeholder="Select Truck Registration"
 							required

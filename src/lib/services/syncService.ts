@@ -60,10 +60,24 @@ export const syncService = {
 						.filter((id): id is string => id !== undefined);
 				}
 
-				if (assay.linkedFleetId) {
-					const fleet = await indexedDBService.getRecord('fleet', assay.linkedFleetId);
-					if (fleet?.serverId) {
-						payload.linkedFleetId = fleet.serverId;
+				// Check all linked fleets have server IDs before updating
+				if (assay.linkedFleetIds?.length) {
+					const fleets = await Promise.all(
+						assay.linkedFleetIds.map((id) => indexedDBService.getRecord('fleet', id))
+					);
+
+					// Check if all fleets have server IDs
+					const allFleetHaveServerId = fleets.every((fleet) => fleet?.serverId);
+					if (!allFleetHaveServerId) {
+						console.warn('Waiting for all fleets to sync before updating assay');
+						return false;
+					}
+
+					// Replace local IDs with server IDs
+					if (fleets.every((fleet) => fleet?.serverId)) {
+						payload.linkedFleetIds = fleets
+							.map((fleet) => fleet?.serverId)
+							.filter((id): id is string => id !== undefined);
 					}
 				}
 

@@ -110,7 +110,7 @@
 				await syncService.syncFleet(fleet);
 
 				let newFleet = (await indexedDBService.getAllRecords('fleet')).filter(
-					(fleet: Fleet) => fleet.registration === sampleId
+					(fleet: Fleet) => fleet.sampleId === sampleId
 				)[0];
 
 				// Create truck object
@@ -136,7 +136,7 @@
 					productType: productType,
 					dedicatedFleet: isDedicatedFleet,
 					linkedTruckIds: [newTruck?.serverId || ''],
-					linkedFleetId: newFleet?.serverId || '',
+					linkedFleetIds: [newFleet?.serverId || ''],
 					syncStatus: 'pending',
 					location: loadingLocation,
 					created: new Date(),
