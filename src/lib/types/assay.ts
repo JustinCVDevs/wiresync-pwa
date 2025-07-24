@@ -14,6 +14,7 @@ export interface Assay extends BaseRecord {
 	materialType?: string; // e.g. "Cotton"
 	productType?: string; // e.g. "Cotton"
 	process?: string; // e.g. "Loading" / "Unloading" / "Transferring"
+	commodity?: string;
 	dedicatedFleet?: boolean; // e.g. true / false
 	sampleId?: string;
 	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"

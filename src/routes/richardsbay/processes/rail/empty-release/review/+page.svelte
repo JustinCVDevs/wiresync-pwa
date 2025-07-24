@@ -79,7 +79,9 @@
                 await indexedDBService.updateRecord('wagons', releasedWagon.id!, {
                     ...releasedWagon,
                     process: 'Wagon_Release_Complete',
-                    dispatchTimestamp: undefined,
+                    syncStatus: 'pending',
+                    dispatchTimestamp: null,
+                    releaseTimestamp: new Date(),
                     updated: new Date().toISOString()
                 });
             }
@@ -97,7 +99,7 @@
         }
     }
 
-    function formatDateTime(date: Date | string | undefined): string {
+    function formatDateTime(date: Date | null | undefined): string {
         if (!date) return 'Not set';
         const d = new Date(date);
         const day = String(d.getDate()).padStart(2, '0');
