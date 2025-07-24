@@ -14,6 +14,7 @@
 	let assay: Assay | null = null;
 	let wagon: Wagon | null = null;
 	let currentStep = 2;
+	let processLayout: ProcessLayout;
 	
 	// Process steps
 	const processSteps = ['Sample Details', 'Complete'];
@@ -35,7 +36,7 @@
 	async function loadWagonData() {
 		if (wagonId) {
 			const result = (await indexedDBService.getAllRecords('wagons')).filter(
-				(w) => w.transcoreTag === wagonId
+				(w) => w.wagonId === wagonId
 			)[0];
 			wagon = result ?? null;
 		}
@@ -46,7 +47,11 @@
 	}
 
 	function handleSubmit() {
-		goto('/pmc/processes/complete');
+		processLayout.setSuccess('Data saved successfully');
+
+		setTimeout(() => {
+			goto('/pmc/processes/magnetite-rail/east-load-out');
+		}, 1000);
 	}
 
 </script>
@@ -57,6 +62,7 @@
 	{currentStep}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
+	bind:this={processLayout}
 	cancelPath="/pmc/processes/magnetite-rail/east-load-out"
 >
 <!-- t -->
@@ -67,7 +73,7 @@
 				<div class="grid grid-cols-2 gap-4">
 					<div>
 						<p class="text-sm text-gray-500 font-bold">Wagon ID</p>
-						<p class="font-medium">{wagon.transcoreTag}</p>
+						<p class="font-medium">{wagon.wagonId}</p>
 					</div>
 
 					<div>
@@ -76,8 +82,8 @@
 					</div>
 
 					<div>
-						<p class="text-sm text-gray-500 font-bold">Sample ID</p>
-						<p class="font-medium">{assay.name}</p>
+						<p class="text-sm text-gray-500 font-bold">Train Number</p>
+						<p class="font-medium">{wagon.trainNumber}</p>
 					</div>
 					
 					<div>
@@ -86,8 +92,8 @@
 					</div>
 
 					<div>
-						<p class="text-sm text-gray-500 font-bold">Train Number</p>
-						<p class="font-medium">{wagon.trainNumber}</p>
+						<p class="text-sm text-gray-500 font-bold">Sample ID</p>
+						<p class="font-medium">{assay.name}</p>
 					</div>
 				</div>
 			</div>

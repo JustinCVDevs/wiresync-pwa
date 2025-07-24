@@ -10,7 +10,7 @@
 	import type { Assay } from '$lib/types/assay';
 	import type { TruckLoad } from '$lib/types/truckLoad';
 
-	let truckServerId = '';
+	let truckRegistration = '';
 	let availableTrucks: { id: string; registration: string }[] = [];
 	let tankLocation = '';
 	let acidType = '';
@@ -18,6 +18,7 @@
 	let capturedImage = '';
 	let isSubmitting = false;
 	let currentStep = 1;
+	let samplingStatus = false;
 
 	// Process steps
 	const processSteps = ['Truck Details', 'Review'];
@@ -27,13 +28,25 @@
 
 	// Form errors
 	let formErrors = {
-		truckServerId: '',
+		truckRegistration: '',
 		tankLocation: '',
 		acidType: ''
 	};
 
 	const tankLocations = ['Tank 1', 'Tank 2', 'Tank 3', 'Tank 4'];
 	const acidTypes = ['Weak Acid', 'Strong Acid'];
+
+	$: {
+		const currentDate = new Date();
+		const YYMMDD = `${currentDate.getFullYear().toString().slice(-2)}${String(currentDate.getMonth() + 1).padStart(2, '0')}${String(currentDate.getDate()).padStart(2, '0')}`;
+
+		const productCode = {
+			'Weak Acid': 'WEAK',
+			'Strong Acid': 'STRONG'
+		}[acidType];
+
+		sampleId = `${YYMMDD}${truckRegistration ? `_${truckRegistration}` : ''}${productCode ? `_${productCode}` : ''}`;
+	}
 
 	onMount(async () => {
 		// Fetch trucks from IndexedDB
@@ -44,9 +57,9 @@
 	// Save form data when component is unmounted
 	onMount(() => {
 		return async () => {
-			if (truckServerId || tankLocation || acidType || sampleId || capturedImage) {
+			if (truckRegistration || tankLocation || acidType || sampleId || capturedImage) {
 				formPersistenceService.saveForm('acid_truck', {
-					truckServerId,
+					truckRegistration,
 					tankLocation,
 					acidType,
 					sampleId,
@@ -59,13 +72,13 @@
 	function validateForm() {
 		let isValid = true;
 		formErrors = {
-			truckServerId: '',
+			truckRegistration: '',
 			tankLocation: '',
 			acidType: ''
 		};
 
-		if (!truckServerId) {
-			formErrors.truckServerId = 'Truck is required';
+		if (!truckRegistration) {
+			formErrors.truckRegistration = 'Truck is required';
 			isValid = false;
 		}
 
@@ -93,14 +106,17 @@
 			processLayout.setSuccess('');
 
 			const truckLoadId = crypto.randomUUID();
+			const linkTruck = await (await indexedDBService.getAllRecords('trucks')).filter(
+				(truck) => truck.registration === truckRegistration
+			)[0];
 
 			// Create truck load record
 			const truckLoad: TruckLoad = {
 				id: truckLoadId,
-				truckId: truckServerId,
+				truckId: linkTruck.serverId,
 				sampleId: sampleId || `ACID_${Date.now()}`,
 				created: new Date(),
-				samplingStatus: true,
+				samplingStatus: samplingStatus,
 				syncStatus: 'pending',
 				process: 'Acid Truck',
 				loadingLocation: tankLocation,
@@ -131,7 +147,7 @@
 
 			processLayout.setSuccess('Data saved successfully');
 			setTimeout(() => {
-				goto(`/pmc/processes/concentrator-&-smelter/sulphuric-acid/review?assayId=${assay.id}&truckLoadId=${truckLoadId}`);
+				goto(`/pmc/processes/concentrator-&-smelter/sulphuric-acid/review?sampleId=${sampleId}&truckRegistration=${truckRegistration}`);
 			}, 1000);
 		} catch (err) {
 			processLayout.setError('Failed to submit data');
@@ -139,11 +155,6 @@
 		} finally {
 			isSubmitting = false;
 		}
-	}
-
-	function handleCapture(event: CustomEvent<string>) {
-		capturedImage = event.detail;
-		//showCamera = false;
 	}
 
 	function handleCancel() {
@@ -170,15 +181,13 @@
 		<FormField
 			id="truckRegistration"
 			label="Truck Registration"
-			bind:value={truckServerId}
+			bind:value={truckRegistration}
 			placeholder="Select Truck Registration"
 			isSelect={true}
-			options={availableTrucks.map((truck) => ({ value: truck.id, label: truck.registration  }))}
+			options={availableTrucks.map((truck) => ({ value: truck.registration, label: truck.registration  }))}
 			required={true}
 			error={formErrors.tankLocation}
 		/>
-
-		<Camera onPhotoSelected={(file) => (capturedImage = file ? URL.createObjectURL(file) : '')} />
 
 		<FormField
 			id="tankLocation"
@@ -202,12 +211,26 @@
 			error={formErrors.acidType}
 		/>
 
-		<FormField
-			id="sampleId"
-			label="Sample ID (Optional)"
-			bind:value={sampleId}
-			placeholder="Enter Sample ID"
-		/>
+		<div class="form-field">
+			<div class="relative">
+				<FormField
+					id="sampleId"
+					label="Sample ID"
+					bind:value={sampleId}
+					disabled={true}
+					placeholder="Enter Sample ID"
+				/>
+				<div class="absolute inset-y-0 right-0 flex items-center pr-3" style="margin-top: 25px;">
+					<input
+						id="sampleIdCheckbox"
+						type="checkbox"
+						class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+						bind:checked={samplingStatus}
+					/>
+					<label for="sampleIdCheckbox" class="ml-2 text-sm font-medium text-gray-700"></label>
+				</div>
+			</div>
+		</div>
 	</div>
 </ProcessLayout>
 

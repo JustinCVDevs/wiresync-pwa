@@ -12,6 +12,7 @@
 	let assay: Assay | null = null;
 	let truck: Truck | null = null;
 	let currentStep = 2;
+	let processLayout: ProcessLayout;
 	
 	// Process steps
 	const processSteps = ['Sample Details', 'Complete'];
@@ -45,7 +46,11 @@
 	}
 
 	function handleSubmit() {
-		goto('/pmc/processes/complete');
+		processLayout.setSuccess('Data saved successfully');
+
+		setTimeout(() => {
+			goto('/pmc/processes/concentrator-&-smelter/unrefined-copper');
+		}, 1000);
 	}
 
 </script>
@@ -56,6 +61,7 @@
 	{currentStep}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
+	bind:this={processLayout}
 	cancelPath="/pmc/processes/concentrator-&-smelter/unrefined-copper"
 >
 	<div class="space-y-4">

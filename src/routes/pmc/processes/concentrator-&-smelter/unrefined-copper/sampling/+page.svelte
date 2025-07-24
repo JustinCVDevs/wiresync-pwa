@@ -5,6 +5,7 @@
 	import type { Assay, Truck } from '$lib/types';
 	import FormField from '$lib/components/FormField.svelte';
 	import { syncService } from '$lib/services/syncService';
+	import { onMount } from 'svelte';
 
 	let truckRegistration = '';
 	let materialType = 'Reverts';
@@ -12,26 +13,39 @@
 	let loadingLocation = 'Unrefined Copper';
 	let error = '';
 	let processLayout: ProcessLayout;
+	let trucks: Truck[] = [];
 
-	const steps = [
-		"Sample Details",
-		"Complete"
-	]
+	const steps = ["Sample Details", "Complete"]
+
+	$: {
+		const currentDate = new Date();
+		const YYMMDD = `${currentDate.getFullYear().toString().slice(-2)}${String(currentDate.getMonth() + 1).padStart(2, '0')}${String(currentDate.getDate()).padStart(2, '0')}`;
+
+		const productCode = {
+			'HG': 'HG',
+			'LG': 'LG',
+			'Reverts': 'REV'
+		}[materialType];
+
+		sampleId = `${YYMMDD}${truckRegistration ? `_${truckRegistration}` : ''}${productCode ? `_${productCode}` : ''}`;
+	}
+
+	// Fetch truck records from IndexedDB on component mount
+    onMount(async () => {
+        try {
+            trucks = await indexedDBService.getAllRecords('trucks');
+            // Sort trucks alphabetically by registration
+            trucks.sort((a, b) => a.registration.localeCompare(b.registration));
+        } catch (err) {
+            console.error('Failed to load trucks from IndexedDB:', err);
+            error = 'Failed to load truck records';
+        }
+    });
 
 	async function handleSubmit() {
 		try {
 			processLayout.setError('');
 			processLayout.setSuccess('');
-
-			//Check if truck is already registered
-			let existingTruck = (await indexedDBService.getAllRecords('trucks')).filter(
-				(truck: Truck) => truck.registration === truckRegistration
-			)[0];
-
-			if (existingTruck) {
-				processLayout.setError('Truck has already been registered');
-				return;
-			}
 
 			const truck: Truck = {
 				id: crypto.randomUUID(),
@@ -99,13 +113,14 @@
 	<span class='note' style="margin-top: -0.2rem; display: block; font-size: 12px;">Please note that every truck has to be sampled</span>
 
 	<div>
-		<div class='form-field'>	
+		<div class='form-field'>
 			<FormField
 				id="truckRegistration"
-				label="Enter the Truck Registration"
-				type="text"
+				label="Select the Truck Registration"
+				isSelect={true}
+				options={trucks.map((truck) => ({ value: truck.registration, label: truck.registration }))} 
 				bind:value={truckRegistration}
-				placeholder="Enter Truck Registration"
+				placeholder="Select Truck Registration"
 				required
 			/>
 		</div>

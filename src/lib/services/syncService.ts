@@ -60,10 +60,24 @@ export const syncService = {
 						.filter((id): id is string => id !== undefined);
 				}
 
-				if (assay.linkedFleetId) {
-					const fleet = await indexedDBService.getRecord('fleet', assay.linkedFleetId);
-					if (fleet?.serverId) {
-						payload.linkedFleetId = fleet.serverId;
+				// Check all linked fleets have server IDs before updating
+				if (assay.linkedFleetIds?.length) {
+					const fleets = await Promise.all(
+						assay.linkedFleetIds.map((id) => indexedDBService.getRecord('fleet', id))
+					);
+
+					// Check if all fleets have server IDs
+					const allFleetHaveServerId = fleets.every((fleet) => fleet?.serverId);
+					if (!allFleetHaveServerId) {
+						console.warn('Waiting for all fleets to sync before updating assay');
+						return false;
+					}
+
+					// Replace local IDs with server IDs
+					if (fleets.every((fleet) => fleet?.serverId)) {
+						payload.linkedFleetIds = fleets
+							.map((fleet) => fleet?.serverId)
+							.filter((id): id is string => id !== undefined);
 					}
 				}
 
@@ -104,12 +118,14 @@ export const syncService = {
 						assay.linkedWagonIds.map((id) => indexedDBService.getRecord('wagons', id))
 					);
 
+					// Check if all wagons have server IDs
 					const allWagonsHaveServerId = wagons.every((wagon) => wagon?.serverId);
 					if (!allWagonsHaveServerId) {
-						console.warn('Waiting for all wagons to sync before creating assay');
+						console.warn('Waiting for all wagons to sync before updating assay');
 						return false;
 					}
 
+					// Replace local IDs with server IDs
 					payload.linkedWagonIds = wagons
 						.map((wagon) => wagon?.serverId)
 						.filter((id): id is string => id !== undefined);
@@ -163,7 +179,6 @@ export const syncService = {
 	async syncWagon(wagon: Wagon) {
 		try {
 			const { id, syncStatus, ...payload } = wagon;
-
 			let created;
 			if (wagon.serverId) {
 				// Update existing record in PocketBase
@@ -201,7 +216,11 @@ export const syncService = {
 	async syncTruckList() {
 		try {
 			const allTrucks = await fetchAllFromPocketBase('trucks');
+			const allIndexedTrucks = await indexedDBService.getRecords('trucks');
 			for (const truck of allTrucks) {
+				if (allIndexedTrucks.some((t) => t.serverId || t.id === truck.id)) {
+					continue;
+				}
 				await indexedDBService.saveRecord('trucks', {
 					id: truck.id,
 					registration: truck.registration,
@@ -579,21 +598,25 @@ export const syncService = {
 	async syncWagonList() {
 		try {
 			const allWagons = await fetchAllFromPocketBase('wagons');
+			const allIndexedWagons = await indexedDBService.getRecords('wagons');
 			for (const wagon of allWagons) {
+				if (allIndexedWagons.some((w) => w.serverId || w.id === wagon.wagonId)) {
+					continue;
+				}
 				await indexedDBService.saveRecord('wagons', {
 					id: wagon.id,
-					transcoreTag: wagon.transcoreTag,
+					wagonId: wagon.wagonId,
 					wagonIdSimple: wagon.wagonIdSimple,
-					wagonPhotoUrl: wagon.wagonPhotoUrl,
+					transcoreTag: wagon.transcoreTag,
 					componentType: wagon.componentType,
-					verificationTs: wagon.verificationTs,
-					linkedTrainId: wagon.linkedTrainId,
-					linkedConsignmentId: wagon.linkedConsignmentId,
+					wagonPhotoUrl: wagon.wagonPhotoUrl,
+					dispatchTimestamp: wagon.dispatchTimestamp,
+					releaseTimestamp: wagon.releaseTimestamp,
+					trainNumber: wagon.trainNumber,
+					loadingLocation: wagon.loadingLocation,
 					felWeight: wagon.felWeight,
-					samplingStatus: wagon.samplingStatus,
 					serverId: wagon.id,
 					syncStatus: 'synced',
-					process: wagon.process,
 					created: wagon.created,
 					updated: wagon.updated
 				});

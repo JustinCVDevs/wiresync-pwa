@@ -49,7 +49,6 @@
 				// Filter out null results and ensure we have valid wagon objects
 				linkedWagons = wagonResults.filter(wagon => wagon !== null && wagon !== undefined) as Wagon[];
 			} else {
-				console.log('No linkedWagons found in shunting train');
 				linkedWagons = [];
 			}
 		} catch (e) {
@@ -156,12 +155,9 @@
 		<!-- Train Selection Display -->
 		<div class="mb-6 p-4 bg-gray-50 rounded-lg">
 			<h6 class="font-semibold text-gray-700 mb-2">Train Selection</h6>
-			<div class="grid grid-cols-2 gap-4 text-sm">
+			<div class="grid grid-cols-1 gap-4 text-sm">
 				<div>
-					{formatDate(shuntingTrain.postDate).split(',')[0]}
-				</div>
-				<div>
-					{formatDate(shuntingTrain.postDate).split(',')[1]?.trim() || ''}
+					{formatDate(shuntingTrain.postDate)}
 				</div>
 			</div>
 			<p class="text-xs text-gray-500 mt-2">
@@ -179,14 +175,14 @@
 					
 					<div class="space-y-3">
 						<FormField
-							label="Name (ID):"
+							label="Wagon (ID):"
 							id="wagonName_{index}"
 							value={wagon.wagonIdSimple || ''}
 							disabled={true}
 						/>
 						
 						<FormField
-							label="Wagon RFID:"
+							label="Temporary RFID:"
 							id="wagonId_{index}"
 							value={wagon.transcoreTag || ''}
 							disabled={true}

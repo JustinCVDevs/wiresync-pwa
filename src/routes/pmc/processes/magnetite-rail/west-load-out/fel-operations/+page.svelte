@@ -5,13 +5,6 @@
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import { formPersistenceService } from '$lib/services/formPersistenceService';
-	import type { Assay } from '$lib/types/assay';
-	import { pocketbaseService } from '$lib/services/pocketbaseService';
-	import { syncService } from '$lib/services/syncService';
-
-	interface Consignment {
-		name: string;
-	}
 
 	let wagonInput = '';
 	let availableWagons: any[] = [];
@@ -131,17 +124,17 @@
 
 		filteredSuggestions = availableWagons.filter(wagon =>
 			wagon.wagonIdSimple?.toLowerCase().includes(value.toLowerCase()) ||
-			wagon.transcoreTag?.toLowerCase().includes(value.toLowerCase())
+			wagon.wagonId?.toLowerCase().includes(value.toLowerCase())
 		).slice(0, 6);
 
 		const exactMatch = availableWagons.find(wagon =>
 			wagon.wagonIdSimple?.toLowerCase() === value.toLowerCase() ||
-			wagon.transcoreTag?.toLowerCase() === value.toLowerCase()
+			wagon.wagonId?.toLowerCase() === value.toLowerCase()
 		);
 
 		if (exactMatch) {
 			selectedWagon = exactMatch;
-			wagonId = exactMatch.transcoreTag || exactMatch.wagonIdSimple;
+			wagonId = exactMatch.wagonId || exactMatch.wagonIdSimple;
 			showSuggestions = false;
 		} else if (value.length >= 2) {
 			showSuggestions = filteredSuggestions.length > 0;
@@ -171,7 +164,8 @@
 			if (selectedWagon) {
 				selectedWagon.loadingLocation = loadingLocation;
 				selectedWagon.felWeight = felWeight;
-				selectedWagon.updated = new Date().toISOString();
+				selectedWagon.syncStatus = 'pending';
+				//selectedWagon.updated = new Date().toISOString();
 
 				await indexedDBService.updateRecord('wagons', selectedWagon.id, selectedWagon);
 			}
@@ -234,13 +228,13 @@
 							type="button"
 							class:selected={i === highlightedIndex}
 							on:click={() => {
-								wagonInput = suggestion.transcoreTag;
+								wagonInput = suggestion.wagonId;
 								wagonId = wagonInput;
 								showSuggestions = false;
 								selectedWagon = suggestion;
 							}}
 						>
-							{suggestion.transcoreTag} ({suggestion.wagonIdSimple})
+							{suggestion.wagonId} ({suggestion.wagonIdSimple})
 						</button>
 					</li>
 				{/each}

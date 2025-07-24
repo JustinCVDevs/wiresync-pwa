@@ -12,15 +12,9 @@
 
 	let truckInput = '';
 	let availableTrucks: any[] = [];
-	let filteredTruckSuggestions: any[] = [];
-	let showTruckSuggestions = false;
-	let showTruckNotFound = false;
-	let selectedTruck: any = null;
+	let selectedTruck: any = '';
 
-	const steps = [
-		"FEL Details",
-		"Complete"
-	]
+	const steps = ["FEL Details", "Complete"]
 
 	onMount(async () => {
 		availableTrucks = await getTrucks();
@@ -29,50 +23,14 @@
 	async function getTrucks() {
 		try {
 			const allTrucks = (await indexedDBService.getAllRecords('trucks')).filter(
-				truck => truck.loadingLocation === 'LG Concentrate' && !truck.updated
+				truck => truck.loadingLocation === 'LG Concentrate'
 			);
-			return allTrucks;
+
+			// Sort the filtered trucks alphabetically by registration
+			return allTrucks.sort((a, b) => a.registration.localeCompare(b.registration));
 		} catch (error) {
 			console.error('No trucks available', error);
 			return [];
-		}
-	}
-
-	function handleTruckInput() {
-		const value = truckInput.trim();
-		selectedTruck = null;
-		showTruckNotFound = false;
-
-		if (value.length === 0) {
-			showTruckSuggestions = false;
-			filteredTruckSuggestions = [];
-			return;
-		}
-
-		filteredTruckSuggestions = availableTrucks.filter(truck =>
-			truck.registration?.toLowerCase().includes(value.toLowerCase())
-		).slice(0, 6);
-
-		const exactMatch = availableTrucks.find(truck =>
-			truck.registration?.toLowerCase() === value.toLowerCase()
-		);
-
-		if (exactMatch) {
-			selectedTruck = exactMatch;
-			truckInput = exactMatch.registration;
-			showTruckSuggestions = false;
-		} else if (value.length >= 2) {
-			showTruckSuggestions = filteredTruckSuggestions.length > 0;
-			if (value.length >= 3 && filteredTruckSuggestions.length === 0) {
-				showTruckNotFound = true;
-			}
-		}
-	}
-
-	function showAllTruckSuggestions() {
-		if (availableTrucks.length > 0) {
-			filteredTruckSuggestions = availableTrucks.slice(0, 6);
-			showTruckSuggestions = true;
 		}
 	}
 	
@@ -98,7 +56,7 @@
 	  }
 	  let currentStep = 1;
 	  function handleCancel() {
-		  goto('/pmc/processes/concentrator-&-smelter/copper-concentrate');
+		  goto('/pmc/processes/concentrator-&-smelter/copper-concentrate/lg-concentrate');
 	  }
 
 	$: if (truckInput !== '') {
@@ -113,7 +71,7 @@
     {currentStep}
     isSubmitting={false}
     bind:this={processLayout}
-    cancelPath="/pmc/processes/concentrator-&-smelter/copper-concentrate"
+    cancelPath="/pmc/processes/concentrator-&-smelter/copper-concentrate/lg-concentrate"
     on:cancel={handleCancel}
     on:submit={handleSubmit}
     on:error={({ detail }) => (error = detail)}
@@ -129,39 +87,15 @@
 			<span class='note' style="margin-top: -0.2rem; display: block; font-size: 12px;">Please note that every truck has to be sampled</span>
 
 				<div class="form">
-					<label for="truckRegistration" class="block font-medium text-gray text-sm">Select the Truck Registration *</label>
-					<input
+					<FormField
 						id="truckRegistration"
-						type="text"
-						bind:value={truckInput}
-						placeholder="Enter Truck Registration"
-						on:input={handleTruckInput}
-						on:focus={showAllTruckSuggestions}
-						on:blur={() => setTimeout(() => showTruckSuggestions = false, 100)}
+						label="Select the Truck Registration"
+						isSelect={true}
+						options={availableTrucks.map((truck) => ({ value: truck.registration, label: truck.registration }))} 
+						bind:value={selectedTruck}
+						placeholder="Select Truck Registration"
 						required
-						class="w-full rounded-lg text-sm border px-3 py-2 text-gray border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none"
 					/>
-					{#if showTruckSuggestions}
-						<ul class="suggestions-list">
-							{#each filteredTruckSuggestions as suggestion, i}
-								<li>
-									<button
-										type="button"
-										on:click={() => {
-											truckInput = suggestion.registration;
-											showTruckSuggestions = false;
-											selectedTruck = suggestion;
-										}}
-									>
-										{suggestion.registration}
-									</button>
-								</li>
-							{/each}
-						</ul>
-					{/if}
-					{#if showTruckNotFound}
-						<div class="text-red-500 mt-1">No matching trucks found.</div>
-					{/if}
 				</div>
 
 				<FormField
@@ -184,48 +118,4 @@
 		margin-top: 1rem;
 		position: relative;
 	}
-	.form #truckRegistration {
-		min-height: 40px;
-	}
-
-	.suggestions-list {
-		border: 1px solid #ccc;
-		background: #fff;
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		max-height: 150px;
-		overflow-y: auto;
-		position: absolute;
-		z-index: 10;
-		width: 100%;
-	}
-
-	.suggestions-list li:nth-child(even) {
-		background: #f6f8fa;
-	}
-	.suggestions-list li:nth-child(odd) {
-		background: #fff;
-	}
-
-	.suggestions-list button {
-		width: 100%;
-		text-align: left;
-		padding: 0.5rem;
-		background: transparent;
-		border: none;
-		cursor: pointer;
-		color: #222;
-		transition: background 0.2s;
-	}
-
-	.suggestions-list button:hover {
-		background: #2563eb;
-		color: #fff;
-	}
-
-	.suggestions-list li {
-		padding: 0;
-	}
-
 </style>

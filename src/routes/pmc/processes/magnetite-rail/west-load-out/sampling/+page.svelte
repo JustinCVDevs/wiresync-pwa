@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import FormField from '$lib/components/FormField.svelte';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
@@ -7,20 +6,13 @@
 	import { formPersistenceService } from '$lib/services/formPersistenceService';
 	import type { Assay } from '$lib/types/assay';
 	import type { Wagon } from '$lib/types/wagon';
-	import { pocketbaseService } from '$lib/services/pocketbaseService';
 	import { syncService } from '$lib/services/syncService';
-
-	interface Consignment {
-		name: string;
-	}
 
 	let sampleId = '';
 	let wagonId = '';
 	let trainNumber = '';
 	let productGrade = '';
-	let consignment = '';
 	let loadingLocation = 'West Load Out';
-	let consignments: Consignment[] = [];
 	let isSubmitting = false;
 	let currentStep = 1;
 
@@ -42,47 +34,23 @@
 		trainNumber: ''
 	};
 
-	const productGrades = ['Iron Oxide', 'Magnetite-DMS', 'Mag-62', 'Mag-65'];
+	$: {
+		const currentDate = new Date();
+		const YYMMDD = `${currentDate.getFullYear().toString().slice(-2)}${String(currentDate.getMonth() + 1).padStart(2, '0')}${String(currentDate.getDate()).padStart(2, '0')}`;
+
+		const productCode = {
+			'Iron Oxide': 'IOX',
+			'Magnetite-DMS': 'DMS',
+			'Magnetite-62%': 'MAG62',
+			'Magnetite-65%': 'MAG65'
+		}[productGrade];
+
+		sampleId = `${YYMMDD}${wagonId ? `_${wagonId}` : ''}${trainNumber ? `_${trainNumber}` : ''}${productCode ? `_${productCode}` : ''}`;
+	}
+
+	const productGrades = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite-62%', 'Magnetite-65%'];
 
 	const loadingLocations = ['East Load Out', 'West Load Out', 'Bosveld'];
-
-	onMount(async () => {
-		consignments = await indexedDBService.getRecords(
-			  'consignments', )
-
-		// Load persisted form data
-		loadPersistedData();
-	});
-
-	// Save form data when component is unmounted
-	onMount(() => {
-		return () => {
-			if (sampleId || productGrade || consignment) {
-				formPersistenceService.saveForm('west_loadout', {
-					sampleId,
-					productGrade,
-					consignment,
-					loadingLocation
-				});
-			}
-		};
-	});
-
-	function loadPersistedData() {
-		const savedData = formPersistenceService.loadForm<{
-			sampleId: string;
-			productGrade: string;
-			loadingLocation: string;
-			trainNumber: string;
-		}>('west_loadout');
-
-		if (savedData) {
-			sampleId = savedData.sampleId || '';
-			trainNumber = savedData.trainNumber || '';
-			productGrade = savedData.productGrade || '';
-			loadingLocation = savedData.loadingLocation || 'West Load Out';
-		}
-	}
 
 	function validateForm() {
 		let isValid = true;
@@ -137,7 +105,7 @@
 			//Create the wagon object
 			const wagon: Wagon = {
 				id: crypto.randomUUID(),
-				transcoreTag: wagonId,
+				wagonId: wagonId,
 				trainNumber: trainNumber,
 				loadingLocation: loadingLocation,
 				created: new Date(),
@@ -152,8 +120,8 @@
 			await syncService.syncWagon(wagon);
 
 			let allWagons = await indexedDBService.getAllRecords('wagons');
-			const foundWagon = allWagons.find((w) => w.transcoreTag === wagonId);
-
+			const foundWagon = allWagons.find((w) => w.wagonId === wagonId);
+			console.log('Found Wagon:', foundWagon);
 			// Create the assay object according to the Assay interface
 			const assay: Assay = {
 				id: crypto.randomUUID(),
@@ -163,8 +131,7 @@
 				location: loadingLocation,
 				created: new Date(),
 				updated: new Date().toISOString(),
-				linkedTruckIds: [],
-				linkedWagonIds: [foundWagon?.id || ''],
+				linkedWagonIds: [foundWagon?.serverId || ''],
 				syncStatus: 'pending',
 				process: 'West Loadout',
 				siteLocation: 'PMC',
@@ -246,17 +213,6 @@
 	</div>	
 	<div class="form">	
 		<FormField
-			id="consignment"
-			label="Consignment Number (Optional)"
-			bind:value={consignment}
-			placeholder="Select Consignment"
-			isSelect={true}
-			options={consignments.map((con) => ({ value: con.name, label: con.name }))}
-			error={formErrors.consignment}
-		/>
-	</div>	
-	<div class="form">	
-		<FormField
 			id="loadingLocation"
 			label="Loading Location"
 			bind:value={loadingLocation}
@@ -273,6 +229,7 @@
 			bind:value={sampleId}
 			placeholder="Enter Sample ID"
 			required={true}
+			disabled={true}
 			error={formErrors.sampleId}
 		/>
 	</div>
