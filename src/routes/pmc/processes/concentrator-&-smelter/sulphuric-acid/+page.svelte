@@ -183,7 +183,7 @@
 			label="Truck Registration"
 			bind:value={truckRegistration}
 			placeholder="Select Truck Registration"
-			isSelect={true}
+			search={true}
 			options={availableTrucks.map((truck) => ({ value: truck.registration, label: truck.registration  }))}
 			required={true}
 			error={formErrors.tankLocation}

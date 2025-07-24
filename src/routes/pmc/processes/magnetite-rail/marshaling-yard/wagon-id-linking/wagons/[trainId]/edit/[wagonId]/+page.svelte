@@ -22,7 +22,7 @@
 	let editableWagonId = '';
 	let editableTemporaryRfid = '';
 
-	const steps = ['Select Shunting Train', 'Wagon ID/RFID Linking', 'Complete'];
+	const steps = ['Select Shunting Train', 'Wagon ID/RFID Editing'];
 	let currentStep = 2;
 
 	// Wrap reactive statements in try-catch to prevent exceptions

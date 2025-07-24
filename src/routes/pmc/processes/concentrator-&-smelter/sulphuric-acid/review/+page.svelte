@@ -38,7 +38,7 @@
 		processLayout.setSuccess('Data saved successfully');
 
 		setTimeout(() => {
-			goto('/pmc/processes/concentrator-&-smelter');
+			goto('/pmc/processes/concentrator-&-smelter/sulphuric-acid');
 		}, 1000);
 	}
 
@@ -51,7 +51,7 @@
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
 	bind:this={processLayout}
-	cancelPath="/pmc/processes/concentrator-&-smelter/copper-concentrate"
+	cancelPath="/pmc/processes/concentrator-&-smelter"
 >
 	<div class="p-4">
     <h5 class="text-gray text-center text-xl font-bold">Truck Review</h5>

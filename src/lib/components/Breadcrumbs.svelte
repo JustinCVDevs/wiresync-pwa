@@ -15,7 +15,7 @@
         const segments = $page.url.pathname.split('/').filter(Boolean);
         const excludeCrumbs = ['sampling', 'verification', 'fel operations', 'locations', 'wagons'];
 
-        // Regular expression to match IDs
+
         const idPattern = /^[a-zA-Z0-9]{10,}$/;
 
         // Do not show breadcrumbs if "complete" is in the URL

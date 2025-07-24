@@ -12,7 +12,7 @@
 	let success = '';
 	let isLoading = true;
 
-	const steps = ['Select Shunting Train', 'Wagon Linking', 'Complete'];
+	const steps = ['Select Shunting Train', 'Wagon Linking'];
 	let currentStep = 1;
 
 	async function loadShuntingTrains() {
@@ -70,7 +70,7 @@
 	}
 
 	function handleCancel() {
-		goto('/pmc/processes/magnetite-rail/marshaling-yard');
+		goto('/pmc/processes');
 	}
 </script>
 
@@ -79,7 +79,7 @@
 	{steps}
 	{currentStep}
 	isSubmitting={isLoading}
-	cancelPath="/pmc/processes/magnetite-rail/marshaling-yard"
+	cancelPath="/pmc/processes"
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
 	on:error={({ detail }) => (error = detail)}

@@ -22,6 +22,7 @@
 
 	onMount(async () => {
 		availableTrucks = await getTrucks();
+		console.log('Available Trucks:', availableTrucks);
 	});
 
 	async function getTrucks() {
@@ -60,7 +61,8 @@
 				);
 			}
 
-			return filteredTrucks;
+			// Sort the filtered trucks alphabetically by registration
+			return filteredTrucks.sort((a, b) => a.registration.localeCompare(b.registration));
 		} catch (error) {
 			console.error('No trucks available', error);
 			return [];
@@ -82,6 +84,10 @@
 
                 const truck = availableTrucks.find(truck => truck.registration === selectedTruck);
 
+                if (!truck) {
+                    throw new Error(`Truck with registration "${selectedTruck}" not found.`);
+                }
+
                 truck.dedicatedFleet = true;
                 truck.loadingLocation = loadingLocation;
                 truck.felWeight = Number(felWeight);
@@ -90,8 +96,9 @@
 
                 await indexedDBService.updateRecord('trucks', truck.id, truck);
 
-                await indexedDBService.updateRecord('fleet', fleet.id ?? '', {
+                await indexedDBService.updateRecord('fleet', fleet?.id ?? '', {
                     loadingLocation: loadingLocation,
+                    syncStatus: 'pending',
                     felMassKg: Number(felWeight),
                 });
 
@@ -104,6 +111,10 @@
 
             if (selectedTruck) {
                 const truck = availableTrucks.find(truck => truck.registration === selectedTruck);
+
+                if (!truck) {
+                    throw new Error(`Truck with registration "${selectedTruck}" not found.`);
+                }
 
                 truck.dedicatedFleet = false;
                 truck.loadingLocation = loadingLocation;
@@ -125,7 +136,7 @@
 }
 	  let currentStep = 1;
 	  function handleCancel() {
-		  goto('/pmc/processes/magnetite-road/gravelotte');
+		  goto('/pmc/processes');
 	  }
 
 	$: if (dedicatedFleet !== '') {
@@ -140,7 +151,7 @@
 	{currentStep}
 	isSubmitting={false}
 	bind:this={processLayout}
-	cancelPath="/pmc/processes/magnetite-road/gravelotte"
+	cancelPath="/pmc/processes"
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
 	on:error={({ detail }) => (error = detail)}
@@ -164,11 +175,8 @@
 						<FormField
 							id="truckRegistration"
 							label="Truck Registration"
-							isSelect={true}
-							options={availableTrucks.map(truck => ({
-								value: truck.registration,
-								label: truck.registration
-							}))}
+							search={true}
+							options={availableTrucks.map(truck => ({value: truck.registration, label: truck.registration}))}
 							bind:value={selectedTruck}
 							placeholder="Select Truck Registration"
 							required
@@ -199,11 +207,8 @@
 						<FormField
 							id="truckRegistration"
 							label="Truck Registration"
-							isSelect={true}
-							options={availableTrucks.map(truck => ({
-								value: truck.registration,
-								label: truck.registration
-							}))}
+							search={true}
+							options={availableTrucks.map(truck => ({value: truck.registration, label: truck.registration}))}
 							bind:value={selectedTruck}
 							placeholder="Select Truck Registration"
 							required

@@ -12,9 +12,6 @@
 
 	let truckInput = '';
 	let availableTrucks: any[] = [];
-	let filteredTruckSuggestions: any[] = [];
-	let showTruckSuggestions = false;
-	let showTruckNotFound = false;
 	let selectedTruck: any = '';
 
 	const steps = [
@@ -29,9 +26,11 @@
 	async function getTrucks() {
 		try {
 			const allTrucks = (await indexedDBService.getAllRecords('trucks')).filter(
-				truck => truck.loadingLocation === 'Unrefined Copper' && !truck.updated
+				truck => truck.loadingLocation === 'Unrefined Copper'
 			);
-			return allTrucks;
+
+			// Sort the filtered trucks alphabetically by registration
+			return allTrucks.sort((a, b) => a.registration.localeCompare(b.registration));
 		} catch (error) {
 			console.error('No trucks available', error);
 			return [];
@@ -43,16 +42,20 @@
 			processLayout.setError('');
 			processLayout.setSuccess('');
 			if (selectedTruck) {
-				selectedTruck.updated = new Date().toISOString();
-				selectedTruck.felWeight = Number(felWeight);
-				selectedTruck.syncStatus = 'pending';
+				const truck = availableTrucks.find(truck => truck.registration === selectedTruck.registration);
+				if (!truck) {
+					throw new Error(`Truck with registration "${selectedTruck.registration}" not found.`);
+				}
 
-				await indexedDBService.updateRecord('trucks', selectedTruck.id, selectedTruck);
+				truck.updated = new Date().toISOString();
+				truck.felWeight = Number(felWeight);
+				truck.syncStatus = 'pending';
+
+				await indexedDBService.updateRecord('trucks', truck.id, truck);
+
+				goto(`/pmc/processes/concentrator-&-smelter/unrefined-copper/fel-operations/verification?truckRegistration=${encodeURIComponent(truck.registration || '')}`);
 			}
-
-			formPersistenceService.clearForm('fel-operations-unrefined-copper');
-
-			goto(`/pmc/processes/concentrator-&-smelter/unrefined-copper/fel-operations/verification?truckRegistration=${encodeURIComponent(selectedTruck?.registration || '')}`);
+			formPersistenceService.clearForm('fel-operations-unrefined-copper');	
 		} catch (err) {
 			error = 'Failed to submit data';
 			console.error(err);
@@ -60,7 +63,7 @@
 	  }
 	  let currentStep = 1;
 	  function handleCancel() {
-		  goto('/pmc/processes/concentrator-&-smelter/unrefined-copper');
+		  goto('/pmc/processes/concentrator-&-smelter');
 	  }
 
 	$: if (truckInput !== '') {
@@ -75,7 +78,7 @@
     {currentStep}
     isSubmitting={false}
     bind:this={processLayout}
-    cancelPath="/pmc/processes/concentrator-&-smelter/unrefined-copper"
+    cancelPath="/pmc/processes/concentrator-&-smelter"
     on:cancel={handleCancel}
     on:submit={handleSubmit}
     on:error={({ detail }) => (error = detail)}
@@ -94,8 +97,8 @@
 					<FormField
 						id="truckRegistration"
 						label="Select the Truck Registration"
-						isSelect={true}
-						options={[]} 
+						search={true}
+						options={availableTrucks.map((truck) => ({ value: truck.registration, label: truck.registration }))} 
 						bind:value={selectedTruck}
 						placeholder="Select Truck Registration"
 						required
