@@ -27,7 +27,7 @@
 	let processLayout: ProcessLayout;
 
 	function handleCancel() {
-		goto('/pmc/processes/magnetite-rail/west-load-out');
+		goto('/pmc/processes');
 	}
 	// Form errors
 	let formErrors = {
@@ -95,10 +95,8 @@
 	async function getWagons() {
 		try {
 			const wagons = (await indexedDBService.getAllRecords('wagons')).filter((w) => {
-				const notUpdated = !w.updated;
 				return (
-					w.loadingLocation === 'West Load Out' &&
-					notUpdated
+					w.loadingLocation === 'West Load Out'
 				);
 			});
 
@@ -165,7 +163,7 @@
 				selectedWagon.loadingLocation = loadingLocation;
 				selectedWagon.felWeight = felWeight;
 				selectedWagon.syncStatus = 'pending';
-				//selectedWagon.updated = new Date().toISOString();
+				selectedWagon.updated = new Date().toISOString();
 
 				await indexedDBService.updateRecord('wagons', selectedWagon.id, selectedWagon);
 			}
@@ -193,7 +191,7 @@
 	{currentStep}
 	{isSubmitting}
 	bind:this={processLayout}
-	cancelPath="/pmc/processes/magnetite-rail/west-load-out"
+	cancelPath="/pmc/processes"
 	on:submit={handleSubmit}
 	on:cancel={handleCancel}
 >

@@ -9,6 +9,7 @@
   
 	let dedicatedFleet = '';
 	let isDedicatedFleet = false;
+	let currentStep = 1;
 
 	let felWeight = '';
 	let loadingLocation = 'West Load Out';
@@ -16,12 +17,17 @@
 	let processLayout: ProcessLayout;
 
 	let availableTrucks: any[] = [];
+	let filteredTrucks: any[] = [];
 	let selectedTruck: any = '';
+	let searchQuery = ''; // Search query for filtering trucks
+	let showSearch = false; // Control the visibility of the search box
+	let showDropdown = false; // Control the visibility of the custom dropdown
 
-	const steps = ["FEL Details", "Complete"]
+	const steps = ["FEL Details", "Complete"];
 
 	onMount(async () => {
 		availableTrucks = await getTrucks();
+		filteredTrucks = availableTrucks; // Initialize filtered trucks
 	});
 
 	async function getTrucks() {
@@ -83,6 +89,10 @@
 
                 const truck = availableTrucks.find(truck => truck.registration === selectedTruck);
 
+                if (!truck) {
+                    throw new Error(`Truck with registration "${selectedTruck}" not found.`);
+                }
+
                 truck.dedicatedFleet = true;
                 truck.loadingLocation = loadingLocation;
                 truck.felWeight = Number(felWeight);
@@ -91,8 +101,9 @@
 
                 await indexedDBService.updateRecord('trucks', truck.id, truck);
 
-                await indexedDBService.updateRecord('fleet', fleet.id ?? '', {
+                await indexedDBService.updateRecord('fleet', fleet?.id ?? '', {
                     loadingLocation: loadingLocation,
+                    syncStatus: 'pending',
                     felMassKg: Number(felWeight),
                 });
 
@@ -105,6 +116,10 @@
 
             if (selectedTruck) {
                 const truck = availableTrucks.find(truck => truck.registration === selectedTruck);
+
+                if (!truck) {
+                    throw new Error(`Truck with registration "${selectedTruck}" not found.`);
+                }
 
                 truck.dedicatedFleet = false;
                 truck.loadingLocation = loadingLocation;
@@ -124,15 +139,22 @@
         console.error(err);
     }
 }
-	  let currentStep = 1;
+	  
 	  function handleCancel() {
-		  goto('/pmc/processes/magnetite-road/west-load-out');
+		  goto('/pmc/processes');
 	  }
 
 	$: if (dedicatedFleet !== '') {
 		(async () => {
 			availableTrucks = await getTrucks();
 		})();
+	}
+
+	// Reactive statement to filter trucks based on the search query
+	$: {
+		filteredTrucks = availableTrucks.filter(truck =>
+			truck.registration.toLowerCase().includes(searchQuery.toLowerCase())
+		);
 	}
 </script>
 	<ProcessLayout
@@ -141,7 +163,7 @@
 	{currentStep}
 	isSubmitting={false}
 	bind:this={processLayout}
-	cancelPath="/pmc/processes/magnetite-road/west-load-out"
+	cancelPath="/pmc/processes"
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
 	on:error={({ detail }) => (error = detail)}
@@ -165,11 +187,13 @@
 						<FormField
 							id="truckRegistration"
 							label="Truck Registration"
-							isSelect={true}
-							options={availableTrucks.map(truck => ({value: truck.registration, label: truck.registration}))}
+							search={true}
+							options={filteredTrucks.map(truck => ({ value: truck.registration, label: truck.registration }))}
 							bind:value={selectedTruck}
 							placeholder="Select Truck Registration"
 							required
+							on:focus={() => showSearch = true}
+							on:blur={() => setTimeout(() => (showSearch = false), 200)}
 						/>
 
 						<FormField
@@ -197,11 +221,8 @@
 						<FormField
 							id="truckRegistration"
 							label="Truck Registration"
-							isSelect={true}
-							options={availableTrucks.map(truck => ({
-								value: truck.registration,
-								label: truck.registration
-							}))}
+							search={true}
+							options={availableTrucks.map(truck => ({value: truck.registration, label: truck.registration}))}
 							bind:value={selectedTruck}
 							placeholder="Select Truck Registration"
 							required
@@ -232,6 +253,7 @@
 				{/if}
 			
 	</ProcessLayout>
+
 <style>
-	
+    
 </style>

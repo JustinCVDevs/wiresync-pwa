@@ -15,7 +15,7 @@
 	let isLoading = true;
 	let trainId: string;
 
-	const steps = ['Select Shunting Train', 'Wagon Linking', 'Complete'];
+	const steps = ['Select Shunting Train', 'Wagon Linking'];
 	let currentStep = 2;
 
 	$: trainId = $page.params.trainId;
@@ -127,8 +127,8 @@
 	{steps}
 	{currentStep}
 	isSubmitting={isLoading}
-	cancelPath="/pmc/processes/magnetite-rail/marshaling-yard/wagon-id-linking"
-	on:cancel={() => goto('/pmc/processes/magnetite-rail/marshaling-yard/wagon-id-linking')}
+	cancelPath="/pmc/processes"
+	on:cancel={() => goto('/pmc/processes')}
 	on:submit={handleSubmit}
 	on:error={({ detail }) => (error = detail)}
 	on:success={({ detail }) => (success = detail)}

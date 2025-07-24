@@ -39,16 +39,21 @@
 			processLayout.setError('');
 			processLayout.setSuccess('');
 			if (selectedTruck) {
-				selectedTruck.updated = new Date().toISOString();
-				selectedTruck.felWeight = Number(felWeight);
-				selectedTruck.syncStatus = 'pending';
+				const truck = availableTrucks.find(truck => truck.registration === selectedTruck);
 
-				await indexedDBService.updateRecord('trucks', selectedTruck.id, selectedTruck);
+				if (!truck) {
+					throw new Error(`Truck with registration "${selectedTruck}" not found.`);
+				}
+
+				truck.updated = new Date().toISOString();
+				truck.felWeight = Number(felWeight);
+				truck.syncStatus = 'pending';
+
+				await indexedDBService.updateRecord('trucks', truck.id, truck);
+
+				goto(`/pmc/processes/concentrator-&-smelter/copper-concentrate/hg-concentrate/fel-operations/verification?truckRegistration=${encodeURIComponent(truck?.registration || '')}`);
 			}
-
 			formPersistenceService.clearForm('fel-operations-hg-concentrate');
-
-			goto(`/pmc/processes/concentrator-&-smelter/copper-concentrate/hg-concentrate/fel-operations/verification?truckRegistration=${encodeURIComponent(selectedTruck?.registration || '')}`);
 		} catch (err) {
 			error = 'Failed to submit data';
 			console.error(err);
@@ -56,7 +61,7 @@
 	  }
 	  let currentStep = 1;
 	  function handleCancel() {
-		  goto('/pmc/processes/concentrator-&-smelter/copper-concentrate/hg-concentrate');
+		  goto('/pmc/processes/concentrator-&-smelter');
 	  }
 
 	$: if (truckInput !== '') {
@@ -71,7 +76,7 @@
     {currentStep}
     isSubmitting={false}
     bind:this={processLayout}
-    cancelPath="/pmc/processes/concentrator-&-smelter/copper-concentrate/hg-concentrate"
+    cancelPath="/pmc/processes/concentrator-&-smelter"
     on:cancel={handleCancel}
     on:submit={handleSubmit}
     on:error={({ detail }) => (error = detail)}
@@ -90,7 +95,7 @@
 					<FormField
 						id="truckRegistration"
 						label="Select the Truck Registration"
-						isSelect={true}
+						search={true}
 						options={availableTrucks.map(truck => ({value: truck.registration, label: truck.registration}))} 
 						bind:value={selectedTruck}
 						placeholder="Select Truck Registration"

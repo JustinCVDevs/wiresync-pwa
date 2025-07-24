@@ -7,7 +7,7 @@
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import type { TrainDispatch } from '$lib/types/trainDispatch';
 	import type { Consignment, Train, Wagon } from '$lib';
-	import { ArrowDownToDotIcon, Container, Plane, PlusCircle } from 'lucide-svelte';
+	import { Container } from 'lucide-svelte';
   
 	let dispatchId = '';
 	$: dispatchId = $page.url.searchParams.get('dispatchId') || '';
@@ -17,12 +17,9 @@
 	let error = '';
 	let success = '';
 	let isLoading = true;
+	let processLayout: ProcessLayout;
   
-	const steps = [
-	  'Train & Consignment',
-	  'Wagon Linkage',
-	  'Complete',
-	];
+	const steps = ['Train & Consignment', 'Wagon Linkage'];
 	let currentStep = 2;
 	let train : Train | undefined;
 	let consignment : Consignment | undefined;
@@ -102,7 +99,11 @@
 	}
   
 	function handleReview() {
-	  goto(`/pmc/processes/complete`);
+		processLayout.setSuccess('Wagon linkage completed');
+
+		setTimeout(() => {
+			goto(`/pmc/processes/magnetite-rail/marshaling-yard/marshaling-dispatch`);
+		}, 1000);
 	}
 
   </script>
@@ -110,9 +111,10 @@
 	title="Wagon Linkage"
 	{steps}
 	{currentStep}
+	bind:this={processLayout}
 	isSubmitting={isLoading}
-	cancelPath="/pmc/processes/magnetite-rail/marshaling-yard/marshaling-dispatch"
-	on:cancel={() => goto('/pmc/processes/magnetite-rail/marshaling-yard/marshaling-dispatch')}
+	cancelPath="/pmc/processes"
+	on:cancel={() => goto('/pmc/processes')}
 	on:submit={handleReview}
   >
 	{#if error}

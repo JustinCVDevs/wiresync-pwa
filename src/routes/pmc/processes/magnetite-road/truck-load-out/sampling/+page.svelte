@@ -12,7 +12,7 @@
 	let isDedicatedFleet = false;
 
 	let truckRegistration = '';
-	let productType = '';
+	let productType = localStorage.getItem('truck-productType') || '';
 	let sampleId = '';
 	let loadingLocation = 'Truck Load Out';
 	let loadingTime = '';
@@ -23,6 +23,7 @@
 
 	let sampleNumber = 1;
 	let trucks: Truck[] = [];
+	let productTypes = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite-62%', 'Magnetite-65%'];
 
 	// Function to get or reset the sample number for the day
 	function getSampleNumber() {
@@ -82,12 +83,19 @@
         }
     }
 
-	const productTypes = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite-62%', 'Magnetite-65%'];
+	$: {
+		productTypes = dedicatedFleet === 'No'
+            ? ['Magnetite-DMS', 'Magnetite-62%', 'Magnetite-65%']
+            : ['Iron Oxide', 'Magnetite-DMS', 'Magnetite-62%', 'Magnetite-65%'];
+	}
 
 	async function handleSubmit() {
 		try {
 			processLayout.setError('');
 			processLayout.setSuccess('');
+
+			// Save the selected productType to localStorage
+			localStorage.setItem('truck-productType', productType);
 
 			if (dedicatedFleet === 'Yes') {
 				isDedicatedFleet = true;
@@ -199,7 +207,7 @@
 	  }
 	  let currentStep = 1;
 	  function handleCancel() {
-		  goto('/pmc/processes/magnetite-road/truck-load-out');
+		  goto('/pmc/processes');
 	  }
 
   </script>
@@ -209,7 +217,7 @@
   {currentStep}
   isSubmitting={false}
   bind:this={processLayout}
-  cancelPath="/pmc/processes/magnetite-road/truck-load-out"
+  cancelPath="/pmc/processes"
   on:cancel={handleCancel}
   on:submit={handleSubmit}
   on:error={({ detail }) => (error = detail)}
@@ -235,7 +243,7 @@
 						<FormField
 							id="truckRegistration"
 							label="Select the Truck Registration"
-							isSelect={true}
+							search={true}
 							options={trucks.map((truck) => ({ value: truck.registration, label: truck.registration }))}
 							bind:value={truckRegistration}
 							placeholder="Select Truck Registration"
@@ -279,7 +287,7 @@
 						<FormField
 							id="truckRegistration"
 							label="Select the Truck Registration"
-							isSelect={true}
+							search={true}
 							options={trucks.map((truck) => ({ value: truck.registration, label: truck.registration }))}
 							bind:value={truckRegistration}
 							placeholder="Select Truck Registration"

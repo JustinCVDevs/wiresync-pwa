@@ -42,14 +42,14 @@
 	}
 
 	function handleCancel() {
-		goto('/pmc/processes/magnetite-road/gravelotte');
+		goto('/pmc/processes');
 	}
 
 	function handleSubmit() {
 		processLayout.setSuccess('Data saved successfully');
 
 		setTimeout(() => {
-			goto('/pmc/processes/magnetite-road/gravelotte');
+			goto('/pmc/processes/magnetite-road/gravelotte/sampling');
 		}, 1000);
 	}
 
@@ -62,7 +62,7 @@
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
 	bind:this={processLayout}
-	cancelPath="/pmc/processes/magnetite-road/gravelotte"
+	cancelPath="/pmc/processes"
 >
 <!-- t -->
 

@@ -24,7 +24,7 @@
 	let processLayout: ProcessLayout;
 
 	function handleCancel() {
-		goto('/pmc/processes/magnetite-rail/east-load-out');
+		goto('/pmc/processes');
 	}
 	// Form errors
 	let formErrors = {
@@ -181,7 +181,7 @@
 	{currentStep}
 	{isSubmitting}
 	bind:this={processLayout}
-	cancelPath="/pmc/processes/magnetite-rail/east-load-out"
+	cancelPath="/pmc/processes"
 	on:submit={handleSubmit}
 	on:cancel={handleCancel}
 >

@@ -87,7 +87,7 @@
 	}
 	let currentStep = 1;
 	function handleCancel() {
-		goto('/pmc/processes/concentrator-&-smelter/copper-concentrate/hg-concentrate');
+		goto('/pmc/processes/concentrator-&-smelter');
 	}
 </script>
 <ProcessLayout
@@ -96,7 +96,7 @@
   {currentStep}
   isSubmitting={false}
   bind:this={processLayout}
-  cancelPath="/pmc/processes/concentrator-&-smelter/copper-concentrate/hg-concentrate"
+  cancelPath="/pmc/processes/concentrator-&-smelter"
   on:cancel={handleCancel}
   on:submit={handleSubmit}
   on:error={({ detail }) => (error = detail)}
@@ -117,7 +117,7 @@
 			<FormField
 				id="truckRegistration"
 				label="Select the Truck Registration"
-				isSelect={true}
+				search={true}
 				options={trucks.map((truck) => ({ value: truck.registration, label: truck.registration }))} 
 				bind:value={truckRegistration}
 				placeholder="Select Truck Registration"
