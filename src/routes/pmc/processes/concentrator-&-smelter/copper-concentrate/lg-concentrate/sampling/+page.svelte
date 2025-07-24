@@ -83,7 +83,7 @@
 	}
 	let currentStep = 1;
 	function handleCancel() {
-		goto('/pmc/processes/concentrator-&-smelter/copper-concentrate');
+		goto('/pmc/processes/concentrator-&-smelter/copper-concentrate/lg-concentrate');
 	}
 </script>
 <ProcessLayout
@@ -92,7 +92,7 @@
   {currentStep}
   isSubmitting={false}
   bind:this={processLayout}
-  cancelPath="/pmc/processes/concentrator-&-smelter/copper-concentrate"
+  cancelPath="/pmc/processes/concentrator-&-smelter/copper-concentrate/lg-concentrate"
   on:cancel={handleCancel}
   on:submit={handleSubmit}
   on:error={({ detail }) => (error = detail)}

@@ -218,14 +218,17 @@
 			/>
 			{#if dedicatedFleet}
 		  		{#if dedicatedFleet === 'No'}
-		  			<FormField
-						id="truckRegistration"
-						label="Select the Truck Registration"
-						type="text"
-						bind:value={truckRegistration}
-						placeholder="Select Truck Registration"
-						required
-					/>
+		  			<div class='form-field'>
+						<FormField
+							id="truckRegistration"
+							label="Select the Truck Registration"
+							isSelect={true}
+							options={[]} 
+							bind:value={truckRegistration}
+							placeholder="Select Truck Registration"
+							required
+						/>
+					</div>
 
 					<FormField
 						id="productType"
@@ -259,14 +262,17 @@
 						required
 					/>
 				{:else}
-					<FormField
-						id="truckRegistration"
-						label="Select the Truck Registration"
-						type="text"
-						bind:value={truckRegistration}
-						placeholder="Select Truck Registration"
-						required
-					/>
+					<div class='form-field'>
+						<FormField
+							id="truckRegistration"
+							label="Select the Truck Registration"
+							isSelect={true}
+							options={[]} 
+							bind:value={truckRegistration}
+							placeholder="Select Truck Registration"
+							required
+						/>
+					</div>
 
 					<FormField
 						id="productType"

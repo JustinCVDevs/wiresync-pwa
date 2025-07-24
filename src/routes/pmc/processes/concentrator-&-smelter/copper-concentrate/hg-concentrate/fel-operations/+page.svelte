@@ -15,7 +15,7 @@
 	let filteredTruckSuggestions: any[] = [];
 	let showTruckSuggestions = false;
 	let showTruckNotFound = false;
-	let selectedTruck: any = null;
+	let selectedTruck: any = '';
 
 	const steps = [
 		"FEL Details",
@@ -98,7 +98,7 @@
 	  }
 	  let currentStep = 1;
 	  function handleCancel() {
-		  goto('/pmc/processes/concentrator-&-smelter/copper-concentrate');
+		  goto('/pmc/processes/concentrator-&-smelter/copper-concentrate/hg-concentrate');
 	  }
 
 	$: if (truckInput !== '') {
@@ -113,7 +113,7 @@
     {currentStep}
     isSubmitting={false}
     bind:this={processLayout}
-    cancelPath="/pmc/processes/concentrator-&-smelter/copper-concentrate"
+    cancelPath="/pmc/processes/concentrator-&-smelter/copper-concentrate/hg-concentrate"
     on:cancel={handleCancel}
     on:submit={handleSubmit}
     on:error={({ detail }) => (error = detail)}
