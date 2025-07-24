@@ -2,13 +2,12 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import FormField from '$lib/components/FormField.svelte';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Assay } from '$lib/types/assay';
 	import type { Wagon } from '$lib/types/wagon';
-	import { ScanBarcode, WashingMachine } from 'lucide-svelte';
 
+	let processLayout: ProcessLayout;
 	const sampleId = $page.url.searchParams.get('sampleId') || '';
 	const wagonId = $page.url.searchParams.get('wagonId') || '';
 	let assay: Assay | null = null;
@@ -35,7 +34,7 @@
 	async function loadWagonData() {
 		if (wagonId) {
 			const result = (await indexedDBService.getAllRecords('wagons')).filter(
-				(w) => w.transcoreTag === wagonId
+				(w) => w.wagonId === wagonId
 			)[0];
 			wagon = result ?? null;
 		}
@@ -46,28 +45,31 @@
 	}
 
 	function handleSubmit() {
-		goto('/bosveld/processes/complete');
+		processLayout.setSuccess('Data saved successfully');
+
+		setTimeout(() => {
+			goto('/bosveld/processes/loading-station');
+		}, 1000);
 	}
 
 </script>
 
 <ProcessLayout
-	title="Sample Details Verification"
+	title="  Sample Details Verification"
 	steps={processSteps}
 	{currentStep}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
 	cancelPath="/bosveld/processes/loading-station"
+	bind:this={processLayout}
 >
-<!-- t -->
-
 	<div class="space-y-4">
 		{#if assay && wagon}
 			<div class="bg-white p-4 rounded-lg shadow-sm">
-				<div class="grid grid-cols-1 gap-4">
+				<div class="grid grid-cols-2 gap-4">
 					<div>
 						<p class="text-sm text-gray-500 font-bold">Wagon ID</p>
-						<p class="font-medium">{wagon.transcoreTag}</p>
+						<p class="font-medium">{wagon.wagonId}</p>
 					</div>
 
 					<div>
@@ -76,8 +78,8 @@
 					</div>
 
 					<div>
-						<p class="text-sm text-gray-500 font-bold">Sample ID</p>
-						<p class="font-medium">{assay.name}</p>
+						<p class="text-sm text-gray-500 font-bold">Train Number</p>
+						<p class="font-medium">{wagon.trainNumber}</p>
 					</div>
 					
 					<div>
@@ -86,8 +88,8 @@
 					</div>
 
 					<div>
-						<p class="text-sm text-gray-500 font-bold">Train Number</p>
-						<p class="font-medium">{wagon.trainNumber}</p>
+						<p class="text-sm text-gray-500 font-bold">Sample ID</p>
+						<p class="font-medium">{assay.name}</p>
 					</div>
 				</div>
 			</div>

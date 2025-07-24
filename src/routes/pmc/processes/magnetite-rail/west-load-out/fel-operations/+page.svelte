@@ -33,7 +33,6 @@
 	let formErrors = {
 		sampleId: '',
 		productGrade: '',
-		consignment: '',
 		wagonId: '',
 		felWeight: '',
 	};
@@ -72,7 +71,6 @@
 		formErrors = {
 			sampleId: '',
 			productGrade: '',
-			consignment: '',
 			wagonId: '',
 			felWeight: '',
 		};
@@ -95,10 +93,8 @@
 	async function getWagons() {
 		try {
 			const wagons = (await indexedDBService.getAllRecords('wagons')).filter((w) => {
-				const notUpdated = !w.updated;
 				return (
-					w.loadingLocation === 'West Load Out' &&
-					notUpdated
+					w.loadingLocation === 'West Load Out'
 				);
 			});
 
@@ -165,7 +161,7 @@
 				selectedWagon.loadingLocation = loadingLocation;
 				selectedWagon.felWeight = felWeight;
 				selectedWagon.syncStatus = 'pending';
-				//selectedWagon.updated = new Date().toISOString();
+				selectedWagon.updated = new Date().toISOString();
 
 				await indexedDBService.updateRecord('wagons', selectedWagon.id, selectedWagon);
 			}
@@ -204,12 +200,12 @@
 
 <div class="container">
 	<div class="form">
-		<label for="wagonId" class="block font-medium text-gray text-sm">Please enter Wagon ID *</label>
+		<label for="wagonId" class="block font-medium text-gray text-sm">Please select Wagon ID *</label>
 		<input
 			id="wagonId"
 			type="text"
 			bind:value={wagonInput}
-			placeholder="Enter Wagon ID"
+			placeholder="Select Wagon ID"
 			on:input={handleWagonInput}
 			on:focus={showAllSuggestions}
 			on:blur={() => setTimeout(() => showSuggestions = false, 100)}
