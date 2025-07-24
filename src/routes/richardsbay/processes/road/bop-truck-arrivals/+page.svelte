@@ -27,7 +27,7 @@
 
 	onMount(async () => {
 		availableTrucks = (await indexedDBService.getAllRecords('trucks')).filter(
-			truck => truck.loadingLocation === 'BOP' && !truck.updated
+			truck => truck.loadingLocation === 'BOP'
 		);
 	});
 
@@ -118,7 +118,7 @@
 
 			setTimeout(() => {
 				goto('/richardsbay/processes/road');
-			}, 2000);
+			}, 1000);
 		} catch (error) {
 			console.error('Failed to submit truck arrival:', error);
 			processLayout.setError('Failed to submit truck arrival. Please try again.');

@@ -12,6 +12,7 @@
 	let assay: Assay | null = null;
 	let truck: Truck | null = null;
 	let currentStep = 2;
+	let processLayout: ProcessLayout;
 	
 	// Process steps
 	const processSteps = ['Registration', 'Verification'];
@@ -45,7 +46,11 @@
 	}
 
 	function handleSubmit() {
-		goto('/richardsbay/processes/complete');
+		processLayout.setSuccess('Data saved successfully');
+
+		setTimeout(() => {
+			goto('/richardsbay/processes/road');
+		}, 1000);
 	}
 
 </script>
@@ -56,6 +61,7 @@
 	{currentStep}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
+	bind:this={processLayout}
 	cancelPath="/richardsbay/processes/road"
 >
 	<div class="space-y-4">

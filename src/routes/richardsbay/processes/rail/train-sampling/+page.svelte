@@ -29,7 +29,7 @@
 		availableWagons = (await indexedDBService.getAllRecords('wagons')).filter(
 			wagon => !wagon.dispatchTimestamp
 		);
-		console.log('Avaible wagon count', availableWagons.length);
+		console.log('Available wagon count', availableWagons.length);
 	});
 
 	function handleWagonInput() {
@@ -44,16 +44,16 @@
 		}
 
 		filteredWagonSuggestions = availableWagons.filter(wagon =>
-			wagon.transcoreTag?.toLowerCase().includes(value.toLowerCase())
+			wagon.wagonId?.toLowerCase().includes(value.toLowerCase())
 		).slice(0, 6);
 
 		const exactMatch = availableWagons.find(wagon =>
-			wagon.transcoreTag?.toLowerCase() === value.toLowerCase()
+			wagon.wagonId?.toLowerCase() === value.toLowerCase()
 		);
 
 		if (exactMatch) {
 			selectedWagon = exactMatch;
-			wagonID = exactMatch.transcoreTag ?? '';
+			wagonID = exactMatch.wagonId ?? '';
 			showWagonSuggestions = false;
 		} else if (value.length >= 2) {
 			showWagonSuggestions = filteredWagonSuggestions.length > 0;
@@ -84,31 +84,27 @@
 			isSubmitting = true;
 			processLayout.setError('');
 
-			// Check if truck exists in Pocketbase DB
+			// Check if wagon exists in IndexedDB
 			const pbWagons = await indexedDBService.getAllRecords('wagons');
-			const wagonToUse = pbWagons.find(wagon => wagon.transcoreTag === wagonID);
+			const wagonToUse = pbWagons.find(wagon => wagon.wagonId === wagonID && wagon.serverId === selectedWagon?.serverId);
 
 			if (!wagonToUse) {
-				processLayout.setError('Truck Not in Pre-Registration List');
+				processLayout.setError('Wagon Not in Pre-Registration List');
 				isSubmitting = false;
 				return;
 			}
 
-			// Update truck
+			// Update wagon
 			await indexedDBService.updateRecord('wagons', wagonToUse.serverId ?? wagonToUse.id ?? '', {
 				...wagonToUse,
 				syncStatus: 'pending',
 				dispatchTimestamp: new Date(),
 			});
 
-			processLayout.setSuccess('Truck Successfully Received!');
-
-			setTimeout(() => {
-				goto('/richardsbay/processes/rail');
-			}, 2000);
+			goto('/richardsbay/processes/rail/train-sampling/review');
 		} catch (error) {
-			console.error('Failed to submit truck arrival:', error);
-			processLayout.setError('Failed to submit truck arrival. Please try again.');
+			console.error('Failed to submit wagon arrival:', error);
+			processLayout.setError('Failed to submit wagon arrival. Please try again.');
 		} finally {
 			isSubmitting = false;
 		}
@@ -139,12 +135,12 @@
 	
 
 		<div class="form">
-			<label for="truckRegistration" class="block font-medium text-gray text-sm">Truck Registration *</label>
+			<label for="wagonId" class="block font-medium text-gray text-sm">Wagon ID *</label>
 			<input
-				id="truckRegistration"
+				id="wagonId"
 				type="text"
 				bind:value={wagonID}
-				placeholder="Enter Truck Registration"
+				placeholder="Enter Wagon ID"
 				on:input={handleWagonInput}
 				on:focus={showAllTruckSuggestions}
 				on:blur={() => setTimeout(() => showWagonSuggestions = false, 100)}
@@ -158,13 +154,13 @@
 							<button
 								type="button"
 								on:click={() => {
-									wagonID = suggestion.transcoreTag ?? '';
+									wagonID = suggestion.wagonId ?? '';
 									showWagonSuggestions = false;
 									selectedWagon = suggestion;
 									sampleID = suggestion.wagonIdSimple ?? '';
 								}}
 							>
-								{suggestion.transcoreTag}
+								{suggestion.wagonId}
 							</button>
 						</li>
 					{/each}
@@ -174,7 +170,7 @@
 				<div style="margin-top: 1.2rem;">
 					<FormField
 						id="arrivalTimestamp"
-						label="Arrival Timestamp:"
+						label="Sampling Date:"
 						bind:value={arrivalTimestamp}
 						placeholder="Enter vehicle registration"
 						disabled={true}
@@ -200,7 +196,7 @@
 		margin-top: 1rem;
 		position: relative;
 	}
-	.form #truckRegistration {
+	.form #wagonId {
 		min-height: 40px;
 	}
 

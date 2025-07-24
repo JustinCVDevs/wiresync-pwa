@@ -205,17 +205,27 @@ export const syncService = {
 			const allIndexedTrucks = await indexedDBService.getRecords('trucks');
 			for (const truck of allTrucks) {
 				if (allIndexedTrucks.some((t) => t.serverId || t.id === truck.id)) {
-					continue;
+					await indexedDBService.updateRecord('trucks', truck.id, {
+						...truck,
+						id: truck.id,
+						registration: truck.registration,
+						syncStatus: 'synced',
+						serverId: truck.id,
+						loadingLocation: truck.loadingLocation,
+						loadingHour: truck.loadingHour,
+						felWeight: truck.felWeight
+					});
+				} else {
+					await indexedDBService.saveRecord('trucks', {
+						id: truck.id,
+						registration: truck.registration,
+						syncStatus: 'synced',
+						serverId: truck.id,
+						loadingLocation: truck.loadingLocation,
+						loadingHour: truck.loadingHour,
+						felWeight: truck.felWeight
+					});
 				}
-				await indexedDBService.saveRecord('trucks', {
-					id: truck.id,
-					registration: truck.registration,
-					syncStatus: 'synced',
-					serverId: truck.id,
-					loadingLocation: truck.loadingLocation,
-					loadingHour: truck.loadingHour,
-					felWeight: truck.felWeight
-				});
 			}
 			return true;
 		} catch (err) {
@@ -587,25 +597,42 @@ export const syncService = {
 			const allIndexedWagons = await indexedDBService.getRecords('wagons');
 			for (const wagon of allWagons) {
 				if (allIndexedWagons.some((w) => w.serverId || w.id === wagon.wagonId)) {
-					continue;
+					await indexedDBService.updateRecord('wagons', wagon.id, {
+						id: wagon.id,
+						wagonId: wagon.wagonId,
+						wagonIdSimple: wagon.wagonIdSimple,
+						transcoreTag: wagon.transcoreTag,
+						componentType: wagon.componentType,
+						wagonPhotoUrl: wagon.wagonPhotoUrl,
+						dispatchTimestamp: wagon.dispatchTimestamp,
+						releaseTimestamp: wagon.releaseTimestamp,
+						trainNumber: wagon.trainNumber,
+						loadingLocation: wagon.loadingLocation,
+						felWeight: wagon.felWeight,
+						serverId: wagon.id,
+						syncStatus: 'synced',
+						created: wagon.created,
+						updated: wagon.updated
+					});
+				} else {
+					await indexedDBService.saveRecord('wagons', {
+						id: wagon.id,
+						wagonId: wagon.wagonId,
+						wagonIdSimple: wagon.wagonIdSimple,
+						transcoreTag: wagon.transcoreTag,
+						componentType: wagon.componentType,
+						wagonPhotoUrl: wagon.wagonPhotoUrl,
+						dispatchTimestamp: wagon.dispatchTimestamp,
+						releaseTimestamp: wagon.releaseTimestamp,
+						trainNumber: wagon.trainNumber,
+						loadingLocation: wagon.loadingLocation,
+						felWeight: wagon.felWeight,
+						serverId: wagon.id,
+						syncStatus: 'synced',
+						created: wagon.created,
+						updated: wagon.updated
+					});
 				}
-				await indexedDBService.saveRecord('wagons', {
-					id: wagon.id,
-					wagonId: wagon.wagonId,
-					wagonIdSimple: wagon.wagonIdSimple,
-					transcoreTag: wagon.transcoreTag,
-					componentType: wagon.componentType,
-					wagonPhotoUrl: wagon.wagonPhotoUrl,
-					dispatchTimestamp: wagon.dispatchTimestamp,
-					releaseTimestamp: wagon.releaseTimestamp,
-					trainNumber: wagon.trainNumber,
-					loadingLocation: wagon.loadingLocation,
-					felWeight: wagon.felWeight,
-					serverId: wagon.id,
-					syncStatus: 'synced',
-					created: wagon.created,
-					updated: wagon.updated
-				});
 			}
 			return true;
 		} catch (err) {
