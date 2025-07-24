@@ -256,27 +256,31 @@ export const syncService = {
 		try {
 			const allTrucks = await fetchAllFromPocketBase('trucks');
 			const allIndexedTrucks = await indexedDBService.getRecords('trucks');
+
 			for (const truck of allTrucks) {
 				if (allIndexedTrucks.some((t) => t.serverId || t.id === truck.id)) {
 					await indexedDBService.updateRecord('trucks', truck.id, {
-						...truck,
 						id: truck.id,
 						registration: truck.registration,
-						syncStatus: 'synced',
-						serverId: truck.id,
 						loadingLocation: truck.loadingLocation,
+						syncStatus: 'synced',
 						loadingHour: truck.loadingHour,
-						felWeight: truck.felWeight
+						felWeight: truck.felWeight,
+						serverId: truck.id,
+						created: truck.created,
+						updated: truck.updated
 					});
 				} else {
 					await indexedDBService.saveRecord('trucks', {
 						id: truck.id,
 						registration: truck.registration,
-						syncStatus: 'synced',
-						serverId: truck.id,
 						loadingLocation: truck.loadingLocation,
+						syncStatus: 'synced',
 						loadingHour: truck.loadingHour,
-						felWeight: truck.felWeight
+						felWeight: truck.felWeight,
+						serverId: truck.id,
+						created: truck.created,
+						updated: truck.updated
 					});
 				}
 			}
@@ -1157,10 +1161,17 @@ export const syncService = {
 		
 		// Delete records that no longer exist on the server
 		await this.syncDeletedRecords('assays');
-		await this.syncDeletedRecords('wagons');
-		await this.syncDeletedRecords('truckLoads');
+		await this.syncDeletedRecords('consignments');
+		await this.syncDeletedRecords('fleet');
+		await this.syncDeletedRecords('shuntingTrains');
+		await this.syncDeletedRecords('trainArrivals');
 		await this.syncDeletedRecords('trainDispatches');
-	}
+		await this.syncDeletedRecords('trains');
+		await this.syncDeletedRecords('truckArrivals');
+		await this.syncDeletedRecords('truckLoads');
+		await this.syncDeletedRecords('trucks');
+		await this.syncDeletedRecords('wagons');
+	},
 };
 
 
