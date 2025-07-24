@@ -34,7 +34,21 @@
         trainNumber: ''
     };
 
-    const productGrades = ['Iron Oxide', 'Mag-62', 'Mag-65'];
+    $: {
+		const currentDate = new Date();
+		const YYMMDD = `${currentDate.getFullYear().toString().slice(-2)}${String(currentDate.getMonth() + 1).padStart(2, '0')}${String(currentDate.getDate()).padStart(2, '0')}`;
+
+		const productCode = {
+			'Iron Oxide': 'IOX',
+			'Magnetite-DMS': 'DMS',
+			'Magnetite-62%': 'MAG62',
+			'Magnetite-65%': 'MAG65'
+		}[productGrade];
+
+		sampleId = `${YYMMDD}${wagonId ? `_${wagonId}` : ''}${trainNumber ? `_${trainNumber}` : ''}${productCode ? `_${productCode}` : ''}`;
+	}
+
+    const productGrades = ['Iron Oxide', 'Magnetite-62%', 'Magnetite-65%'];
 
     const loadingLocations = ['East Load Out', 'West Load Out', 'Bosveld'];
 
@@ -80,18 +94,10 @@
             processLayout.setError('');
             processLayout.setSuccess('');
 
-            let wagons = await indexedDBService.getAllRecords('wagons');
-            // Check if the wagon already exists
-            const existingWagon = wagons.find((w) => w.transcoreTag === wagonId);
-            if (existingWagon) {
-                processLayout.setError('Wagon ID has already been scanned. Please use a different Wagon ID.');
-                return;
-            }
-
             //Create the wagon object
             const wagon: Wagon = {
                 id: crypto.randomUUID(),
-                transcoreTag: wagonId,
+                wagonId: wagonId,
                 trainNumber: trainNumber,
                 loadingLocation: loadingLocation,
                 created: new Date(),
@@ -106,7 +112,7 @@
             await syncService.syncWagon(wagon);
 
             let allWagons = await indexedDBService.getAllRecords('wagons');
-            const foundWagon = allWagons.find((w) => w.transcoreTag === wagonId);
+            const foundWagon = allWagons.find((w) => w.wagonId === wagonId);
 
             // Create the assay object according to the Assay interface
             const assay: Assay = {
@@ -117,8 +123,7 @@
                 location: loadingLocation,
                 created: new Date(),
                 updated: new Date().toISOString(),
-                linkedTruckIds: [],
-                linkedWagonIds: [foundWagon?.serverId || foundWagon?.id || ''],
+                linkedWagonIds: [foundWagon?.serverId || ''],
                 syncStatus: 'pending',
                 process: 'Loading Station',
                 siteLocation: 'Bosveld',
@@ -212,6 +217,7 @@
 			bind:value={sampleId}
 			placeholder="Enter Sample ID"
 			required={true}
+            disabled={true}
 			error={formErrors.sampleId}
 		/>
 	</div>

@@ -49,7 +49,6 @@
 				// Filter out null results and ensure we have valid wagon objects
 				linkedWagons = wagonResults.filter(wagon => wagon !== null && wagon !== undefined) as Wagon[];
 			} else {
-				console.log('No linkedWagons found in shunting train');
 				linkedWagons = [];
 			}
 		} catch (e) {
@@ -100,10 +99,10 @@
 				// Show success message
 				success = 'Process Complete';
 				
-				// Navigate back to processes screen after 1.5 seconds
+				// Navigate back to processes screen after 1 seconds
 				setTimeout(() => {
-					goto('/bosveld/processes');
-				}, 1500);
+					goto('/bosveld/processes/marshaling-yard');
+				}, 1000);
 			}
 		} catch (e: any) {
 			console.error(e);
@@ -134,59 +133,54 @@
 	on:error={({ detail }) => (error = detail)}
 	on:success={({ detail }) => (success = detail)}
 >
-	
+    {#if error}
+        <div class="mb-4 rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">
+            {error}
+        </div>
+    {/if}
 
-	{#if error}
-		<div class="mb-4 rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">
-			{error}
-		</div>
-	{/if}
+    {#if success}
+        <div class="mb-4 rounded border border-green-400 bg-green-100 px-4 py-3 text-green-700">
+            {success}
+        </div>
+    {/if}
 
-	{#if success}
-		<div class="mb-4 rounded border border-green-400 bg-green-100 px-4 py-3 text-green-700">
-			{success}
-		</div>
-	{/if}
+    {#if isLoading}
+        <div class="flex justify-center items-center py-8">
+            <div>Loading…</div>
+        </div>
+    {:else if shuntingTrain}
+        <!-- Train Selection Display -->
+        <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+            <h6 class="font-semibold text-gray-700 mb-2">Train Selection</h6>
+            <div class="grid grid-cols-1 gap-4 text-sm">
+                <div>
+                    {formatDate(shuntingTrain.postDate)}
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">
+                For the Blank Wagon IDs, please click on "Change" to update details.
+            </p>
+        </div>
 
-	{#if isLoading}
-		<div class="flex justify-center items-center py-8">
-			<div>Loading…</div>
-		</div>
-	{:else if shuntingTrain}
-		<!-- Train Selection Display -->
-		<div class="mb-6 p-4 bg-gray-50 rounded-lg">
-			<h6 class="font-semibold text-gray-700 mb-2">Train Selection</h6>
-			<div class="grid grid-cols-2 gap-4 text-sm">
-				<div>
-					{formatDate(shuntingTrain.postDate).split(',')[0]}
-				</div>
-				<div>
-					{formatDate(shuntingTrain.postDate).split(',')[1]?.trim() || ''}
-				</div>
-			</div>
-			<p class="text-xs text-gray-500 mt-2">
-				For the Blank Wagon IDs, please click on "Change" to update details.
-			</p>
-		</div>
-
-		<!-- Wagons List -->
-		<div class="space-y-4">
-			{#each linkedWagons as wagon, index}
-				<div class="border border-gray-300 rounded-lg p-4 bg-white">
-					<div class="mb-3">
-						<h6 class="font-semibold text-center">Number {index + 1}</h6>
-					</div>
+        <!-- Wagons List -->
+        <div class="space-y-4">
+            {#each linkedWagons as wagon, index}
+                <div class="border border-gray-300 rounded-lg p-4 bg-white">
+                    <div class="mb-3">
+                        <h6 class="font-semibold text-center">Number {index + 1}</h6>
+                    </div>
 					
-					<div class="space-y-3">
-						<FormField
-							label="Name (ID):"
+                    <div class="space-y-3">
+                        <FormField
+							label="Wagon (ID):"
 							id="wagonName_{index}"
 							value={wagon.wagonIdSimple || ''}
 							disabled={true}
 						/>
 						
 						<FormField
-							label="Wagon RFID:"
+							label="Temporary RFID:"
 							id="wagonId_{index}"
 							value={wagon.transcoreTag || ''}
 							disabled={true}
@@ -206,17 +200,17 @@
 						</div>
 					</div>
 				</div>
-			{/each}
+            {/each}
 			
-			{#if linkedWagons.length === 0}
-				<div class="text-center py-8 text-gray-500">
-					No wagons linked to this shunting train.
-				</div>
-			{/if}
-		</div>
-	{:else}
-		<div class="text-center py-8 text-gray-500">
-			Shunting train not found.
-		</div>
-	{/if}
+            {#if linkedWagons.length === 0}
+                <div class="text-center py-8 text-gray-500">
+                    No wagons linked to this shunting train.
+                </div>
+            {/if}
+        </div>
+    {:else}
+        <div class="text-center py-8 text-gray-500">
+            Shunting train not found.
+        </div>
+    {/if}
 </ProcessLayout>

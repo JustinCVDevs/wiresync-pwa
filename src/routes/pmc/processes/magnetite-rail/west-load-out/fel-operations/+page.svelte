@@ -33,7 +33,6 @@
 	let formErrors = {
 		sampleId: '',
 		productGrade: '',
-		consignment: '',
 		wagonId: '',
 		felWeight: '',
 	};
@@ -72,7 +71,6 @@
 		formErrors = {
 			sampleId: '',
 			productGrade: '',
-			consignment: '',
 			wagonId: '',
 			felWeight: '',
 		};
@@ -202,12 +200,12 @@
 
 <div class="container">
 	<div class="form">
-		<label for="wagonId" class="block font-medium text-gray text-sm">Please enter Wagon ID *</label>
+		<label for="wagonId" class="block font-medium text-gray text-sm">Please select Wagon ID *</label>
 		<input
 			id="wagonId"
 			type="text"
 			bind:value={wagonInput}
-			placeholder="Enter Wagon ID"
+			placeholder="Select Wagon ID"
 			on:input={handleWagonInput}
 			on:focus={showAllSuggestions}
 			on:blur={() => setTimeout(() => showSuggestions = false, 100)}
