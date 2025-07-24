@@ -6,6 +6,7 @@
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Assay, Fleet, Truck } from '$lib/types';
 	import { syncService } from '$lib/services/syncService';
+	import { onMount } from 'svelte';
 
 	let dedicatedFleet = '';
 	let isDedicatedFleet = false;
@@ -20,28 +21,41 @@
 
 	const steps = ["Sample Details", "Complete"];
 
-    let sampleNumber = 1;
+	let sampleNumber = 1;
+	let trucks: Truck[] = [];
 
-    // Function to get or reset the sample number for the day
-    function getSampleNumber() {
-        const currentDate = new Date().toISOString().split('T')[0];
-        const storedData = JSON.parse(localStorage.getItem('sampleNumber') || '{}');
+	// Function to get or reset the sample number for the day
+	function getSampleNumber() {
+		const currentDate = new Date().toISOString().split('T')[0];
+		const storedData = JSON.parse(localStorage.getItem('sampleNumber') || '{}');
 
-        if (storedData.date === currentDate) {
-            sampleNumber = storedData.number + 1;
-        } else {
-            sampleNumber = 1;
-        }
+		if (storedData.date === currentDate) {
+			sampleNumber = storedData.number + 1;
+		} else {
+			sampleNumber = 1;
+		}
 
-        // Save the updated sample number in localStorage
-        localStorage.setItem(
-            'sampleNumber',
-            JSON.stringify({ date: currentDate, number: sampleNumber })
-        );
-    }
+		// Save the updated sample number in localStorage
+		localStorage.setItem(
+			'sampleNumber',
+			JSON.stringify({ date: currentDate, number: sampleNumber })
+		);
+	}
 
-    // Call the function to initialize the sample number
-    getSampleNumber();
+	// Call the function to initialize the sample number
+	getSampleNumber();
+
+	// Fetch truck records from IndexedDB on component mount
+	onMount(async () => {
+		try {
+			trucks = await indexedDBService.getAllRecords('trucks');
+			// Sort trucks alphabetically by registration
+            trucks.sort((a, b) => a.registration.localeCompare(b.registration));
+		} catch (err) {
+			console.error('Failed to load trucks from IndexedDB:', err);
+			error = 'Failed to load truck records';
+		}
+	});
 
 	$: {
 		const currentDate = new Date();
@@ -222,7 +236,7 @@
 							id="truckRegistration"
 							label="Select the Truck Registration"
 							isSelect={true}
-							options={[]} 
+							options={trucks.map((truck) => ({ value: truck.registration, label: truck.registration }))}
 							bind:value={truckRegistration}
 							placeholder="Select Truck Registration"
 							required
@@ -266,7 +280,7 @@
 							id="truckRegistration"
 							label="Select the Truck Registration"
 							isSelect={true}
-							options={[]} 
+							options={trucks.map((truck) => ({ value: truck.registration, label: truck.registration }))}
 							bind:value={truckRegistration}
 							placeholder="Select Truck Registration"
 							required

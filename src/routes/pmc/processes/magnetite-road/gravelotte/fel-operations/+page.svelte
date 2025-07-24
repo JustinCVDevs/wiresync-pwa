@@ -60,7 +60,8 @@
 				);
 			}
 
-			return filteredTrucks;
+			// Sort the filtered trucks alphabetically by registration
+			return filteredTrucks.sort((a, b) => a.registration.localeCompare(b.registration));
 		} catch (error) {
 			console.error('No trucks available', error);
 			return [];

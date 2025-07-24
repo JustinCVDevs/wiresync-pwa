@@ -12,15 +12,9 @@
 
 	let truckInput = '';
 	let availableTrucks: any[] = [];
-	let filteredTruckSuggestions: any[] = [];
-	let showTruckSuggestions = false;
-	let showTruckNotFound = false;
 	let selectedTruck: any = '';
 
-	const steps = [
-		"FEL Details",
-		"Complete"
-	]
+	const steps = ["FEL Details", "Complete"]
 
 	onMount(async () => {
 		availableTrucks = await getTrucks();
@@ -29,50 +23,14 @@
 	async function getTrucks() {
 		try {
 			const allTrucks = (await indexedDBService.getAllRecords('trucks')).filter(
-				truck => truck.loadingLocation === 'LG Concentrate' && !truck.updated
+				truck => truck.loadingLocation === 'LG Concentrate'
 			);
-			return allTrucks;
+
+			// Sort the filtered trucks alphabetically by registration
+			return allTrucks.sort((a, b) => a.registration.localeCompare(b.registration));
 		} catch (error) {
 			console.error('No trucks available', error);
 			return [];
-		}
-	}
-
-	function handleTruckInput() {
-		const value = truckInput.trim();
-		selectedTruck = null;
-		showTruckNotFound = false;
-
-		if (value.length === 0) {
-			showTruckSuggestions = false;
-			filteredTruckSuggestions = [];
-			return;
-		}
-
-		filteredTruckSuggestions = availableTrucks.filter(truck =>
-			truck.registration?.toLowerCase().includes(value.toLowerCase())
-		).slice(0, 6);
-
-		const exactMatch = availableTrucks.find(truck =>
-			truck.registration?.toLowerCase() === value.toLowerCase()
-		);
-
-		if (exactMatch) {
-			selectedTruck = exactMatch;
-			truckInput = exactMatch.registration;
-			showTruckSuggestions = false;
-		} else if (value.length >= 2) {
-			showTruckSuggestions = filteredTruckSuggestions.length > 0;
-			if (value.length >= 3 && filteredTruckSuggestions.length === 0) {
-				showTruckNotFound = true;
-			}
-		}
-	}
-
-	function showAllTruckSuggestions() {
-		if (availableTrucks.length > 0) {
-			filteredTruckSuggestions = availableTrucks.slice(0, 6);
-			showTruckSuggestions = true;
 		}
 	}
 	
@@ -133,7 +91,7 @@
 						id="truckRegistration"
 						label="Select the Truck Registration"
 						isSelect={true}
-						options={[]} 
+						options={availableTrucks.map((truck) => ({ value: truck.registration, label: truck.registration }))} 
 						bind:value={selectedTruck}
 						placeholder="Select Truck Registration"
 						required

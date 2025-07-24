@@ -5,6 +5,7 @@
 	import type { Assay, Truck } from '$lib/types';
 	import FormField from '$lib/components/FormField.svelte';
 	import { syncService } from '$lib/services/syncService';
+	import { onMount } from 'svelte';
 
 	let truckRegistration = '';
 	let materialType = 'Reverts';
@@ -12,6 +13,7 @@
 	let loadingLocation = 'Unrefined Copper';
 	let error = '';
 	let processLayout: ProcessLayout;
+	let trucks: Truck[] = [];
 
 	const steps = ["Sample Details", "Complete"]
 
@@ -28,20 +30,22 @@
 		sampleId = `${YYMMDD}${truckRegistration ? `_${truckRegistration}` : ''}${productCode ? `_${productCode}` : ''}`;
 	}
 
+	// Fetch truck records from IndexedDB on component mount
+    onMount(async () => {
+        try {
+            trucks = await indexedDBService.getAllRecords('trucks');
+            // Sort trucks alphabetically by registration
+            trucks.sort((a, b) => a.registration.localeCompare(b.registration));
+        } catch (err) {
+            console.error('Failed to load trucks from IndexedDB:', err);
+            error = 'Failed to load truck records';
+        }
+    });
+
 	async function handleSubmit() {
 		try {
 			processLayout.setError('');
 			processLayout.setSuccess('');
-
-			//Check if truck is already registered
-			let existingTruck = (await indexedDBService.getAllRecords('trucks')).filter(
-				(truck: Truck) => truck.registration === truckRegistration
-			)[0];
-
-			if (existingTruck) {
-				processLayout.setError('Truck has already been registered');
-				return;
-			}
 
 			const truck: Truck = {
 				id: crypto.randomUUID(),
@@ -114,7 +118,7 @@
 				id="truckRegistration"
 				label="Select the Truck Registration"
 				isSelect={true}
-				options={[]} 
+				options={trucks.map((truck) => ({ value: truck.registration, label: truck.registration }))} 
 				bind:value={truckRegistration}
 				placeholder="Select Truck Registration"
 				required

@@ -60,7 +60,8 @@
 				);
 			}
 
-			return filteredTrucks;
+			// Sort the filtered trucks alphabetically by registration
+			return filteredTrucks.sort((a, b) => a.registration.localeCompare(b.registration));
 		} catch (error) {
 			console.error('No trucks available', error);
 			return [];
@@ -165,10 +166,7 @@
 							id="truckRegistration"
 							label="Truck Registration"
 							isSelect={true}
-							options={availableTrucks.map(truck => ({
-								value: truck.registration,
-								label: truck.registration
-							}))}
+							options={availableTrucks.map(truck => ({value: truck.registration, label: truck.registration}))}
 							bind:value={selectedTruck}
 							placeholder="Select Truck Registration"
 							required

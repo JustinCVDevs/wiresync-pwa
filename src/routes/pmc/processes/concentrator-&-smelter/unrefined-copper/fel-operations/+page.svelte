@@ -12,9 +12,6 @@
 
 	let truckInput = '';
 	let availableTrucks: any[] = [];
-	let filteredTruckSuggestions: any[] = [];
-	let showTruckSuggestions = false;
-	let showTruckNotFound = false;
 	let selectedTruck: any = '';
 
 	const steps = [
@@ -29,9 +26,11 @@
 	async function getTrucks() {
 		try {
 			const allTrucks = (await indexedDBService.getAllRecords('trucks')).filter(
-				truck => truck.loadingLocation === 'Unrefined Copper' && !truck.updated
+				truck => truck.loadingLocation === 'Unrefined Copper'
 			);
-			return allTrucks;
+
+			// Sort the filtered trucks alphabetically by registration
+			return allTrucks.sort((a, b) => a.registration.localeCompare(b.registration));
 		} catch (error) {
 			console.error('No trucks available', error);
 			return [];
@@ -95,7 +94,7 @@
 						id="truckRegistration"
 						label="Select the Truck Registration"
 						isSelect={true}
-						options={[]} 
+						options={availableTrucks.map((truck) => ({ value: truck.registration, label: truck.registration }))} 
 						bind:value={selectedTruck}
 						placeholder="Select Truck Registration"
 						required
