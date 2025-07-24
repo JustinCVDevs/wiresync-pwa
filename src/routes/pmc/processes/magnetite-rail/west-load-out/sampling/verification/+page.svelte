@@ -41,14 +41,14 @@
 	}
 
 	function handleCancel() {
-		goto('/pmc/processes/magnetite-rail/west-load-out');
+		goto('/pmc/processes');
 	}
 
 	function handleSubmit() {
 		processLayout.setSuccess('Data saved successfully');
 
 		setTimeout(() => {
-			goto('/pmc/processes/magnetite-rail/west-load-out');
+			goto('/pmc/processes/magnetite-rail/west-load-out/sampling');
 		}, 1000);
 	}
 
@@ -60,7 +60,7 @@
 	{currentStep}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
-	cancelPath="/pmc/processes/magnetite-rail/west-load-out"
+	cancelPath="/pmc/processes"
 	bind:this={processLayout}
 >
 <!-- t -->

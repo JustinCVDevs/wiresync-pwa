@@ -42,14 +42,14 @@
 	}
 
 	function handleCancel() {
-		goto('/pmc/processes/concentrator-&-smelter/unrefined-copper');
+		goto('/pmc/processes/concentrator-&-smelter');
 	}
 
 	function handleSubmit() {
 		processLayout.setSuccess('Data saved successfully');
 
 		setTimeout(() => {
-			goto('/pmc/processes/concentrator-&-smelter/unrefined-copper');
+			goto('/pmc/processes/concentrator-&-smelter/unrefined-copper/sampling');
 		}, 1000);
 	}
 
@@ -62,7 +62,7 @@
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
 	bind:this={processLayout}
-	cancelPath="/pmc/processes/concentrator-&-smelter/unrefined-copper"
+	cancelPath="/pmc/processes/concentrator-&-smelter"
 >
 	<div class="space-y-4">
 		{#if assay && truck}

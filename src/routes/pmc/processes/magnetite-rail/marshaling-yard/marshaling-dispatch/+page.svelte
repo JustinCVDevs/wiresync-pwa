@@ -1,29 +1,23 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Camera from '$lib/components/Camera.svelte';
 	import { goto } from '$app/navigation';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Train, Consignment } from '$lib/types';
 	import type { TrainDispatch } from '$lib';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import FormField from '$lib/components/FormField.svelte';
-	import moment from 'moment';
-	import { date } from 'zod';
 
 	let trains: Train[] = [];
 	let consignments: Consignment[] = [];
 	let selectedTrainRef = '';
 	let selectedConsignment: string | undefined = '';
 	let manualConsignment = '';
-	let selectedRfid = '';
 	let manualRfid = '';
-	let capturedImage: string | null = null;
-	let showCamera = false;
 	let error = '';
 	let success = '';
 	let isLoading = true;
 
-	const steps = ['Train & Consignment Details', 'Wagon Linkage', 'Complete'];
+	const steps = ['Train & Consignment Details', 'Wagon Linkage'];
 	let currentStep = 1;
 	let train: Train;
 
@@ -41,8 +35,6 @@
 					train = foundTrain;
 					manualConsignment = '';
 					manualRfid = '';
-					capturedImage = null;
-					showCamera = false;
 					error = '';
 					if (train) {
 						consignments = await indexedDBService.getRecords(
@@ -62,13 +54,6 @@
 
 	onMount(loadTrainsAndConsignments);
 	$: if (selectedTrainRef) loadTrainsAndConsignments();
-
-	function handleCapture(event: CustomEvent<string>) {
-		capturedImage = event.detail;
-	}
-	function handleCameraClose() {
-		showCamera = false;
-	}
 
 	async function handleSubmit() {
 		error = '';
@@ -141,8 +126,8 @@
 	{steps}
 	{currentStep}
 	isSubmitting={isLoading}
-	cancelPath="/pmc/processes/magnetite-rail/marshaling-yard"
-	on:cancel={() => goto('/pmc/processes/magnetite-rail/marshaling-yard')}
+	cancelPath="/pmc/processes"
+	on:cancel={() => goto('/pmc/processes')}
 	on:submit={handleSubmit}
 	on:error={({ detail }) => (error = detail)}
 	on:success={({ detail }) => (success = detail)}

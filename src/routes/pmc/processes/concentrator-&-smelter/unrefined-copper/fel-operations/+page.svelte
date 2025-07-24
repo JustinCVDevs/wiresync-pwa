@@ -42,16 +42,20 @@
 			processLayout.setError('');
 			processLayout.setSuccess('');
 			if (selectedTruck) {
-				selectedTruck.updated = new Date().toISOString();
-				selectedTruck.felWeight = Number(felWeight);
-				selectedTruck.syncStatus = 'pending';
+				const truck = availableTrucks.find(truck => truck.registration === selectedTruck.registration);
+				if (!truck) {
+					throw new Error(`Truck with registration "${selectedTruck.registration}" not found.`);
+				}
 
-				await indexedDBService.updateRecord('trucks', selectedTruck.id, selectedTruck);
+				truck.updated = new Date().toISOString();
+				truck.felWeight = Number(felWeight);
+				truck.syncStatus = 'pending';
+
+				await indexedDBService.updateRecord('trucks', truck.id, truck);
+
+				goto(`/pmc/processes/concentrator-&-smelter/unrefined-copper/fel-operations/verification?truckRegistration=${encodeURIComponent(truck.registration || '')}`);
 			}
-
-			formPersistenceService.clearForm('fel-operations-unrefined-copper');
-
-			goto(`/pmc/processes/concentrator-&-smelter/unrefined-copper/fel-operations/verification?truckRegistration=${encodeURIComponent(selectedTruck?.registration || '')}`);
+			formPersistenceService.clearForm('fel-operations-unrefined-copper');	
 		} catch (err) {
 			error = 'Failed to submit data';
 			console.error(err);
@@ -59,7 +63,7 @@
 	  }
 	  let currentStep = 1;
 	  function handleCancel() {
-		  goto('/pmc/processes/concentrator-&-smelter/unrefined-copper');
+		  goto('/pmc/processes/concentrator-&-smelter');
 	  }
 
 	$: if (truckInput !== '') {
@@ -74,7 +78,7 @@
     {currentStep}
     isSubmitting={false}
     bind:this={processLayout}
-    cancelPath="/pmc/processes/concentrator-&-smelter/unrefined-copper"
+    cancelPath="/pmc/processes/concentrator-&-smelter"
     on:cancel={handleCancel}
     on:submit={handleSubmit}
     on:error={({ detail }) => (error = detail)}

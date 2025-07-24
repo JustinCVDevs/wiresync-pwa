@@ -12,50 +12,51 @@
 	let isDedicatedFleet = false;
 
 	let truckRegistration = '';
-	let productType = '';
+	let productType = localStorage.getItem('west-productType') || '';
 	let sampleId = '';
 	let loadingLocation = 'West Load Out';
 	let loadingTime = '';
 	let error = '';
 	let processLayout: ProcessLayout;
+	let productTypes = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite-62%', 'Magnetite-65%'];
 
 	const steps = ["Sample Details", "Complete"];
 
-    let sampleNumber = 1;
-    let trucks: Truck[] = [];
+	let sampleNumber = 1;
+	let trucks: Truck[] = [];
 
-    // Function to get or reset the sample number for the day
-    function getSampleNumber() {
-        const currentDate = new Date().toISOString().split('T')[0];
-        const storedData = JSON.parse(localStorage.getItem('sampleNumber') || '{}');
+	// Function to get or reset the sample number for the day
+	function getSampleNumber() {
+		const currentDate = new Date().toISOString().split('T')[0];
+		const storedData = JSON.parse(localStorage.getItem('sampleNumber') || '{}');
 
-        if (storedData.date === currentDate) {
-            sampleNumber = storedData.number + 1;
-        } else {
-            sampleNumber = 1;
-        }
+		if (storedData.date === currentDate) {
+			sampleNumber = storedData.number + 1;
+		} else {
+			sampleNumber = 1;
+		}
 
-        // Save the updated sample number in localStorage
-        localStorage.setItem(
-            'sampleNumber',
-            JSON.stringify({ date: currentDate, number: sampleNumber })
-        );
-    }
+		// Save the updated sample number in localStorage
+		localStorage.setItem(
+			'sampleNumber',
+			JSON.stringify({ date: currentDate, number: sampleNumber })
+		);
+	}
 
-    // Call the function to initialize the sample number
-    getSampleNumber();
+	// Call the function to initialize the sample number
+	getSampleNumber();
 
-    // Fetch truck records from IndexedDB on component mount
-    onMount(async () => {
-        try {
-            trucks = await indexedDBService.getAllRecords('trucks');
-            // Sort trucks alphabetically by registration
-            trucks.sort((a, b) => a.registration.localeCompare(b.registration));
-        } catch (err) {
-            console.error('Failed to load trucks from IndexedDB:', err);
-            error = 'Failed to load truck records';
-        }
-    });
+	// Fetch truck records from IndexedDB on component mount
+	onMount(async () => {
+		try {
+			trucks = await indexedDBService.getAllRecords('trucks');
+			// Sort trucks alphabetically by registration
+			trucks.sort((a, b) => a.registration.localeCompare(b.registration));
+		} catch (err) {
+			console.error('Failed to load trucks from IndexedDB:', err);
+			error = 'Failed to load truck records';
+		}
+	});
 
 	$: {
 		const currentDate = new Date();
@@ -82,16 +83,26 @@
         }
     }
 
-	const productTypes = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite-62%', 'Magnetite-65%'];
+    // Dynamically filter productTypes based on dedicatedFleet
+    $: {
+		productTypes = dedicatedFleet === 'No'
+            ? ['Magnetite-DMS', 'Magnetite-62%', 'Magnetite-65%']
+            : ['Iron Oxide', 'Magnetite-DMS', 'Magnetite-62%', 'Magnetite-65%'];
+	}
 
 	async function handleSubmit() {
 		try {
 			processLayout.setError('');
 			processLayout.setSuccess('');
 
+			// Save the selected productType to localStorage
+			localStorage.setItem('west-productType', productType);
+
+			// Handle dedicated fleet logic
 			if (dedicatedFleet === 'Yes') {
 				isDedicatedFleet = true;
 
+				// Create fleet object
 				const fleet: Fleet = {
 					id: crypto.randomUUID(),
 					sampleId,
@@ -99,8 +110,8 @@
 					materialType: 'Coarse',
 					registration: truckRegistration,
 					felMassKg: 0,
-					loadingLocation: loadingLocation, 
-					loadingHour: Number(loadingTime), 
+					loadingLocation: loadingLocation,
+					loadingHour: Number(loadingTime),
 					syncStatus: 'pending',
 					siteLocation: 'PMC',
 					created: new Date(),
@@ -150,8 +161,8 @@
 				await indexedDBService.saveRecord('assays', assay);
 				await syncService.syncAssay(assay);
 
-				goto(`/pmc/processes/magnetite-road/west-load-out/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`)
-			}else {
+				goto(`/pmc/processes/magnetite-road/west-load-out/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`);
+			} else {
 				isDedicatedFleet = false;
 
 				// Create truck object
@@ -161,7 +172,7 @@
 					syncStatus: 'pending',
 					created: new Date(),
 					loadingLocation: loadingLocation,
-				};	
+				};
 
 				await indexedDBService.saveRecord('trucks', truck);
 				await syncService.syncTruck(truck);
@@ -184,12 +195,12 @@
 					sampleId: sampleId,
 					siteLocation: 'PMC',
 				};
-	
+
 				// Save assay to IndexedDB
 				await indexedDBService.saveRecord('assays', assay);
 				await syncService.syncAssay(assay);
 
-				goto(`/pmc/processes/magnetite-road/west-load-out/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`)
+				goto(`/pmc/processes/magnetite-road/west-load-out/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`);
 			}
 			
 		} catch (err) {
@@ -199,7 +210,7 @@
 	  }
 	  let currentStep = 1;
 	  function handleCancel() {
-		  goto('/pmc/processes/magnetite-road/west-load-out');
+		  goto('/pmc/processes');
 	  }
 
   </script>
@@ -209,7 +220,7 @@
   {currentStep}
   isSubmitting={false}
   bind:this={processLayout}
-  cancelPath="/pmc/processes/magnetite-road/west-load-out"
+  cancelPath="/pmc/processes"
   on:cancel={handleCancel}
   on:submit={handleSubmit}
   on:error={({ detail }) => (error = detail)}
