@@ -13,7 +13,10 @@
 
     const crumbs = derived(page, ($page) => {
         const segments = $page.url.pathname.split('/').filter(Boolean);
-        const excludeCrumbs = ['sampling', 'verification', 'fel operations', 'locations'];
+        const excludeCrumbs = ['sampling', 'verification', 'fel operations', 'locations', 'wagons'];
+
+        // Regular expression to match IDs
+        const idPattern = /^[a-zA-Z0-9]{10,}$/;
 
         // Do not show breadcrumbs if "complete" is in the URL
         if (segments.some(seg => decodeURIComponent(seg).toLowerCase() === 'complete')) {
@@ -46,14 +49,17 @@
             });
             for (let i = 2; i < segments.length; i++) {
                 const raw = decodeURIComponent(segments[i]).replace(/[-_]/g, ' ').trim();
-                if (!excludeCrumbs.includes(raw.toLowerCase())) {
+                if (!excludeCrumbs.includes(raw.toLowerCase()) && !idPattern.test(raw)) {
                     const href = '/' + segments.slice(0, i + 1).join('/');
                     list.push({ name: format(raw), href });
                 }
             }
         } else {
             list = segments
-                .filter(seg => !excludeCrumbs.includes(decodeURIComponent(seg).replace(/[-_]/g, ' ').trim().toLowerCase()))
+                .filter(seg => {
+                    const raw = decodeURIComponent(seg).replace(/[-_]/g, ' ').trim();
+                    return !excludeCrumbs.includes(raw.toLowerCase()) && !idPattern.test(raw);
+                })
                 .map((seg, i) => {
                     const href = '/' + segments.slice(0, i + 1).join('/');
                     const raw = decodeURIComponent(seg).replace(/[-_]/g, ' ').trim();
