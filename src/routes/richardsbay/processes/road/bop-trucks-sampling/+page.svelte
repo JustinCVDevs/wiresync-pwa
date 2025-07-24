@@ -12,11 +12,9 @@
 	let loadingLocation = 'BOP';
 	let error = '';
 	let processLayout: ProcessLayout;
+	let currentStep = 1;
 
-	const steps = [
-		"Registration",
-		"Verification",
-	];
+	const steps = ["Registration", "Verification"];
 
 	let truckOptions: { value: string; label: string }[] = [];
 
@@ -59,7 +57,7 @@
 			console.error(err);
 		}
 	}
-	let currentStep = 1;
+	
 	function handleCancel() {
 		goto('/richardsbay/processes/road');
 	}

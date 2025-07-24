@@ -27,7 +27,7 @@
 
 	onMount(async () => {
 		availableTrucks = (await indexedDBService.getAllRecords('trucks')).filter(
-			truck => truck.loadingLocation === 'PMC' && !truck.updated
+			truck => truck.loadingLocation === 'PMC'
 		);
 	});
 

@@ -15,6 +15,7 @@
 	let error = '';
 	let success = '';
 	let isLoading = true;
+	let processLayout: ProcessLayout;
 
 	const steps = ['Wagon', 'Verification'];
 	let currentStep = 2;
@@ -46,7 +47,11 @@
 	}
 
 	function handleSubmit() {
-		goto('/richardsbay/processes/complete');
+		processLayout.setSuccess('Wagon Successfully Received!');
+
+		setTimeout(() => {
+			goto('/richardsbay/processes/rail');
+		}, 1000);
 	}
 </script>
 
@@ -56,6 +61,7 @@
 	{currentStep}
 	isSubmitting={isLoading}
 	cancelPath="/richardsbay/processes/rail"
+	bind:this={processLayout}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
 >

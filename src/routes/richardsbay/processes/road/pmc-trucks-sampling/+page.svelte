@@ -13,10 +13,7 @@
 	let error = '';
 	let processLayout: ProcessLayout;
 
-	const steps = [
-		"Registration",
-		"Verification",
-	];
+	const steps = ["Registration", "Verification"];
 
 	let truckOptions: { value: string; label: string }[] = [];
 
