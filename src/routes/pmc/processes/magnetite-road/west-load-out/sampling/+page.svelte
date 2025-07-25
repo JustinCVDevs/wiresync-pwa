@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
-	import type { Assay, Fleet, Truck } from '$lib/types';
+	import type { Assay, Fleet, Truck, TruckLoad } from '$lib/types';
 	import FormField from '$lib/components/FormField.svelte';
 	import { syncService } from '$lib/services/syncService';
 	import { onMount } from 'svelte';
@@ -124,20 +124,7 @@
 					(fleet: Fleet) => fleet.sampleId === sampleId
 				)[0];
 
-				// Create truck object
-				const truck: Truck = {
-					id: crypto.randomUUID(),
-					registration: truckRegistration,
-					syncStatus: 'pending',
-					created: new Date(),
-					loadingLocation: loadingLocation,
-					loadingHour: Number(loadingTime),
-				};
-
-				await indexedDBService.saveRecord('trucks', truck);
-				await syncService.syncTruck(truck);
-
-				let newTruck = (await indexedDBService.getAllRecords('trucks')).filter(
+				let linkedTruck = (await indexedDBService.getAllRecords('trucks')).filter(
 					(truck: Truck) => truck.registration === truckRegistration
 				)[0];
 
@@ -146,13 +133,12 @@
 					name: sampleId,
 					productType: productType,
 					dedicatedFleet: isDedicatedFleet,
-					linkedTruckIds: [newTruck?.serverId || ''],
+					linkedTruckIds: [linkedTruck?.serverId || ''],
 					linkedFleetIds: [newFleet?.serverId || ''],
 					syncStatus: 'pending',
 					location: loadingLocation,
 					created: new Date(),
 					updated: new Date().toISOString(),
-					process: 'West Load Out',
 					sampleId: sampleId,
 					siteLocation: 'PMC',
 				};
@@ -165,20 +151,27 @@
 			} else {
 				isDedicatedFleet = false;
 
-				// Create truck object
-				const truck: Truck = {
+				let linkedTruck = (await indexedDBService.getAllRecords('trucks')).filter(
+					(truck: Truck) => truck.registration === truckRegistration
+				)[0];
+
+				// Create truckLoad object
+				const truckLoad: TruckLoad = {
 					id: crypto.randomUUID(),
-					registration: truckRegistration,
+					materialType: productType,
+					truckId: linkedTruck?.serverId || '',
+					sampleId: sampleId,
 					syncStatus: 'pending',
 					created: new Date(),
 					loadingLocation: loadingLocation,
+					siteLocation: 'PMC'
 				};
 
-				await indexedDBService.saveRecord('trucks', truck);
-				await syncService.syncTruck(truck);
+				await indexedDBService.saveRecord('truckLoads', truckLoad);
+				await syncService.syncTruckLoad(truckLoad);
 
-				let newTruck = (await indexedDBService.getAllRecords('trucks')).filter(
-					(truck: Truck) => truck.registration === truckRegistration
+				let newTruckLoad = (await indexedDBService.getAllRecords('truckLoads')).filter(
+					(truckLoad: TruckLoad) => truckLoad.sampleId === sampleId
 				)[0];
 
 				const assay: Assay = {
@@ -186,12 +179,13 @@
 					name: sampleId,
 					productType: productType,
 					dedicatedFleet: isDedicatedFleet,
-					linkedTruckIds: [newTruck?.serverId || ''],
+					linkedTruckLoadIds: [newTruckLoad?.serverId || newTruckLoad?.id || ''],
+					linkedTruckIds: [linkedTruck?.serverId || ''],
 					syncStatus: 'pending',
 					location: loadingLocation,
 					created: new Date(),
 					updated: new Date().toISOString(),
-					process: 'West Load Out',
+
 					sampleId: sampleId,
 					siteLocation: 'PMC',
 				};

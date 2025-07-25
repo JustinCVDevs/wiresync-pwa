@@ -45,13 +45,21 @@
 					throw new Error(`Truck with registration "${selectedTruck}" not found.`);
 				}
 
-				truck.updated = new Date().toISOString();
-				truck.felWeight = Number(felWeight);
-				truck.syncStatus = 'pending';
+				const truckLoad = await indexedDBService.getAllRecords('truckLoads').then(loads => 
+					loads.find(load => load.truckId === truck.serverId)
+				);
 
-				await indexedDBService.updateRecord('trucks', truck.id, truck);
+				if (!truckLoad) {
+					throw new Error(`Truck load for "${selectedTruck}" not found.`);
+				}
 
-				goto(`/pmc/processes/concentrator-&-smelter/copper-concentrate/hg-concentrate/fel-operations/verification?truckRegistration=${encodeURIComponent(truck?.registration || '')}`);
+				truckLoad.updated = new Date().toISOString();
+				truckLoad.felWeight = felWeight;
+				truckLoad.syncStatus = 'pending';
+
+				await indexedDBService.updateRecord('truckLoads', truckLoad.id, truckLoad);
+
+				goto(`/pmc/processes/concentrator-&-smelter/copper-concentrate/hg-concentrate/fel-operations/verification?sampleId=${encodeURIComponent(truckLoad.sampleId || '')}&truckRegistration=${encodeURIComponent(truck.registration || '')}`);
 			}
 			formPersistenceService.clearForm('fel-operations-hg-concentrate');
 		} catch (err) {

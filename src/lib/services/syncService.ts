@@ -350,6 +350,51 @@ export const syncService = {
 		}
 	},
 
+	async syncTruckLoadList() {
+		const allTruckLoads = await fetchAllFromPocketBase('truckLoads');
+		const allIndexedTruckLoads = await indexedDBService.getRecords('truckLoads');
+
+		for (const truckLoad of allTruckLoads) {
+			if (allIndexedTruckLoads.some((t) => t.serverId || t.id === truckLoad.id)) {
+				await indexedDBService.updateRecord('truckLoads', truckLoad.id, {
+					id: truckLoad.id,
+					process: truckLoad.process,
+					truckId: truckLoad.truckId,
+					felWeight: truckLoad.felWeight,
+					samplingStatus: truckLoad.samplingStatus,
+					loadingLocation: truckLoad.loadingLocation,
+					loadingHour: truckLoad.loadingHour,
+					acidType: truckLoad.acidType,
+					materialType: truckLoad.materialType,
+					sampleId: truckLoad.sampleId,
+					created: truckLoad.created,
+					updated: truckLoad.updated,
+					syncStatus: 'synced',
+					serverId: truckLoad.id,
+					siteLocation: truckLoad.siteLocation
+				});
+			} else {
+				await indexedDBService.saveRecord('truckLoads', {
+					id: truckLoad.id,
+					process: truckLoad.process,
+					truckId: truckLoad.truckId,
+					felWeight: truckLoad.felWeight,
+					samplingStatus: truckLoad.samplingStatus,
+					loadingLocation: truckLoad.loadingLocation,
+					loadingHour: truckLoad.loadingHour,
+					acidType: truckLoad.acidType,
+					materialType: truckLoad.materialType,
+					sampleId: truckLoad.sampleId,
+					created: truckLoad.created,
+					updated: truckLoad.updated,
+					syncStatus: 'synced',
+					serverId: truckLoad.id,
+					siteLocation: truckLoad.siteLocation
+				});
+			}
+		}
+	},
+
 	async syncTruckLoad(truckLoad: TruckLoad) {
 		try {
 			const { id, syncStatus, ...payload } = truckLoad;
@@ -360,13 +405,13 @@ export const syncService = {
 			} else {
 				created = await pocketbaseService.create('truckLoads', payload);
 			}
+			console.log('Payload:', payload);
 
 			if (truckLoad.id) {
 				await indexedDBService.updateRecord('truckLoads', truckLoad.id, {
 					...truckLoad,
 					syncStatus: 'synced',
 					serverId: created.id,
-					siteLocation: truckLoad.siteLocation
 				});
 			}
 			return true;
@@ -872,6 +917,7 @@ export const syncService = {
 		await this.syncShuntingTrainList();
 		await this.syncTrainList();
 		await this.syncTruckArrivalList();
+		await this.syncTruckLoadList();
 
 		// Delete records that no longer exist on the server
 		await this.syncDeletedRecords('assays');

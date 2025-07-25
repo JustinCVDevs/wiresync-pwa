@@ -2,6 +2,7 @@ import type { BaseRecord, ID } from './baserecord';
 
 // truck Loads component
 export interface TruckLoad extends BaseRecord {
+	id: string;
 	truckId?: string;
 	felWeight?: string;
 	samplingStatus?: boolean;
@@ -13,5 +14,6 @@ export interface TruckLoad extends BaseRecord {
 	syncStatus: 'pending' | 'synced';
 	tankLocation?: string;
 	acidType?: string;
+	materialType?: string;
 	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"
 }

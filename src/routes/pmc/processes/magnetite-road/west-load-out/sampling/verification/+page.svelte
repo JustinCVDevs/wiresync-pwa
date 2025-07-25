@@ -37,7 +37,6 @@
 				(t) => t.registration === truckRegistration
 			)[0];
 			truck = result ?? null;
-			console.log('Truck Data:', truck);
 		}
 	}
 

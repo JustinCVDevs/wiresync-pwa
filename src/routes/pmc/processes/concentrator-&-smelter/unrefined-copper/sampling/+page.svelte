@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
-	import type { Assay, Truck } from '$lib/types';
+	import type { Assay, Truck, TruckLoad } from '$lib/types';
 	import FormField from '$lib/components/FormField.svelte';
 	import { syncService } from '$lib/services/syncService';
 	import { onMount } from 'svelte';
@@ -47,31 +47,38 @@
 			processLayout.setError('');
 			processLayout.setSuccess('');
 
-			const truck: Truck = {
-				id: crypto.randomUUID(),
-				registration: truckRegistration,
-				syncStatus: 'pending',
-				created: new Date(),
-				loadingLocation: loadingLocation,
-			};
-
-			await indexedDBService.saveRecord('trucks', truck);
-			await syncService.syncTruck(truck);
-
-			let newTruck = (await indexedDBService.getAllRecords('trucks')).filter(
+			let linkTruck = (await indexedDBService.getAllRecords('trucks')).filter(
 				(truck: Truck) => truck.registration === truckRegistration
+			)[0];
+
+			const truckLoad: TruckLoad = {
+				id: crypto.randomUUID(),
+				truckId: linkTruck?.serverId || '',
+				materialType: materialType,
+				sampleId: sampleId,
+				loadingLocation: loadingLocation,
+				created: new Date(),
+				updated: new Date().toISOString(),
+				siteLocation: 'PMC',
+				syncStatus: 'pending',
+			}
+
+			await indexedDBService.saveRecord('truckLoads', truckLoad);
+			await syncService.syncTruckLoad(truckLoad);
+
+			let newTruckLoad = (await indexedDBService.getAllRecords('truckLoads')).filter(
+				(truckLoad: TruckLoad) => truckLoad.sampleId === sampleId
 			)[0];
 
 			const assay: Assay = {
 				id: crypto.randomUUID(),
 				name: sampleId,
 				materialType: materialType,
-				linkedTruckIds: [newTruck?.serverId || newTruck?.id],
+				linkedTruckIds: [newTruckLoad?.serverId || ''],
 				syncStatus: 'pending',
 				location: loadingLocation,
 				created: new Date(),
 				updated: new Date().toISOString(),
-				process: 'Concentrator & Smelter',
 				sampleId: sampleId,
 				siteLocation: 'PMC',
 			};
