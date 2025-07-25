@@ -89,7 +89,7 @@
 		}
 	}
 
-	function handleBackToProcesses() {
+	function handleSubmit() {
 		goto('/richardsbay/processes/rail/train-arrival');
 	}
 </script>
@@ -101,8 +101,8 @@
 	{isSubmitting}
 	cancelPath="/richardsbay/processes"
 	bind:this={processLayout}
-	showCancel={false}
-	showSubmit={false}
+	on:submit={handleSubmit}
+	on:cancel={() => goto('/richardsbay/processes')}
 >
 	<div class="space-y-6">
 		<!-- Verification Result -->
@@ -125,18 +125,6 @@
 					</div>
 				</div>
 			</div>
-
-			<!-- Success Actions -->
-			<div class="mt-6">
-				<button
-					type="button"
-					class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-					on:click={handleBackToProcesses}
-				>
-					Back to Processes
-				</button>
-			</div>
-
 		{:else}
 			<!-- Loading State -->
 			<div class="text-center py-8">

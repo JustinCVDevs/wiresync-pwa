@@ -101,7 +101,7 @@
 				
 				// Navigate back to processes screen after 1.5 seconds
 				setTimeout(() => {
-					goto('/pmc/processes');
+					goto('/pmc/processes/magnetite-rail/marshaling-yard/wagon-id-linking');
 				}, 1500);
 			}
 		} catch (e: any) {
