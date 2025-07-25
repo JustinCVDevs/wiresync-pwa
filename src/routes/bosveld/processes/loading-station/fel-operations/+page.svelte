@@ -27,7 +27,7 @@
 	let processLayout: ProcessLayout;
 
 	function handleCancel() {
-		goto('/bosveld/processes/loading-station');
+		goto('/bosveld/processes');
 	}
 	// Form errors
 	let formErrors = {
@@ -189,7 +189,7 @@
 	{currentStep}
 	{isSubmitting}
 	bind:this={processLayout}
-	cancelPath="/bosveld/processes/loading-station"
+	cancelPath="/bosveld/processes"
 	on:submit={handleSubmit}
 	on:cancel={handleCancel}
 >
@@ -200,12 +200,12 @@
 
 <div class="container">
 	<div class="form">
-		<label for="wagonId" class="block font-medium text-gray text-sm">Please select Wagon ID *</label>
+		<label for="wagonId" class="block font-medium text-gray text-sm">Please enter Wagon ID *</label>
 		<input
 			id="wagonId"
 			type="text"
 			bind:value={wagonInput}
-			placeholder="Select Wagon ID"
+			placeholder="Enter Wagon ID"
 			on:input={handleWagonInput}
 			on:focus={showAllSuggestions}
 			on:blur={() => setTimeout(() => showSuggestions = false, 100)}

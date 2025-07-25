@@ -8,9 +8,11 @@
 	import type { TrainDispatch } from '$lib/types/trainDispatch';
 	import type { Consignment, Train, Wagon } from '$lib';
 	import { ArrowDownToDotIcon, Container, Plane, PlusCircle } from 'lucide-svelte';
+	import { set } from 'zod';
   
 	let dispatchId = '';
 	$: dispatchId = $page.url.searchParams.get('dispatchId') || '';
+	let processLayout: ProcessLayout;
   
 	let trainDispatch: TrainDispatch | undefined;
 	let showWagonInput = false;
@@ -18,11 +20,7 @@
 	let success = '';
 	let isLoading = true;
   
-	const steps = [
-	  'Train & Consignment',
-	  'Wagon Linkage',
-	  'Complete',
-	];
+	const steps = ['Train & Consignment', 'Wagon Linkage'];
 	let currentStep = 2;
 	let train : Train | undefined;
 	let consignment : Consignment | undefined;
@@ -99,7 +97,11 @@
 	}
   
 	function handleReview() {
-	  goto(`/bosveld/processes/complete`);
+		processLayout.setSuccess('Wagon linkage completed successfully');
+
+		setTimeout(() => {
+			goto(`/bosveld/processes/marshaling-yard/marshaling-dispatch`);
+		}, 1000);
 	}
 
   </script>
@@ -108,9 +110,10 @@
 	{steps}
 	{currentStep}
 	isSubmitting={isLoading}
-	cancelPath="/bosveld/processes/marshaling-yard"
-	on:cancel={() => goto('/bosveld/processes/marshaling-yard')}
+	cancelPath="/bosveld/processes"
+	on:cancel={() => goto('/bosveld/processes')}
 	on:submit={handleReview}
+	bind:this={processLayout}
   >
 	{#if error}
 	  <div class="mb-4 rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">

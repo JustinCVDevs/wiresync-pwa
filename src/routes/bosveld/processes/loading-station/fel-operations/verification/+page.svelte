@@ -27,14 +27,14 @@
 	}
 
 	function handleCancel() {
-		goto('/bosveld/processes/loading-station');
+		goto('/bosveld/processes');
 	}
 
 	function handleSubmit() {
 		processLayout.setSuccess('Data saved successfully');
 
 		setTimeout(() => {
-			goto('/bosveld/processes/loading-station');
+			goto('/bosveld/processes/loading-station/fel-operations');
 		}, 1000);
 	}
 </script>
@@ -45,7 +45,7 @@
 	{currentStep}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
-	cancelPath="/bosveld/processes/loading-station"
+	cancelPath="/bosveld/processes"
 	bind:this={processLayout}
 >
 <!-- t -->

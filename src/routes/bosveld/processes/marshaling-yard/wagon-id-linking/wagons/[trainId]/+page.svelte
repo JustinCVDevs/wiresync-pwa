@@ -15,7 +15,7 @@
 	let isLoading = true;
 	let trainId: string;
 
-	const steps = ['Select Shunting Train', 'Wagon Linking', 'Complete'];
+	const steps = ['Select Shunting Train', 'Wagon Linking'];
 	let currentStep = 2;
 
 	$: trainId = $page.params.trainId;
@@ -61,28 +61,6 @@
 
 	onMount(loadTrainAndWagons);
 
-	async function handleWagonChange(wagonIndex: number, newWagonId: string) {
-		try {
-			// Update the wagon ID in the linked wagons array
-			if (shuntingTrain && shuntingTrain.linkedWagons) {
-				shuntingTrain.linkedWagons[wagonIndex] = newWagonId;
-				
-				// Save updated shunting train
-				await indexedDBService.saveRecord('shuntingTrains', {
-					...shuntingTrain,
-					syncStatus: 'pending'
-				});
-				
-				// Reload wagons
-				await loadTrainAndWagons();
-				success = 'Wagon updated successfully';
-			}
-		} catch (e) {
-			console.error(e);
-			error = 'Failed to update wagon';
-		}
-	}
-
 	async function handleSubmit() {
 		try {
 			// Set the verification timestamp to current time
@@ -127,8 +105,8 @@
 	{steps}
 	{currentStep}
 	isSubmitting={isLoading}
-	cancelPath="/bosveld/processes/marshaling-yard/wagon-id-linking"
-	on:cancel={() => goto('/bosveld/processes/marshaling-yard/wagon-id-linking')}
+	cancelPath="/bosveld/processes"
+	on:cancel={() => goto('/bosveld/processes')}
 	on:submit={handleSubmit}
 	on:error={({ detail }) => (error = detail)}
 	on:success={({ detail }) => (success = detail)}

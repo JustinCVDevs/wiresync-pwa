@@ -21,7 +21,7 @@
 	let success = '';
 	let isLoading = true;
 
-	const steps = ['Train & Consignment Details', 'Wagon Linkage', 'Complete'];
+	const steps = ['Train & Consignment Details', 'Wagon Linkage'];
 	let currentStep = 1;
 	let train: Train;
 
@@ -63,14 +63,6 @@
 	onMount(loadTrainsAndConsignments);
 	$: if (selectedTrainRef) loadTrainsAndConsignments();
 
-	function handleCapture(file: File) {
-		capturedImage = URL.createObjectURL(file);
-		showCamera = false;
-	}
-	function handleCameraClose() {
-		showCamera = false;
-	}
-
 	async function handleSubmit() {
 		error = '';
 		if (!selectedTrainRef) {
@@ -110,17 +102,14 @@
 					updated: new Date().toISOString()
 				});
 			}
-			const consignments = await indexedDBService.getAllRecords('consignments');
-			const linkedConsignment = consignments.find(c => {
-				if (!c.created) return false;
-				return c.name === manualConsignment &&
-					Math.abs(new Date(c.created).getTime() - Date.now()) < 5000;
-			});
+			const newConsignments = (await indexedDBService.getAllRecords('consignments')).find(
+				(c) => c.name === manualConsignment
+			);
 
 			const trainDispatch: TrainDispatch = {
 			id: dispatchId,
 			linkedTrainId: train.serverId,
-			linkedConsignmentId: linkedConsignment?.serverId,
+			linkedConsignmentId: newConsignments?.serverId,
 			process: 'MarshalingDispatch',
 			syncStatus: 'pending',
 			created: new Date(),
@@ -142,8 +131,8 @@
 	{steps}
 	{currentStep}
 	isSubmitting={isLoading}
-	cancelPath="/bosveld/processes/marshaling-yard"
-	on:cancel={() => goto('/bosveld/processes/marshaling-yard')}
+	cancelPath="/bosveld/processes"
+	on:cancel={() => goto('/bosveld/processes')}
 	on:submit={handleSubmit}
 	on:error={({ detail }) => (error = detail)}
 	on:success={({ detail }) => (success = detail)}
