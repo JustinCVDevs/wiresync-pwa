@@ -35,6 +35,59 @@ async function fetchAllFromPocketBase(collection: PBCollection, perPage = 50) {
 }
 
 export const syncService = {
+	async syncAssayList() {
+		const allAssays = await fetchAllFromPocketBase('assays');
+		const allIndexedAssays = await indexedDBService.getRecords('assays');
+
+		for (const assay of allAssays) {
+			if (allIndexedAssays.some((a) => a.serverId || a.id === assay.id)) {
+				await indexedDBService.updateRecord('assays', assay.id, {
+					id: assay.id,
+					process: assay.process,
+					name: assay.name,
+					materialType: assay.materialType,
+					location: assay.location,
+					linkedWagonIds: assay.linkedWagonIds,
+					linkedTruckIds: assay.linkedTruckIds,
+					linkedTruckLoadIds: assay.linkedTruckLoadIds,
+					linkedFleetIds: assay.linkedFleetId,
+					sampleSize: assay.sampleSize,
+					commodity: assay.commodity,
+					productType: assay.productType,
+					dedicatedFleet: assay.dedicatedFleet,
+					sampleId: assay.sampleId,
+					siteLocation: assay.siteLocation,
+					serverId: assay.id,
+					syncStatus: 'synced',
+					created: assay.created,
+					updated: assay.updated,
+				});
+			} else {
+				await indexedDBService.saveRecord('assays', {
+					id: assay.id,
+					process: assay.process,
+					name: assay.name,
+					materialType: assay.materialType,
+					location: assay.location,
+					linkedWagonIds: assay.linkedWagonIds,
+					linkedTruckIds: assay.linkedTruckIds,
+					linkedTruckLoadIds: assay.linkedTruckLoadIds,
+					linkedFleetIds: assay.linkedFleetId,
+					sampleSize: assay.sampleSize,
+					commodity: assay.commodity,
+					productType: assay.productType,
+					dedicatedFleet: assay.dedicatedFleet,
+					sampleId: assay.sampleId,
+					siteLocation: assay.siteLocation,
+					serverId: assay.id,
+					syncStatus: 'synced',
+					created: assay.created,
+					updated: assay.updated,
+				});
+			}
+		}
+	},
+
 	// Assay sync methods
 	async syncAssay(assay: Assay) {
 		try {
@@ -217,19 +270,33 @@ export const syncService = {
 		try {
 			const allTrucks = await fetchAllFromPocketBase('trucks');
 			const allIndexedTrucks = await indexedDBService.getRecords('trucks');
+
 			for (const truck of allTrucks) {
 				if (allIndexedTrucks.some((t) => t.serverId || t.id === truck.id)) {
-					continue;
+					await indexedDBService.updateRecord('trucks', truck.id, {
+						id: truck.id,
+						registration: truck.registration,
+						loadingLocation: truck.loadingLocation,
+						syncStatus: 'synced',
+						loadingHour: truck.loadingHour,
+						felWeight: truck.felWeight,
+						serverId: truck.id,
+						created: truck.created,
+						updated: truck.updated
+					});
+				} else {
+					await indexedDBService.saveRecord('trucks', {
+						id: truck.id,
+						registration: truck.registration,
+						loadingLocation: truck.loadingLocation,
+						syncStatus: 'synced',
+						loadingHour: truck.loadingHour,
+						felWeight: truck.felWeight,
+						serverId: truck.id,
+						created: truck.created,
+						updated: truck.updated
+					});
 				}
-				await indexedDBService.saveRecord('trucks', {
-					id: truck.id,
-					registration: truck.registration,
-					syncStatus: 'synced',
-					serverId: truck.id,
-					loadingLocation: truck.loadingLocation,
-					loadingHour: truck.loadingHour,
-					felWeight: truck.felWeight
-				});
 			}
 			return true;
 		} catch (err) {
@@ -296,15 +363,27 @@ export const syncService = {
 	async syncConsignmentList() {
 		try {
 			const allConsignments = await fetchAllFromPocketBase('consignments');
+			const allIndexedConsignments = await indexedDBService.getRecords('consignments');
 			for (const consignment of allConsignments) {
-				await indexedDBService.saveRecord('consignments', {
-					id: consignment.id,
-					name: consignment.name,
-					linkedTrainId: consignment.linkedTrainId,
-					syncStatus: 'synced',
-					serverId: consignment.id,
-					siteLocation: consignment.siteLocation
-				});
+				if (allIndexedConsignments.some((c) => c.serverId || c.id === consignment.id)) {
+					await indexedDBService.updateRecord('consignments', consignment.id, {
+						id: consignment.id,
+						name: consignment.name,
+						linkedTrainId: consignment.linkedTrainId,
+						syncStatus: 'synced',
+						serverId: consignment.id,
+						siteLocation: consignment.siteLocation
+					});
+				} else {
+					await indexedDBService.saveRecord('consignments', {
+						id: consignment.id,
+						name: consignment.name,
+						linkedTrainId: consignment.linkedTrainId,
+						syncStatus: 'synced',
+						serverId: consignment.id,
+						siteLocation: consignment.siteLocation
+					});
+				}
 			}
 			return true;
 		} catch (err) {
@@ -432,6 +511,41 @@ export const syncService = {
 		}
 	},
 
+	async syncTrainDispatchList() {
+		const allTrainDispatches = await fetchAllFromPocketBase('trainDispatches');
+		const allIndexedTrainDispatches = await indexedDBService.getRecords('trainDispatches');
+
+		for (const trainDispatch of allTrainDispatches) {
+			if (allIndexedTrainDispatches.some((t) => t.serverId || t.id === trainDispatch.id)) {
+				await indexedDBService.updateRecord('trainDispatches', trainDispatch.id, {
+					id: trainDispatch.id,
+					linkedTrainId: trainDispatch.linkedTrainId,
+					linkedConsignmentId: trainDispatch.linkedConsignmentId,
+					linkedWagonIds: trainDispatch.linkedWagonIds,
+					process: trainDispatch.process,
+					siteLocation: trainDispatch.siteLocation,
+					syncStatus: 'synced',
+					serverId: trainDispatch.id,
+					created: trainDispatch.created,
+					updated: trainDispatch.updated
+				});
+			} else {
+				await indexedDBService.saveRecord('trainDispatches', {
+					id: trainDispatch.id,
+					linkedTrainId: trainDispatch.linkedTrainId,
+					linkedConsignmentId: trainDispatch.linkedConsignmentId,
+					linkedWagonIds: trainDispatch.linkedWagonIds,
+					process: trainDispatch.process,
+					siteLocation: trainDispatch.siteLocation,
+					syncStatus: 'synced',
+					serverId: trainDispatch.id,
+					created: trainDispatch.created,
+					updated: trainDispatch.updated
+				});
+			}
+		}
+	},
+
 	async syncTrainDispatch(trainDispatch: TrainDispatch) {
 		try {
 			const { id, syncStatus, ...payload } = trainDispatch;
@@ -517,10 +631,7 @@ export const syncService = {
 			await this.syncTrainDispatch(trainDispatch);
 		}
 	},
-	/**
-	  * Remove any local records whose serverId
-	  * no longer exists in PocketBase.
-	  */
+
 	async syncDeletedRecords(collectionName: any) {
 		try {
 			const serverIds = new Set<string>()
@@ -622,16 +733,34 @@ export const syncService = {
 	async syncShuntingTrainList() {
 		try {
 			const response = await pocketbaseService.list('shuntingTrains');
+			const allIndexedShuntingTrains = await indexedDBService.getRecords('shuntingTrains');
+
             for (const train of response.items) {
-                await indexedDBService.saveRecord('shuntingTrains', {
-                    id: train.id,
-                    postDate: train.postDate,
-                    syncStatus: 'synced',
-                    created: train.created,
-                    updated: train.updated,
-                    linkedWagons: train.linkedWagons,
-                    verificationTimestamp: train.verificationTimestamp
-                });
+				if (allIndexedShuntingTrains.some((t) => t.serverId || t.id === train.id)) {
+					await indexedDBService.updateRecord('shuntingTrains', train.id, {
+						id: train.id,
+						postDate: train.postDate,
+						linkedWagons: train.linkedWagons,
+						verificationTimestamp: train.verificationTimestamp,
+						siteLocation: train.siteLocation,
+						serverId: train.id,
+						syncStatus: 'synced',
+						created: train.created,
+						updated: train.updated,
+					});
+				} else {
+					await indexedDBService.saveRecord('shuntingTrains', {
+						id: train.id,
+						postDate: train.postDate,
+						linkedWagons: train.linkedWagons,
+						verificationTimestamp: train.verificationTimestamp,
+						siteLocation: train.siteLocation,
+						serverId: train.id,
+						syncStatus: 'synced',
+						created: train.created,
+						updated: train.updated,
+					});
+				}
             }
             return true;
 		} catch (err) {
@@ -646,25 +775,42 @@ export const syncService = {
 			const allIndexedWagons = await indexedDBService.getRecords('wagons');
 			for (const wagon of allWagons) {
 				if (allIndexedWagons.some((w) => w.serverId || w.id === wagon.wagonId)) {
-					continue;
+					await indexedDBService.updateRecord('wagons', wagon.id, {
+						id: wagon.id,
+						wagonId: wagon.wagonId,
+						wagonIdSimple: wagon.wagonIdSimple,
+						transcoreTag: wagon.transcoreTag,
+						componentType: wagon.componentType,
+						wagonPhotoUrl: wagon.wagonPhotoUrl,
+						dispatchTimestamp: wagon.dispatchTimestamp,
+						releaseTimestamp: wagon.releaseTimestamp,
+						trainNumber: wagon.trainNumber,
+						loadingLocation: wagon.loadingLocation,
+						felWeight: wagon.felWeight,
+						serverId: wagon.id,
+						syncStatus: 'synced',
+						created: wagon.created,
+						updated: wagon.updated
+					});
+				} else {
+					await indexedDBService.saveRecord('wagons', {
+						id: wagon.id,
+						wagonId: wagon.wagonId,
+						wagonIdSimple: wagon.wagonIdSimple,
+						transcoreTag: wagon.transcoreTag,
+						componentType: wagon.componentType,
+						wagonPhotoUrl: wagon.wagonPhotoUrl,
+						dispatchTimestamp: wagon.dispatchTimestamp,
+						releaseTimestamp: wagon.releaseTimestamp,
+						trainNumber: wagon.trainNumber,
+						loadingLocation: wagon.loadingLocation,
+						felWeight: wagon.felWeight,
+						serverId: wagon.id,
+						syncStatus: 'synced',
+						created: wagon.created,
+						updated: wagon.updated
+					});
 				}
-				await indexedDBService.saveRecord('wagons', {
-					id: wagon.id,
-					wagonId: wagon.wagonId,
-					wagonIdSimple: wagon.wagonIdSimple,
-					transcoreTag: wagon.transcoreTag,
-					componentType: wagon.componentType,
-					wagonPhotoUrl: wagon.wagonPhotoUrl,
-					dispatchTimestamp: wagon.dispatchTimestamp,
-					releaseTimestamp: wagon.releaseTimestamp,
-					trainNumber: wagon.trainNumber,
-					loadingLocation: wagon.loadingLocation,
-					felWeight: wagon.felWeight,
-					serverId: wagon.id,
-					syncStatus: 'synced',
-					created: wagon.created,
-					updated: wagon.updated
-				});
 			}
 			return true;
 		} catch (err) {
@@ -753,32 +899,96 @@ export const syncService = {
 
 	async syncTruckArrivalList() {
 		try {
-			const response = await pocketbaseService.list('truckArrivals');
-			for (const arrival of response.items) {
-				await indexedDBService.saveRecord('truckArrivals', {
-					id: arrival.id,
-					truckId: arrival.truckId,
-					port_arrival_sample_id: arrival.port_arrival_sample_id,
-					truck_photo: arrival.truck_photo,
-					port_truck_arrival_timestamp: arrival.port_truck_arrival_timestamp,
-					status: arrival.status,
-					transporter: arrival.transporter,
-					truck_commodity: arrival.truck_commodity,
-					gross_measured_kg: arrival.gross_measured_kg,
-					gross_timestamp: arrival.gross_timestamp,
-					tare_stored_kg: arrival.tare_stored_kg,
-					tare_timestamp: arrival.tare_timestamp,
-					truck_origin_location: arrival.truck_origin_location,
-					syncStatus: 'synced',
-					created: arrival.created,
-					updated: arrival.updated,
-					serverId: arrival.id
-				});
+			const allTruckArrivals = await pocketbaseService.list('truckArrivals');
+			const allIndexedTruckArrivals = await indexedDBService.getRecords('truckArrivals');
+			for (const arrival of allTruckArrivals.items) {
+				if (allIndexedTruckArrivals.some((t) => t.serverId || t.id === arrival.id)) {
+					await indexedDBService.updateRecord('truckArrivals', arrival.id, {
+						id: arrival.id,
+						truckId: arrival.truckId,
+						port_arrival_sample_id: arrival.port_arrival_sample_id,
+						truck_photo: arrival.truck_photo,
+						port_truck_arrival_timestamp: arrival.port_truck_arrival_timestamp,
+						status: arrival.status,
+						transporter: arrival.transporter,
+						truck_commodity: arrival.truck_commodity,
+						gross_measured_kg: arrival.gross_measured_kg,
+						gross_timestamp: arrival.gross_timestamp,
+						tare_stored_kg: arrival.tare_stored_kg,
+						tare_timestamp: arrival.tare_timestamp,
+						truck_origin_location: arrival.truck_origin_location,
+						syncStatus: 'synced',
+						siteLocation: arrival.siteLocation,
+						created: arrival.created,
+						updated: arrival.updated,
+						serverId: arrival.id
+					});
+				} else {
+					await indexedDBService.saveRecord('truckArrivals', {
+						id: arrival.id,
+						truckId: arrival.truckId,
+						port_arrival_sample_id: arrival.port_arrival_sample_id,
+						truck_photo: arrival.truck_photo,
+						port_truck_arrival_timestamp: arrival.port_truck_arrival_timestamp,
+						status: arrival.status,
+						transporter: arrival.transporter,
+						truck_commodity: arrival.truck_commodity,
+						gross_measured_kg: arrival.gross_measured_kg,
+						gross_timestamp: arrival.gross_timestamp,
+						tare_stored_kg: arrival.tare_stored_kg,
+						tare_timestamp: arrival.tare_timestamp,
+						truck_origin_location: arrival.truck_origin_location,
+						syncStatus: 'synced',
+						siteLocation: arrival.siteLocation,
+						created: arrival.created,
+						updated: arrival.updated,
+						serverId: arrival.id
+					});
+				}
 			}
 			return true;
 		} catch (err) {
 			console.warn('Failed to sync truck arrival list:', err);
 			return false;
+		}
+	},
+
+	async syncTrainArrivalList() {
+		const allTrainArrivals = await fetchAllFromPocketBase('trainArrivals');
+		const allIndexedTrainArrivals = await indexedDBService.getRecords('trainArrivals');
+
+		for (const trainArrival of allTrainArrivals) {
+			if (allIndexedTrainArrivals.some((t) => t.serverId || t.id === trainArrival.id)) {
+				await indexedDBService.updateRecord('trainArrivals', trainArrival.id, {
+					id: trainArrival.id,
+					trainRefNr: trainArrival.trainRefNr,
+					trainRfidNr: trainArrival.trainRfidNr,
+					portRailArrivalTimestamp: trainArrival.portRailArrivalTimestamp,
+					trainPhotoUrl: trainArrival.trainPhotoUrl,
+					status: trainArrival.status,
+					trainId: trainArrival.trainId,
+					siteLocation: trainArrival.siteLocation,
+					syncStatus: 'synced',
+					serverId: trainArrival.id,
+					created: trainArrival.created,
+					updated: trainArrival.updated,
+				});
+			} else {
+				await indexedDBService.saveRecord('trainArrivals', {
+					id: trainArrival.id,
+					trainRefNr: trainArrival.trainRefNr,
+					trainRfidNr: trainArrival.trainRfidNr,
+					portRailArrivalTimestamp: trainArrival.portRailArrivalTimestamp,
+					trainPhotoUrl: trainArrival.trainPhotoUrl,
+					status: trainArrival.status,
+					trainId: trainArrival.trainId,
+					siteLocation: trainArrival.siteLocation,
+					syncStatus: 'synced',
+					serverId: trainArrival.id,
+					created: trainArrival.created,
+					updated: trainArrival.updated,
+				});
+			}
 		}
 	},
 
@@ -858,6 +1068,47 @@ export const syncService = {
 		}
 	},
 
+	async syncFleetList() {
+		const allFleets = await fetchAllFromPocketBase('fleet');
+		const allIndexedFleets = await indexedDBService.getRecords('fleet');
+
+		for (const fleet of allFleets) {
+			if (allIndexedFleets.some((f) => f.serverId || f.id === fleet.id)) {
+				await indexedDBService.updateRecord('fleet', fleet.id, {
+					id: fleet.id,
+					sampleId: fleet.sampleId,
+					sampleSize: fleet.sampleSize,
+					commodity: fleet.commodity,
+					materialType: fleet.materialType,
+					registration: fleet.registration,
+					samplingStatus: fleet.samplingStatus,
+					felMassKg: fleet.felMassKg,
+					siteLocation: fleet.siteLocation,
+					syncStatus: 'synced',
+					serverId: fleet.id,
+					created: fleet.created,
+					updated: fleet.updated
+				});
+			} else {
+				await indexedDBService.saveRecord('fleet', {
+					id: fleet.id,
+					sampleId: fleet.sampleId,
+					sampleSize: fleet.sampleSize,
+					commodity: fleet.commodity,
+					materialType: fleet.materialType,
+					registration: fleet.registration,
+					samplingStatus: fleet.samplingStatus,
+					felMassKg: fleet.felMassKg,
+					siteLocation: fleet.siteLocation,
+					syncStatus: 'synced',
+					serverId: fleet.id,
+					created: fleet.created,
+					updated: fleet.updated
+				});
+			}
+		}
+	},
+
 	async syncFleet(fleet : Fleet) {
 		try {
 			const { id, syncStatus, ...payload } = fleet;
@@ -899,32 +1150,42 @@ export const syncService = {
 		await Promise.all([
 			// Sync all pending records
 			this.syncPendingAssays(),
-			this.syncPendingWagons(),
-			this.syncPendingTrucks(),
-			this.syncPendingTruckLoads(),
 			this.syncPendingConsignment(),
-			this.syncPendingTrainDispatches(),
-			this.syncPendingTrainArrivals(),
-			this.syncPendingShuntingTrains(),
-			this.syncPendingTruckArrivals(),
 			this.syncPendingFleet(),
+			this.syncPendingShuntingTrains(),
+			this.syncPendingTrainArrivals(),
+			this.syncPendingTrainDispatches(),
+			//this.syncPendingTrain(), Not yet updating Trains
+			this.syncPendingTruckArrivals(),
+			this.syncPendingTruckLoads(),
+			this.syncPendingTrucks(),
+			this.syncPendingWagons(),
 		]);
 
 		// Sync records from PocketBase
+		await this.syncAssayList();
 		await this.syncConsignmentList();
-		await this.syncTruckList();
-		await this.syncWagonList();
+		await this.syncFleetList();
 		await this.syncShuntingTrainList();
+		await this.syncTrainArrivalList();
+		await this.syncTrainDispatchList();
 		await this.syncTrainList();
 		await this.syncTruckArrivalList();
 		await this.syncTruckLoadList();
-
+		
 		// Delete records that no longer exist on the server
 		await this.syncDeletedRecords('assays');
-		await this.syncDeletedRecords('wagons');
-		await this.syncDeletedRecords('truckLoads');
+		await this.syncDeletedRecords('consignments');
+		await this.syncDeletedRecords('fleet');
+		await this.syncDeletedRecords('shuntingTrains');
+		await this.syncDeletedRecords('trainArrivals');
 		await this.syncDeletedRecords('trainDispatches');
-	}
+		await this.syncDeletedRecords('trains');
+		await this.syncDeletedRecords('truckArrivals');
+		await this.syncDeletedRecords('truckLoads');
+		await this.syncDeletedRecords('trucks');
+		await this.syncDeletedRecords('wagons');
+	},
 };
 
 

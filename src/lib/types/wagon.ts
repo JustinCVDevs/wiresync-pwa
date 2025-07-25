@@ -15,8 +15,8 @@ export interface Wagon extends BaseRecord {
 	serverId?: string;
 	syncStatus: 'pending' | 'synced';
 	process?: string; // e.g. "Loading" / "Unloading" / "Transferring"
-	dispatchTimestamp?: Date;
-	releaseTimestamp?: Date;
+	dispatchTimestamp?: Date | null;
+	releaseTimestamp?: Date | null;
 	loadingLocation?: string; // Location where the wagon is loaded
 	trainNumber?: string; // Train number associated with the wagon
 }

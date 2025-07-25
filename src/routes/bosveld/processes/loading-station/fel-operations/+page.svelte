@@ -6,10 +6,6 @@
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import { formPersistenceService } from '$lib/services/formPersistenceService';
 
-	interface Consignment {
-		name: string;
-	}
-
 	let wagonInput = '';
 	let availableWagons: any[] = [];
 	let filteredSuggestions: any[] = [];
@@ -37,7 +33,6 @@
 	let formErrors = {
 		sampleId: '',
 		productGrade: '',
-		consignment: '',
 		wagonId: '',
 		felWeight: '',
 	};
@@ -54,7 +49,7 @@
 	onMount(() => {
 		return () => {
 			if (loadingLocation) {
-				formPersistenceService.saveForm('loading-station', {
+				formPersistenceService.saveForm('loading_station', {
 					loadingLocation
 				});
 			}
@@ -64,7 +59,7 @@
 	function loadPersistedData() {
 		const savedData = formPersistenceService.loadForm<{
 			loadingLocation: string;
-		}>('loading-station');
+		}>('loading_station');
 
 		if (savedData) {
 			loadingLocation = savedData.loadingLocation || 'Bosveld';
@@ -76,7 +71,6 @@
 		formErrors = {
 			sampleId: '',
 			productGrade: '',
-			consignment: '',
 			wagonId: '',
 			felWeight: '',
 		};
@@ -99,10 +93,8 @@
 	async function getWagons() {
 		try {
 			const wagons = (await indexedDBService.getAllRecords('wagons')).filter((w) => {
-				const notUpdated = !w.updated;
 				return (
-					w.loadingLocation === 'Bosveld' &&
-					notUpdated
+					w.loadingLocation === 'Bosveld'
 				);
 			});
 
@@ -128,17 +120,17 @@
 
 		filteredSuggestions = availableWagons.filter(wagon =>
 			wagon.wagonIdSimple?.toLowerCase().includes(value.toLowerCase()) ||
-			wagon.transcoreTag?.toLowerCase().includes(value.toLowerCase())
+			wagon.wagonId?.toLowerCase().includes(value.toLowerCase())
 		).slice(0, 6);
 
 		const exactMatch = availableWagons.find(wagon =>
 			wagon.wagonIdSimple?.toLowerCase() === value.toLowerCase() ||
-			wagon.transcoreTag?.toLowerCase() === value.toLowerCase()
+			wagon.wagonId?.toLowerCase() === value.toLowerCase()
 		);
 
 		if (exactMatch) {
 			selectedWagon = exactMatch;
-			wagonId = exactMatch.transcoreTag || exactMatch.wagonIdSimple;
+			wagonId = exactMatch.wagonId || exactMatch.wagonIdSimple;
 			showSuggestions = false;
 		} else if (value.length >= 2) {
 			showSuggestions = filteredSuggestions.length > 0;
@@ -168,13 +160,14 @@
 			if (selectedWagon) {
 				selectedWagon.loadingLocation = loadingLocation;
 				selectedWagon.felWeight = felWeight;
+				selectedWagon.syncStatus = 'pending';
 				selectedWagon.updated = new Date().toISOString();
 
 				await indexedDBService.updateRecord('wagons', selectedWagon.id, selectedWagon);
 			}
 
 			// Clear persisted form data
-			formPersistenceService.clearForm('loading-station');
+			formPersistenceService.clearForm('loading_station');
 
 			processLayout.setSuccess('Data saved successfully');
 			setTimeout(() => {
@@ -207,12 +200,12 @@
 
 <div class="container">
 	<div class="form">
-		<label for="wagonId" class="block font-medium text-gray text-sm">Please enter Wagon ID *</label>
+		<label for="wagonId" class="block font-medium text-gray text-sm">Please select Wagon ID *</label>
 		<input
 			id="wagonId"
 			type="text"
 			bind:value={wagonInput}
-			placeholder="Enter Wagon ID"
+			placeholder="Select Wagon ID"
 			on:input={handleWagonInput}
 			on:focus={showAllSuggestions}
 			on:blur={() => setTimeout(() => showSuggestions = false, 100)}
@@ -231,13 +224,13 @@
 							type="button"
 							class:selected={i === highlightedIndex}
 							on:click={() => {
-								wagonInput = suggestion.transcoreTag;
+								wagonInput = suggestion.wagonId;
 								wagonId = wagonInput;
 								showSuggestions = false;
 								selectedWagon = suggestion;
 							}}
 						>
-							{suggestion.transcoreTag} ({suggestion.wagonIdSimple})
+							{suggestion.wagonId} ({suggestion.wagonIdSimple})
 						</button>
 					</li>
 				{/each}

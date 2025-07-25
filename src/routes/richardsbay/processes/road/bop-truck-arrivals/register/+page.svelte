@@ -177,7 +177,7 @@
 			processLayout.setSuccess('Truck registered successfully');
 			setTimeout(() => {
 				goto('/richardsbay/processes/road');
-			}, 1500);
+			}, 1000);
 		} catch (err) {
 			processLayout.setError('Failed to register truck');
 			console.error(err);
