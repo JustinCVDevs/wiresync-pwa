@@ -4,10 +4,11 @@
 	import { goto } from '$app/navigation';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
-	import type { Truck } from '$lib/types/truck';
+	import type { TruckLoad } from '$lib/types/truckLoad';
 
+	const sampleId = $page.url.searchParams.get('sampleId') || '';
 	const truckRegistration = $page.url.searchParams.get('truckRegistration') || '';
-	let truck: Truck | null = null;
+	let truckLoad: TruckLoad | null = null;
 	let currentStep = 2;
 	let processLayout: ProcessLayout;
 	
@@ -19,11 +20,11 @@
 	});
 
 	async function loadTruckData() {
-		if (truckRegistration) {
-			const result = (await indexedDBService.getAllRecords('trucks')).filter(
-				(t) => t.registration === truckRegistration && t.loadingLocation === 'HG Concentrate'
+		if (sampleId) {
+			const result = (await indexedDBService.getAllRecords('truckLoads')).filter(
+				(t) => t.sampleId === sampleId
 			)[0];
-			truck = result ?? null;
+			truckLoad = result ?? null;
 		}
 	}
 
@@ -51,17 +52,17 @@
 	cancelPath="/pmc/processes/concentrator-&-smelter"
 >
 	<div class="space-y-4">
-		{#if truck}
+		{#if truckLoad}
 				<div class="bg-white p-4 rounded-lg shadow-sm">
 					<div class="grid grid-cols-1 gap-4">
 						<div>
 							<p class="text-sm text-gray-500 font-bold">Truck Registration Nr</p>
-							<p class="font-medium">{truck.registration}</p>
+							<p class="font-medium">{truckRegistration}</p>
 						</div>
 
 						<div>
 							<p class="text-sm text-gray-500 font-bold">FEL Weight (Ton)</p>
-							<p class="font-medium">{truck.felWeight}</p>
+							<p class="font-medium">{truckLoad.felWeight}</p>
 						</div>
 					</div>
 				</div>

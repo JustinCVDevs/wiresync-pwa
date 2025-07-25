@@ -50,7 +50,7 @@ export const syncService = {
 					linkedWagonIds: assay.linkedWagonIds,
 					linkedTruckIds: assay.linkedTruckIds,
 					linkedTruckLoadIds: assay.linkedTruckLoadIds,
-					linkedFleetId: assay.linkedFleetId,
+					linkedFleetIds: assay.linkedFleetId,
 					sampleSize: assay.sampleSize,
 					commodity: assay.commodity,
 					productType: assay.productType,
@@ -72,7 +72,7 @@ export const syncService = {
 					linkedWagonIds: assay.linkedWagonIds,
 					linkedTruckIds: assay.linkedTruckIds,
 					linkedTruckLoadIds: assay.linkedTruckLoadIds,
-					linkedFleetId: assay.linkedFleetId,
+					linkedFleetIds: assay.linkedFleetId,
 					sampleSize: assay.sampleSize,
 					commodity: assay.commodity,
 					productType: assay.productType,
@@ -430,10 +430,10 @@ export const syncService = {
 	},
 
 	async syncTruckLoadList() {
-		const allTruckLoad = await fetchAllFromPocketBase('truckLoads');
+		const allTruckLoads = await fetchAllFromPocketBase('truckLoads');
 		const allIndexedTruckLoads = await indexedDBService.getRecords('truckLoads');
 
-		for (const truckLoad of allTruckLoad) {
+		for (const truckLoad of allTruckLoads) {
 			if (allIndexedTruckLoads.some((t) => t.serverId || t.id === truckLoad.id)) {
 				await indexedDBService.updateRecord('truckLoads', truckLoad.id, {
 					id: truckLoad.id,
@@ -444,12 +444,13 @@ export const syncService = {
 					loadingLocation: truckLoad.loadingLocation,
 					loadingHour: truckLoad.loadingHour,
 					acidType: truckLoad.acidType,
+					materialType: truckLoad.materialType,
 					sampleId: truckLoad.sampleId,
-					siteLocation: truckLoad.siteLocation,
+					created: truckLoad.created,
+					updated: truckLoad.updated,
 					syncStatus: 'synced',
 					serverId: truckLoad.id,
-					created: truckLoad.created,
-					updated: truckLoad.updated
+					siteLocation: truckLoad.siteLocation
 				});
 			} else {
 				await indexedDBService.saveRecord('truckLoads', {
@@ -461,12 +462,13 @@ export const syncService = {
 					loadingLocation: truckLoad.loadingLocation,
 					loadingHour: truckLoad.loadingHour,
 					acidType: truckLoad.acidType,
+					materialType: truckLoad.materialType,
 					sampleId: truckLoad.sampleId,
-					siteLocation: truckLoad.siteLocation,
+					created: truckLoad.created,
+					updated: truckLoad.updated,
 					syncStatus: 'synced',
 					serverId: truckLoad.id,
-					created: truckLoad.created,
-					updated: truckLoad.updated
+					siteLocation: truckLoad.siteLocation
 				});
 			}
 		}
@@ -482,13 +484,13 @@ export const syncService = {
 			} else {
 				created = await pocketbaseService.create('truckLoads', payload);
 			}
+			console.log('Payload:', payload);
 
 			if (truckLoad.id) {
 				await indexedDBService.updateRecord('truckLoads', truckLoad.id, {
 					...truckLoad,
 					syncStatus: 'synced',
 					serverId: created.id,
-					siteLocation: truckLoad.siteLocation
 				});
 			}
 			return true;
@@ -1170,8 +1172,6 @@ export const syncService = {
 		await this.syncTrainList();
 		await this.syncTruckArrivalList();
 		await this.syncTruckLoadList();
-		await this.syncTruckList();
-		await this.syncWagonList();
 		
 		// Delete records that no longer exist on the server
 		await this.syncDeletedRecords('assays');

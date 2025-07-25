@@ -115,13 +115,15 @@
                     throw new Error(`Truck with registration "${selectedTruck}" not found.`);
                 }
 
-                truck.dedicatedFleet = false;
-                truck.loadingLocation = loadingLocation;
-                truck.updated = new Date().toISOString();
-                truck.felWeight = Number(felWeight);
-                truck.syncStatus = 'pending';
+				const truckLoad = await indexedDBService.getAllRecords('truckLoads').then(loads =>
+					loads.find(load => load.truckId === truck.serverId)
+				);
 
-                await indexedDBService.updateRecord('trucks', truck.id, truck);
+                await indexedDBService.updateRecord('truckLoads', truckLoad?.id ?? '', {
+                    loadingLocation: loadingLocation,
+                    syncStatus: 'pending',
+                    felWeight: felWeight,
+                });
             }
 
             formPersistenceService.clearForm('fel-operations-truck-load-out');

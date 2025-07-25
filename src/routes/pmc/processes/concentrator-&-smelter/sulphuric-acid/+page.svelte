@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import Camera from '$lib/components/Camera.svelte';
 	import FormField from '$lib/components/FormField.svelte';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
@@ -9,10 +8,13 @@
 
 	import type { Assay } from '$lib/types/assay';
 	import type { TruckLoad } from '$lib/types/truckLoad';
+	import type { Truck } from '$lib/types/truck';
+	import { syncService } from '$lib/services/syncService';
 
 	let truckRegistration = '';
 	let availableTrucks: { id: string; registration: string }[] = [];
 	let tankLocation = '';
+	let loadingLocation = 'Sulphuric Acid';
 	let acidType = '';
 	let sampleId = '';
 	let capturedImage = '';
@@ -105,42 +107,45 @@
 			processLayout.setError('');
 			processLayout.setSuccess('');
 
-			const truckLoadId = crypto.randomUUID();
-			const linkTruck = await (await indexedDBService.getAllRecords('trucks')).filter(
-				(truck) => truck.registration === truckRegistration
+			let linkTruck = (await indexedDBService.getAllRecords('trucks')).filter(
+				(truck: Truck) => truck.registration === truckRegistration
 			)[0];
 
-			// Create truck load record
 			const truckLoad: TruckLoad = {
-				id: truckLoadId,
-				truckId: linkTruck.serverId,
-				sampleId: sampleId || `ACID_${Date.now()}`,
-				created: new Date(),
-				samplingStatus: samplingStatus,
-				syncStatus: 'pending',
-				process: 'Acid Truck',
-				loadingLocation: tankLocation,
+				id: crypto.randomUUID(),
+				truckId: linkTruck?.serverId || '',
 				acidType: acidType,
+				sampleId: sampleId,
+				loadingLocation: loadingLocation,
+				created: new Date(),
+				updated: new Date().toISOString(),
 				siteLocation: 'PMC',
-			};
+				syncStatus: 'pending',
+				samplingStatus: samplingStatus
+			}
 
-			// Create assay record
+			await indexedDBService.saveRecord('truckLoads', truckLoad);
+			await syncService.syncTruckLoad(truckLoad);
+
+			let newTruckLoad = (await indexedDBService.getAllRecords('truckLoads')).filter(
+				(truckLoad: TruckLoad) => truckLoad.sampleId === sampleId
+			)[0];
+
 			const assay: Assay = {
 				id: crypto.randomUUID(),
-				name: sampleId || `ACID_${Date.now()}`,
-				created: new Date(),
+				name: sampleId,
+				materialType: acidType,
+				linkedTruckIds: [newTruckLoad?.serverId || ''],
 				syncStatus: 'pending',
-				process: 'Acid Truck',
-				productType: acidType,
-				linkedTruckLoadIds: [truckLoadId],
+				location: loadingLocation,
+				created: new Date(),
+				updated: new Date().toISOString(),
+				sampleId: sampleId,
 				siteLocation: 'PMC',
 			};
 
-			// Save both records
-			await Promise.all([
-				indexedDBService.saveRecord('truckLoads', truckLoad),
-				indexedDBService.saveRecord('assays', assay)
-			]);
+			await indexedDBService.saveRecord('assays', assay);
+			await syncService.syncAssay(assay);
 
 			// Clear persisted form data
 			formPersistenceService.clearForm('acid_truck');
