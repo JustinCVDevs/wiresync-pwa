@@ -13,7 +13,6 @@
     export let isSelect: boolean = false;
     export let search: boolean = false; // Ensure this is properly typed if using TypeScript
 
-    // Declare the missing variables
     let showDropdown: boolean = false; // Controls the visibility of the dropdown
     let searchQuery: string = ''; // For filtering options
     let filteredOptions = options; // To store filtered options
@@ -55,7 +54,19 @@
 		<div class="relative">
             <div
                 class="dropdown-display flex items-center justify-between w-full rounded-lg border text-sm py-2 px-3 border-gray-300 text-gray focus:ring-2 focus:ring-gray-400 focus:outline-none cursor-pointer hover:bg-gray-100"
-                on:click={() => (showDropdown = !showDropdown)}
+                on:click={() => {
+                    showDropdown = !showDropdown;
+
+                    if (showDropdown && search) {
+                        // Delay focus until the dropdown is rendered
+                        setTimeout(() => {
+                            const searchInput = document.querySelector('#truckRegistartion-search') as HTMLInputElement;
+                            if (searchInput) {
+                                searchInput.focus();
+                            }
+                        }, 0);
+                    }
+                }}
             >
                 <span>{value ? options.find(option => option.value === value)?.label : placeholder || 'Select an option'}</span>
                 <div class="dropdown-arrow"></div>
@@ -65,6 +76,7 @@
                 <div class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 shadow-lg">
                     {#if search}
                         <input
+                            id="truckRegistartion-search"
                             type="text"
                             placeholder="Search..."
                             bind:value={searchQuery}

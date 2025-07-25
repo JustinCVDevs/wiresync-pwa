@@ -42,7 +42,7 @@
 			processLayout.setError('');
 			processLayout.setSuccess('');
 			if (selectedTruck) {
-				const truck = availableTrucks.find(truck => truck.registration === selectedTruck.registration);
+				const truck = availableTrucks.find(truck => truck.registration === selectedTruck);
 				if (!truck) {
 					throw new Error(`Truck with registration "${selectedTruck.registration}" not found.`);
 				}

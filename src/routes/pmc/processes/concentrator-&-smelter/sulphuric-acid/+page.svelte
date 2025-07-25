@@ -191,7 +191,7 @@
 
 		<FormField
 			id="tankLocation"
-			label="Tank Location"
+			label="Tank Loaded From"
 			bind:value={tankLocation}
 			placeholder="Select Tank Location"
 			isSelect={true}
