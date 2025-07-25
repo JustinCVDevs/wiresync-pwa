@@ -115,7 +115,7 @@
     title="Empty Wagon Release Review"
     steps={steps}
     currentStep={currentStep}
-    cancelPath="/richardsbay/processes/rail"
+    cancelPath="/richardsbay/processes"
     bind:this={processLayout}
     showSubmit={false}
     showCancel={false}

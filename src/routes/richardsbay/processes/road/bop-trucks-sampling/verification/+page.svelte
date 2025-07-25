@@ -42,14 +42,14 @@
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes/road');
+		goto('/richardsbay/processes');
 	}
 
 	function handleSubmit() {
 		processLayout.setSuccess('Data saved successfully');
 
 		setTimeout(() => {
-			goto('/richardsbay/processes/road');
+			goto('/richardsbay/processes/road/bop-trucks-sampling');
 		}, 1000);
 	}
 
@@ -62,7 +62,7 @@
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
 	bind:this={processLayout}
-	cancelPath="/richardsbay/processes/road"
+	cancelPath="/richardsbay/processes"
 >
 	<div class="space-y-4">
 		{#if assay && truck}

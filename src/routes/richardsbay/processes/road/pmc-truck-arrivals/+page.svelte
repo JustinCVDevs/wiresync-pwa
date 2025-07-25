@@ -117,7 +117,7 @@
 			processLayout.setSuccess('Truck Successfully Received!');
 
 			setTimeout(() => {
-				goto('/richardsbay/processes/road');
+				goto('/richardsbay/processes/road/pmc-truck-arrivals');
 			}, 2000);
 		} catch (error) {
 			console.error('Failed to submit truck arrival:', error);
@@ -140,7 +140,7 @@
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes/road');
+		goto('/richardsbay/processes');
 	}
 
 </script>
@@ -151,7 +151,7 @@
 	{currentStep}
 	{isSubmitting}
 	showSubmit={!showTruckNotFound}
-	cancelPath="/richardsbay/processes/road"
+	cancelPath="/richardsbay/processes"
 	bind:this={processLayout}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}

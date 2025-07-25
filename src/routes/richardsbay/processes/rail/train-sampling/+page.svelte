@@ -5,6 +5,7 @@
 	import FormField from '$lib/components/FormField.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Wagon } from '$lib/types/wagon';
+	import { page } from '$app/stores';
 
 	// Form state
 	let wagonID = '';
@@ -25,11 +26,13 @@
 	// Reference to the ProcessLayout component
 	let processLayout: ProcessLayout;
 
+	let existingIdsArray: string[] = [];
+	$: existingIdsArray = ($page.url.searchParams.get('wagonIds') || '').split(',').filter(Boolean);
+
 	onMount(async () => {
 		availableWagons = (await indexedDBService.getAllRecords('wagons')).filter(
 			wagon => !wagon.dispatchTimestamp
 		);
-		console.log('Available wagon count', availableWagons.length);
 	});
 
 	function handleWagonInput() {
@@ -84,34 +87,36 @@
 			isSubmitting = true;
 			processLayout.setError('');
 
-			// Check if wagon exists in IndexedDB
+			// Check if truck exists in Pocketbase DB
 			const pbWagons = await indexedDBService.getAllRecords('wagons');
-			const wagonToUse = pbWagons.find(wagon => wagon.wagonId === wagonID && wagon.serverId === selectedWagon?.serverId);
+			const wagonToUse = pbWagons.find(wagon => wagon.wagonId === wagonID);
 
 			if (!wagonToUse) {
-				processLayout.setError('Wagon Not in Pre-Registration List');
+				processLayout.setError('Truck Not in Pre-Registration List');
 				isSubmitting = false;
 				return;
 			}
 
 			// Update wagon
-			await indexedDBService.updateRecord('wagons', wagonToUse.serverId ?? wagonToUse.id ?? '', {
+			await indexedDBService.updateRecord('wagons', wagonToUse.id, {
 				...wagonToUse,
 				syncStatus: 'pending',
 				dispatchTimestamp: new Date(),
 			});
 
-			goto('/richardsbay/processes/rail/train-sampling/review');
+			// Add the new wagon's id to the list and pass as a query param
+			const dispatchedIds = [...(existingIdsArray), wagonToUse.id];
+			goto(`/richardsbay/processes/rail/train-sampling/review?wagonIds=${dispatchedIds.join(',')}`);
 		} catch (error) {
-			console.error('Failed to submit wagon arrival:', error);
-			processLayout.setError('Failed to submit wagon arrival. Please try again.');
+			console.error('Failed to submit truck arrival:', error);
+			processLayout.setError('Failed to submit truck arrival. Please try again.');
 		} finally {
 			isSubmitting = false;
 		}
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes/rail');
+		goto('/richardsbay/processes');
 	}
 
 </script>
@@ -121,7 +126,7 @@
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
-	cancelPath="/richardsbay/processes/rail"
+	cancelPath="/richardsbay/processes"
 	bind:this={processLayout}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
@@ -140,7 +145,7 @@
 				id="wagonId"
 				type="text"
 				bind:value={wagonID}
-				placeholder="Enter Wagon ID"
+				placeholder="Scan/Enter Wagon ID"
 				on:input={handleWagonInput}
 				on:focus={showAllTruckSuggestions}
 				on:blur={() => setTimeout(() => showWagonSuggestions = false, 100)}
@@ -170,7 +175,7 @@
 				<div style="margin-top: 1.2rem;">
 					<FormField
 						id="arrivalTimestamp"
-						label="Sampling Date:"
+						label="Arrival Timestamp:"
 						bind:value={arrivalTimestamp}
 						placeholder="Enter vehicle registration"
 						disabled={true}

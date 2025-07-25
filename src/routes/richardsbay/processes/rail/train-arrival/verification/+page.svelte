@@ -90,7 +90,7 @@
 	}
 
 	function handleBackToProcesses() {
-		goto('/richardsbay/processes/rail');
+		goto('/richardsbay/processes/rail/train-arrival');
 	}
 </script>
 
@@ -99,7 +99,7 @@
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
-	cancelPath="/richardsbay/processes/rail"
+	cancelPath="/richardsbay/processes"
 	bind:this={processLayout}
 	showCancel={false}
 	showSubmit={false}

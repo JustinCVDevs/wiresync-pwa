@@ -176,7 +176,7 @@
 
 			processLayout.setSuccess('Truck registered successfully');
 			setTimeout(() => {
-				goto('/richardsbay/processes/road');
+				goto('/richardsbay/processes/road/bop-truck-arrivals');
 			}, 1000);
 		} catch (err) {
 			processLayout.setError('Failed to register truck');
@@ -187,7 +187,7 @@
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes/road/bop-truck-arrivals');
+		goto('/richardsbay/processes');
 	}
 
 	$: isFormValid = truckRegistration && date && haulier && product && grossMass && grossTimestamp && tareMass && tareTimestamp && sender;
@@ -198,7 +198,7 @@
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
-	cancelPath="/richardsbay/processes/road/bop-truck-arrivals"
+	cancelPath="/richardsbay/processes"
 	bind:this={processLayout}
 	showSubmit={false}
 	on:cancel={handleCancel}

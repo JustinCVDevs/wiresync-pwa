@@ -118,7 +118,7 @@
 
 			setTimeout(() => {
 				goto('/richardsbay/processes/road');
-			}, 1000);
+			}, 1500);
 		} catch (error) {
 			console.error('Failed to submit truck arrival:', error);
 			processLayout.setError('Failed to submit truck arrival. Please try again.');
@@ -140,7 +140,7 @@
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes/road');
+		goto('/richardsbay/processes');
 	}
 
 </script>
@@ -151,7 +151,7 @@
 	{currentStep}
 	{isSubmitting}
 	showSubmit={!showTruckNotFound}
-	cancelPath="/richardsbay/processes/road"
+	cancelPath="/richardsbay/processes"
 	bind:this={processLayout}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
