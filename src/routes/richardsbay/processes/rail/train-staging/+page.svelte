@@ -116,7 +116,7 @@
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes/rail');
+		goto('/richardsbay/processes');
 	}
 
 </script>
@@ -126,7 +126,7 @@
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
-	cancelPath="/richardsbay/processes/rail"
+	cancelPath="/richardsbay/processes"
 	bind:this={processLayout}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
@@ -178,16 +178,6 @@
 						label="Arrival Timestamp:"
 						bind:value={arrivalTimestamp}
 						placeholder="Enter vehicle registration"
-						disabled={true}
-					/>
-				</div>
-
-				<div style="margin-top: 1.2rem;">
-					<FormField
-						id="sampleID"
-						label="Sample ID:"
-						bind:value={sampleID}
-						placeholder="Enter wagon sample ID"
 						disabled={true}
 					/>
 				</div>

@@ -12,6 +12,7 @@
 	let assay: Assay | null = null;
 	let truck: Truck | null = null;
 	let currentStep = 2;
+	let processLayout: ProcessLayout;
 	
 	// Process steps
 	const processSteps = ['Registration', 'Verification'];
@@ -41,11 +42,15 @@
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes/road');
+		goto('/richardsbay/processes');
 	}
 
 	function handleSubmit() {
-		goto('/richardsbay/processes/complete');
+		processLayout.setSuccess('Data saved successfully');
+
+		setTimeout(() => {
+			goto('/richardsbay/processes/road/pmc-trucks-sampling');
+		}, 1000);
 	}
 
 </script>
@@ -56,7 +61,8 @@
 	{currentStep}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
-	cancelPath="/richardsbay/processes/road"
+	cancelPath="/richardsbay/processes"
+	bind:this={processLayout}
 >
 	<div class="space-y-4">
 		{#if assay && truck}
