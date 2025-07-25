@@ -41,26 +41,26 @@
 	}
 
 	function handleCancel() {
-		goto('/bosveld/processes/loading-station');
+		goto('/bosveld/processes');
 	}
 
 	function handleSubmit() {
 		processLayout.setSuccess('Data saved successfully');
 
 		setTimeout(() => {
-			goto('/bosveld/processes/loading-station');
+			goto('/bosveld/processes/loading-station/sampling');
 		}, 1000);
 	}
 
 </script>
 
 <ProcessLayout
-	title="  Sample Details Verification"
+	title="Sample Details Verification"
 	steps={processSteps}
 	{currentStep}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
-	cancelPath="/bosveld/processes/loading-station"
+	cancelPath="/bosveld/processes"
 	bind:this={processLayout}
 >
 	<div class="space-y-4">

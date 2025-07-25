@@ -23,7 +23,7 @@
     let processLayout: ProcessLayout;
 
     function handleCancel() {
-        goto('/bosveld/processes/loading-station');
+        goto('/bosveld/processes');
     }
     // Form errors
     let formErrors = {
@@ -107,12 +107,9 @@
 
             // Save the wagon to IndexedDB
             await indexedDBService.saveRecord('wagons', wagon);
-
-            // Try to sync the wagon
             await syncService.syncWagon(wagon);
 
-            let allWagons = await indexedDBService.getAllRecords('wagons');
-            const foundWagon = allWagons.find((w) => w.wagonId === wagonId);
+            let newWagon = (await indexedDBService.getAllRecords('wagons')).find((w) => w.wagonId === wagonId);
 
             // Create the assay object according to the Assay interface
             const assay: Assay = {
@@ -123,16 +120,13 @@
                 location: loadingLocation,
                 created: new Date(),
                 updated: new Date().toISOString(),
-                linkedWagonIds: [foundWagon?.serverId || ''],
+                linkedWagonIds: [newWagon?.serverId || ''],
                 syncStatus: 'pending',
-                process: 'Loading Station',
                 siteLocation: 'Bosveld',
             };
 
             // Save to IndexedDB
             await indexedDBService.saveRecord('assays', assay);
-
-            // Try to sync using the sync service
             await syncService.syncAssay(assay);
 
             processLayout.setSuccess('Data saved successfully');
@@ -156,7 +150,7 @@
 	{currentStep}
 	{isSubmitting}
 	bind:this={processLayout}
-	cancelPath="/bosveld/processes/loading-station"
+	cancelPath="/bosveld/processes"
 	on:submit={handleSubmit}
 	on:cancel={handleCancel}
 >
