@@ -85,8 +85,8 @@
 
 	$: {
 		productTypes = dedicatedFleet === 'No'
-            ? ['Magnetite-DMS', 'Magnetite-62%', 'Magnetite-65%']
-            : ['Iron Oxide', 'Magnetite-DMS', 'Magnetite-62%', 'Magnetite-65%'];
+            ? ['Iron Oxide', 'Magnetite-DMS', 'Magnetite-62%', 'Magnetite-65%']
+            : ['Iron Oxide', 'Magnetite-62%', 'Magnetite-65%'];
 	}
 
 	async function handleSubmit() {

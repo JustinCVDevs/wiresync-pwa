@@ -14,6 +14,7 @@
 	let error = '';
 	let processLayout: ProcessLayout;
 	let trucks: Truck[] = [];
+	let showDropdown = false;
 
 	const steps = ["Sample Details", "Complete"]
 
@@ -28,6 +29,14 @@
 		}[materialType];
 
 		sampleId = `${YYMMDD}${truckRegistration ? `_${truckRegistration}` : ''}${productCode ? `_${productCode}` : ''}`;
+	}
+
+	$: if (showDropdown) {
+		const searchInput = document.querySelector('#truckRegistartion-search') as HTMLInputElement;
+		console.log('Search input:', searchInput);
+		if (searchInput) {
+			searchInput.focus(); 
+		}
 	}
 
 	// Fetch truck records from IndexedDB on component mount

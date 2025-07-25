@@ -21,7 +21,7 @@
 	async function loadTruckData() {
 		if (truckRegistration) {
 			const result = (await indexedDBService.getAllRecords('trucks')).filter(
-				(t) => t.registration === truckRegistration
+				(t) => t.registration === truckRegistration && t.loadingLocation === 'LG Concentrate'
 			)[0];
 			truck = result ?? null;
 		}
