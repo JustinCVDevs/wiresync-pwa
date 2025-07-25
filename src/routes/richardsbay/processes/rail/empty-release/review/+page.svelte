@@ -15,11 +15,9 @@
     let error = '';
     let isLoading = true;
     let isCompleting = false;
+    let processLayout: ProcessLayout;
 
-    const steps = [
-        'Select',
-        'Review & Release'
-    ];
+    const steps = ['Select', 'Review & Release'];
     let currentStep = 2;
 
     async function loadWagon() {
@@ -81,13 +79,17 @@
                 await indexedDBService.updateRecord('wagons', releasedWagon.id!, {
                     ...releasedWagon,
                     process: 'Wagon_Release_Complete',
-                    dispatchTimestamp: undefined,
+                    syncStatus: 'pending',
+                    dispatchTimestamp: null,
+                    releaseTimestamp: new Date(),
                     updated: new Date().toISOString()
                 });
             }
+
+            processLayout.setSuccess('Release completed successfully!');
             setTimeout(() => {
-                goto('/richardsbay/processes/complete');
-            }, 2000);
+                goto('/richardsbay/processes/rail');
+            }, 1000);
 
         } catch (e) {
             console.error('Error completing release:', e);
@@ -97,7 +99,7 @@
         }
     }
 
-    function formatDateTime(date: Date | string | undefined): string {
+    function formatDateTime(date: Date | null | undefined): string {
         if (!date) return 'Not set';
         const d = new Date(date);
         const day = String(d.getDate()).padStart(2, '0');
@@ -114,6 +116,7 @@
     steps={steps}
     currentStep={currentStep}
     cancelPath="/richardsbay/processes/rail"
+    bind:this={processLayout}
     showSubmit={false}
     showCancel={false}
 >
@@ -135,7 +138,7 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <span class="text-sm font-medium text-gray-600">Wagon ID:</span>
-                                <p class="text-lg font-semibold">{wagon.wagonIdSimple}</p>
+                                <p class="text-lg font-semibold">{wagon.wagonId}</p>
                             </div>
                         </div>
                         <div>
@@ -159,7 +162,7 @@
                             <div class="bg-green-50 border border-green-200 rounded-lg p-3">
                                 <div class="flex justify-between items-center">
                                     <div>
-                                        <span class="font-medium">Wagon ID: {releasedWagon.wagonIdSimple}</span>
+                                        <span class="font-medium">Wagon ID: {releasedWagon.wagonId}</span>
                                     </div>
                                     <span class="text-sm text-green-600">
                                         Released at: {formatDateTime(releasedWagon.releaseTimestamp)}

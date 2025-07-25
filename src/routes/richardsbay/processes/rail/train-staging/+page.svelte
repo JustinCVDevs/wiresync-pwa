@@ -47,16 +47,16 @@
 		}
 
 		filteredWagonSuggestions = availableWagons.filter(wagon =>
-			wagon.transcoreTag?.toLowerCase().includes(value.toLowerCase())
+			wagon.wagonId?.toLowerCase().includes(value.toLowerCase())
 		).slice(0, 6);
 
 		const exactMatch = availableWagons.find(wagon =>
-			wagon.transcoreTag?.toLowerCase() === value.toLowerCase()
+			wagon.wagonId?.toLowerCase() === value.toLowerCase()
 		);
 
 		if (exactMatch) {
 			selectedWagon = exactMatch;
-			wagonID = exactMatch.transcoreTag ?? '';
+			wagonID = exactMatch.wagonId ?? '';
 			showWagonSuggestions = false;
 		} else if (value.length >= 2) {
 			showWagonSuggestions = filteredWagonSuggestions.length > 0;
@@ -89,7 +89,7 @@
 
 			// Check if truck exists in Pocketbase DB
 			const pbWagons = await indexedDBService.getAllRecords('wagons');
-			const wagonToUse = pbWagons.find(wagon => wagon.transcoreTag === wagonID);
+			const wagonToUse = pbWagons.find(wagon => wagon.wagonId === wagonID);
 
 			if (!wagonToUse) {
 				processLayout.setError('Truck Not in Pre-Registration List');
@@ -159,13 +159,13 @@
 							<button
 								type="button"
 								on:click={() => {
-									wagonID = suggestion.transcoreTag ?? '';
+									wagonID = suggestion.wagonId ?? '';
 									showWagonSuggestions = false;
 									selectedWagon = suggestion;
 									sampleID = suggestion.wagonIdSimple ?? '';
 								}}
 							>
-								{suggestion.transcoreTag}
+								{suggestion.wagonId}
 							</button>
 						</li>
 					{/each}

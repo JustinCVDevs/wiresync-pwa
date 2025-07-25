@@ -8,6 +8,7 @@
 	const wagonId = $page.url.searchParams.get('wagonId') || '';
 	let wagon: any | null = null;
 	let currentStep = 2;
+	let processLayout: ProcessLayout;
 	
 	// Process steps
 	const processSteps = ['FEL Weight Capturing', 'Complete'];
@@ -19,7 +20,7 @@
 	async function loadWagonData() {
 		if (wagonId) {
 			const result = (await indexedDBService.getAllRecords('wagons')).filter(
-				(w) => w.transcoreTag === wagonId
+				(w) => w.wagonId === wagonId
 			)[0];
 			wagon = result ?? null;
 		}
@@ -30,7 +31,11 @@
 	}
 
 	function handleSubmit() {
-		goto('/bosveld/processes/complete');
+		processLayout.setSuccess('Data saved successfully');
+
+		setTimeout(() => {
+			goto('/bosveld/processes/loading-station');
+		}, 1000);
 	}
 </script>
 
@@ -41,7 +46,10 @@
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
 	cancelPath="/bosveld/processes/loading-station"
+	bind:this={processLayout}
 >
+<!-- t -->
+
 	<div class="space-y-4">
 		{#if wagon}
 			<div class="bg-white p-4 rounded-lg shadow-sm">
@@ -49,7 +57,7 @@
 				<div class="grid grid-cols-1 gap-4">
 					<div>
 						<p class="text-sm text-gray-500 font-bold">Wagon ID</p>
-						<p class="font-medium">{wagon.transcoreTag}</p>
+						<p class="font-medium">{wagon.wagonId}</p>
 					</div>
 					<div>
 						<p class="text-sm text-gray-500 font-bold">FEL Weight (Ton)</p>

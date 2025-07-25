@@ -120,7 +120,7 @@
 			const trainDispatch: TrainDispatch = {
 			id: dispatchId,
 			linkedTrainId: train.serverId,
-			linkedConsignmentId: linkedConsignment?.id,
+			linkedConsignmentId: linkedConsignment?.serverId,
 			process: 'MarshalingDispatch',
 			syncStatus: 'pending',
 			created: new Date(),
@@ -188,13 +188,12 @@
 			placeholder="Enter Train RFID Number"
 			bind:value={manualRfid}
 		/>
-		
+		<!-- 
 		{#if showCamera}
 			<Camera onPhotoSelected={handleCapture} on:close={handleCameraClose} />
 		{/if}
 		{#if capturedImage}
-			<!-- svelte-ignore a11y_img_redundant_alt -->
 			<img src={capturedImage} alt="Captured photo" class="mt-4 rounded shadow max-w-xs" />
-		{/if}
+		{/if} -->
 	{/if}
 </ProcessLayout>

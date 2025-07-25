@@ -19,7 +19,7 @@
 		try {
 			const trainRecords = await indexedDBService.getRecords(
 				'shuntingTrains',
-				(rec) => rec.syncStatus === 'synced' && !rec.verificationTimestamp
+				(rec) => rec.syncStatus === 'synced'
 			);
 			shuntingTrains = trainRecords;
 		} catch (e) {

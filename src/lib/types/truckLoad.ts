@@ -2,6 +2,7 @@ import type { BaseRecord, ID } from './baserecord';
 
 // truck Loads component
 export interface TruckLoad extends BaseRecord {
+	id: string;
 	truckId?: string;
 	felWeight?: string;
 	samplingStatus?: boolean;
