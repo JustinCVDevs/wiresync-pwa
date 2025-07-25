@@ -92,7 +92,7 @@
 			const wagonToUse = pbWagons.find(wagon => wagon.wagonId === wagonID);
 
 			if (!wagonToUse) {
-				processLayout.setError('Truck Not in Pre-Registration List');
+				processLayout.setError('Wagon Not in Pre-Registration List');
 				isSubmitting = false;
 				return;
 			}
