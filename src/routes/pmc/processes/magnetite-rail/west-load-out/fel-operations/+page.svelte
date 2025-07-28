@@ -89,7 +89,7 @@
 		try {
 			const wagons = (await indexedDBService.getAllRecords('wagons')).filter((w) => {
 				return (
-					w.loadingLocation === 'West Load Out'
+					w.loadingLocation === 'West Load Out' && (w.felWeight === null || w.felWeight === 0)
 				);
 			});
 
