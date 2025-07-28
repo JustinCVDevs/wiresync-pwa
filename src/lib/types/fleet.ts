@@ -9,7 +9,7 @@ export interface Fleet extends BaseRecord {
 	felMassKg?: number; // FLEET_FEL_MASS_KG
 	samplingStatus?: boolean; // FLEET_TRUCK_SAMPLING_STATUS
 	loadingLocation?: string; // FLEET_TRUCK_LOADING_LOCATION
-	loadingHour?: number; // FLEET_HR (0–23)
+	loadingHour?: string; // FLEET_HR (0–23)
 	serverId?: string;
 	syncStatus: 'pending' | 'synced';
 	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"

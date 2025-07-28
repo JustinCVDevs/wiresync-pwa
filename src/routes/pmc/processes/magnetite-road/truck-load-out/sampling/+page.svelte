@@ -23,7 +23,7 @@
 
 	let sampleNumber = 1;
 	let trucks: Truck[] = [];
-	let productTypes = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite-62%', 'Magnetite-65%'];
+	let productTypes = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite 62%', 'Magnetite 65%'];
 
 	// Function to get or reset the sample number for the day
 	function getSampleNumber() {
@@ -65,8 +65,8 @@
 		const productCode = {
 			'Iron Oxide': 'IOX',
 			'Magnetite-DMS': 'DMS',
-			'Magnetite-62%': 'MAG62',
-			'Magnetite-65%': 'MAG65'
+			'Magnetite 62%': 'MAG62',
+			'Magnetite 65%': 'MAG65'
 		}[productType];
 
 		if (dedicatedFleet === 'Yes') {
@@ -78,15 +78,17 @@
 
 	$: {
         if (dedicatedFleet === 'Yes') {
-            const currentHour = new Date().getHours();
-            loadingTime = String(currentHour).padStart(2, '0');
+            const currentDate = new Date();
+            const currentHour = String(currentDate.getHours()).padStart(2, '0');
+            const currentMinutes = String(currentDate.getMinutes()).padStart(2, '0');
+            loadingTime = `${currentHour}:${currentMinutes}`;
         }
     }
 
 	$: {
 		productTypes = dedicatedFleet === 'No'
-            ? ['Iron Oxide', 'Magnetite-DMS', 'Magnetite-62%', 'Magnetite-65%']
-            : ['Iron Oxide', 'Magnetite-62%', 'Magnetite-65%'];
+            ? ['Iron Oxide', 'Magnetite-DMS', 'Magnetite 62%', 'Magnetite 65%']
+            : ['Iron Oxide', 'Magnetite 62%', 'Magnetite 65%'];
 	}
 
 	async function handleSubmit() {
@@ -109,7 +111,7 @@
 					registration: truckRegistration,
 					felMassKg: 0,
 					loadingLocation: loadingLocation,
-					loadingHour: Number(loadingTime),
+					loadingHour: loadingTime,
 					syncStatus: 'pending',
 					siteLocation: 'PMC',
 					created: new Date(),
@@ -324,14 +326,14 @@
 					/>
 					
 					<div class="form-field">
-						<label for="loadingTime" class="block font-medium text-gray text-sm">Loading Time (00-23) *</label>
+						<label for="loadingTime" class="block font-medium text-gray text-sm">Loading Time (hh:mm) *</label>
 						<input
 							id="loadingTime"
 							type="text"
 							bind:value={loadingTime}
-							maxlength="2"
-							pattern="[0-9]*"
-							placeholder="Enter hour (00-23)"
+							maxlength="5"
+							pattern="^([01]\d|2[0-3]):([0-5]\d)$"
+							placeholder="Enter time (hh:mm)"
 							required
 							class="w-full rounded-lg text-sm border px-3 py-2 text-gray border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none"
 						/>

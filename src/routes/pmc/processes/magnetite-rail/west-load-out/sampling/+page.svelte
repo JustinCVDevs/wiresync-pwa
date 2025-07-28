@@ -41,14 +41,14 @@
 		const productCode = {
 			'Iron Oxide': 'IOX',
 			'Magnetite-DMS': 'DMS',
-			'Magnetite-62%': 'MAG62',
-			'Magnetite-65%': 'MAG65'
+			'Magnetite 62%': 'MAG62',
+			'Magnetite 65%': 'MAG65'
 		}[productGrade];
 
 		sampleId = `${YYMMDD}${wagonId ? `_${wagonId}` : ''}${trainNumber ? `_${trainNumber}` : ''}${productCode ? `_${productCode}` : ''}`;
 	}
 
-	const productGrades = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite-62%', 'Magnetite-65%'];
+	const productGrades = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite 62%', 'Magnetite 65%'];
 
 	const loadingLocations = ['East Load Out', 'West Load Out', 'Bosveld'];
 
@@ -109,7 +109,7 @@
 				trainNumber: trainNumber,
 				loadingLocation: loadingLocation,
 				created: new Date(),
-				wagonIdSimple: sampleId,
+				sampleId: sampleId,
 				syncStatus: 'pending',
 			}
 
