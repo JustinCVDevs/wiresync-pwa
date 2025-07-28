@@ -61,28 +61,6 @@
 
 	onMount(loadTrainAndWagons);
 
-	async function handleWagonChange(wagonIndex: number, newWagonId: string) {
-		try {
-			// Update the wagon ID in the linked wagons array
-			if (shuntingTrain && shuntingTrain.linkedWagons) {
-				shuntingTrain.linkedWagons[wagonIndex] = newWagonId;
-				
-				// Save updated shunting train
-				await indexedDBService.saveRecord('shuntingTrains', {
-					...shuntingTrain,
-					syncStatus: 'pending'
-				});
-				
-				// Reload wagons
-				await loadTrainAndWagons();
-				success = 'Wagon updated successfully';
-			}
-		} catch (e) {
-			console.error(e);
-			error = 'Failed to update wagon';
-		}
-	}
-
 	async function handleSubmit() {
 		try {
 			// Set the verification timestamp to current time
@@ -101,7 +79,7 @@
 				
 				// Navigate back to processes screen after 1.5 seconds
 				setTimeout(() => {
-					goto('/pmc/processes');
+					goto('/pmc/processes/magnetite-rail/marshaling-yard/wagon-id-linking');
 				}, 1500);
 			}
 		} catch (e: any) {
@@ -177,7 +155,7 @@
 						<FormField
 							label="Wagon (ID):"
 							id="wagonName_{index}"
-							value={wagon.wagonIdSimple || ''}
+							value={wagon.wagonId || ''}
 							disabled={true}
 						/>
 						

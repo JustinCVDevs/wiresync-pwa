@@ -12,6 +12,7 @@
 
 	let truckInput = '';
 	let availableTrucks: any[] = [];
+	let truckLoads: any[] = [];
 	let selectedTruck: any = '';
 
 	const steps = ["FEL Details", "Complete"]
@@ -22,18 +23,27 @@
 
 	async function getTrucks() {
 		try {
-			const allTrucks = (await indexedDBService.getAllRecords('trucks')).filter(
-				truck => truck.loadingLocation === 'HG Concentrate'
+			// Fetch all trucks
+			const allTrucks = await indexedDBService.getAllRecords('trucks');
+
+			// Fetch all truck loads with the correct loading location
+			const truckLoads = (await indexedDBService.getAllRecords('truckLoads')).filter(
+				(load) => load.loadingLocation === 'HG Concentrate'
+			);
+
+			// Filter trucks where the truckId matches the truckLoad's truckId
+			const linkedTrucks = allTrucks.filter((truck) =>
+				truckLoads.some((load) => load.truckId === truck.serverId)
 			);
 
 			// Sort the filtered trucks alphabetically by registration
-			return allTrucks.sort((a, b) => a.registration.localeCompare(b.registration));
+			return linkedTrucks.sort((a, b) => a.registration.localeCompare(b.registration));
 		} catch (error) {
 			console.error('No trucks available', error);
 			return [];
 		}
 	}
-	
+
 	async function handleSubmit() {
 		try {
 			processLayout.setError('');

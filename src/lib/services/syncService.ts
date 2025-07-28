@@ -778,6 +778,7 @@ export const syncService = {
 					await indexedDBService.updateRecord('wagons', wagon.id, {
 						id: wagon.id,
 						wagonId: wagon.wagonId,
+						sampleId: wagon.sampleId,
 						wagonIdSimple: wagon.wagonIdSimple,
 						transcoreTag: wagon.transcoreTag,
 						componentType: wagon.componentType,
@@ -1172,6 +1173,8 @@ export const syncService = {
 		await this.syncTrainList();
 		await this.syncTruckArrivalList();
 		await this.syncTruckLoadList();
+		await this.syncTruckList();
+		await this.syncWagonList();
 		
 		// Delete records that no longer exist on the server
 		await this.syncDeletedRecords('assays');

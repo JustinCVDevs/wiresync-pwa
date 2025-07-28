@@ -3,6 +3,7 @@ import type { BaseRecord, ID } from './baserecord';
 export interface Wagon extends BaseRecord {
 	id: string;
 	wagonId?: string; // WAGON_ID
+	sampleId?: string; // WAGON_SAMPLE_ID
 	transcoreTag?: string; // TRANSCORE_TAG
 	wagonIdSimple?: string; // WAGON_ID_SIMPLE
 	wagonPhotoUrl?: File | null; // URL of captured photo

@@ -21,7 +21,9 @@
 				'shuntingTrains',
 				(rec) => rec.syncStatus === 'synced'
 			);
-			shuntingTrains = trainRecords;
+			shuntingTrains = trainRecords.filter(
+				(train: ShuntingTrain) => train.verificationTimestamp === '' || train.verificationTimestamp === undefined
+			);
 		} catch (e) {
 			console.error(e);
 			error = 'Failed to load shunting trains';
