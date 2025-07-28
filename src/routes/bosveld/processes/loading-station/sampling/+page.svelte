@@ -23,7 +23,7 @@
     let processLayout: ProcessLayout;
 
     function handleCancel() {
-        goto('/bosveld/processes');
+        goto('/bosveld/processes/loading-station');
     }
     // Form errors
     let formErrors = {
@@ -150,7 +150,7 @@
 	{currentStep}
 	{isSubmitting}
 	bind:this={processLayout}
-	cancelPath="/bosveld/processes"
+	cancelPath="/bosveld/processes/loading-station"
 	on:submit={handleSubmit}
 	on:cancel={handleCancel}
 >

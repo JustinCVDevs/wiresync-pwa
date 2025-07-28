@@ -105,8 +105,8 @@
 	{steps}
 	{currentStep}
 	isSubmitting={isLoading}
-	cancelPath="/bosveld/processes"
-	on:cancel={() => goto('/bosveld/processes')}
+	cancelPath="/bosveld/processes/marshaling-yard"
+	on:cancel={() => goto('/bosveld/processes/marshaling-yard')}
 	on:submit={handleSubmit}
 	on:error={({ detail }) => (error = detail)}
 	on:success={({ detail }) => (success = detail)}
