@@ -72,7 +72,7 @@
 	}
 
 	function handleCancel() {
-		goto('/pmc/processes');
+		goto('/pmc/processes/magnetite-rail/marshaling-yard');
 	}
 </script>
 
@@ -81,7 +81,7 @@
 	{steps}
 	{currentStep}
 	isSubmitting={isLoading}
-	cancelPath="/pmc/processes"
+	cancelPath="/pmc/processes/magnetite-rail/marshaling-yard"
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
 	on:error={({ detail }) => (error = detail)}

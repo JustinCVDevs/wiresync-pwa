@@ -2,6 +2,7 @@ import type { BaseRecord, ID } from './baserecord';
 
 // assays component
 export interface Assay extends BaseRecord {
+	id: string; // ASSAY_ID
 	name: string; // WAGON_SAMPLE_ID / TRUCK_SAMPLE_ID / FLEET_TRUCK_SAMPLE_ID
 	location?: string; // e.g. "West Loadout"
 	linkedWagonIds?: ID[]; // many-to-many with Wagon.id

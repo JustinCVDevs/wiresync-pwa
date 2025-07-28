@@ -29,7 +29,7 @@
 	}
 
 	function handleCancel() {
-		goto('/pmc/processes/concentrator-&-smelter');
+		goto('/pmc/processes/concentrator-&-smelter/copper-concentrate/lg-concentrate');
 	}
 
 	function handleSubmit() {
@@ -49,7 +49,7 @@
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
 	bind:this={processLayout}
-	cancelPath="/pmc/processes/concentrator-&-smelter"
+	cancelPath="/pmc/processes/concentrator-&-smelter/copper-concentrate/lg-concentrate"
 >
 	<div class="space-y-4">
 		{#if truckLoad}

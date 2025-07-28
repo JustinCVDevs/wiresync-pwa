@@ -41,7 +41,7 @@
 	}
 
 	function handleCancel() {
-		goto('/pmc/processes');
+		goto('/pmc/processes/magnetite-rail/west-load-out');
 	}
 
 	function handleSubmit() {
@@ -60,7 +60,7 @@
 	{currentStep}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
-	cancelPath="/pmc/processes"
+	cancelPath="/pmc/processes/magnetite-rail/west-load-out"
 	bind:this={processLayout}
 >
 <!-- t -->

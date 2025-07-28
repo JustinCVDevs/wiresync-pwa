@@ -23,7 +23,7 @@
     let processLayout: ProcessLayout;
 
     function handleCancel() {
-        goto('/bosveld/processes');
+        goto('/bosveld/processes/loading-station');
     }
     // Form errors
     let formErrors = {
@@ -41,14 +41,14 @@
 		const productCode = {
 			'Iron Oxide': 'IOX',
 			'Magnetite-DMS': 'DMS',
-			'Magnetite-62%': 'MAG62',
-			'Magnetite-65%': 'MAG65'
+			'Magnetite 62%': 'MAG62',
+			'Magnetite 65%': 'MAG65'
 		}[productGrade];
 
 		sampleId = `${YYMMDD}${wagonId ? `_${wagonId}` : ''}${trainNumber ? `_${trainNumber}` : ''}${productCode ? `_${productCode}` : ''}`;
 	}
 
-    const productGrades = ['Iron Oxide', 'Magnetite-62%', 'Magnetite-65%'];
+    const productGrades = ['Iron Oxide', 'Magnetite 62%', 'Magnetite 65%'];
 
     const loadingLocations = ['East Load Out', 'West Load Out', 'Bosveld'];
 
@@ -150,7 +150,7 @@
 	{currentStep}
 	{isSubmitting}
 	bind:this={processLayout}
-	cancelPath="/bosveld/processes"
+	cancelPath="/bosveld/processes/loading-station"
 	on:submit={handleSubmit}
 	on:cancel={handleCancel}
 >

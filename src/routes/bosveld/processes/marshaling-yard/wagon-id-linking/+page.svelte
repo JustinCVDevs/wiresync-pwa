@@ -70,7 +70,7 @@
 	}
 
 	function handleCancel() {
-		goto('/bosveld/processes');
+		goto('/bosveld/processes/marshaling-yard');
 	}
 </script>
 
@@ -79,7 +79,7 @@
 	{steps}
 	{currentStep}
 	isSubmitting={isLoading}
-	cancelPath="/bosveld/processes"
+	cancelPath="/bosveld/processes/marshaling-yard"
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
 	on:error={({ detail }) => (error = detail)}

@@ -81,7 +81,7 @@
 	  }
 	  let currentStep = 1;
 	  function handleCancel() {
-		  goto('/pmc/processes/concentrator-&-smelter');
+		  goto('/pmc/processes/concentrator-&-smelter/unrefined-copper');
 	  }
 
 	$: if (truckInput !== '') {
@@ -96,7 +96,7 @@
     {currentStep}
     isSubmitting={false}
     bind:this={processLayout}
-    cancelPath="/pmc/processes/concentrator-&-smelter"
+    cancelPath="/pmc/processes/concentrator-&-smelter/unrefined-copper"
     on:cancel={handleCancel}
     on:submit={handleSubmit}
     on:error={({ detail }) => (error = detail)}

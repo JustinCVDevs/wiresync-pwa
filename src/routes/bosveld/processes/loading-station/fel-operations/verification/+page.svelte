@@ -27,7 +27,7 @@
 	}
 
 	function handleCancel() {
-		goto('/bosveld/processes');
+		goto('/bosveld/processes/loading-station');
 	}
 
 	function handleSubmit() {
@@ -45,7 +45,7 @@
 	{currentStep}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
-	cancelPath="/bosveld/processes"
+	cancelPath="/bosveld/processes/loading-station"
 	bind:this={processLayout}
 >
 <!-- t -->
