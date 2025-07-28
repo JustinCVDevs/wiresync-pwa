@@ -484,7 +484,6 @@ export const syncService = {
 			} else {
 				created = await pocketbaseService.create('truckLoads', payload);
 			}
-			console.log('Payload:', payload);
 
 			if (truckLoad.id) {
 				await indexedDBService.updateRecord('truckLoads', truckLoad.id, {

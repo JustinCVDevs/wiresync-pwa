@@ -25,12 +25,21 @@
 
 	async function getTrucks() {
 		try {
-			const allTrucks = (await indexedDBService.getAllRecords('trucks')).filter(
-				truck => truck.loadingLocation === 'Unrefined Copper'
+			// Fetch all trucks
+			const allTrucks = await indexedDBService.getAllRecords('trucks');
+
+			// Fetch all truck loads with the correct loading location
+			const truckLoads = (await indexedDBService.getAllRecords('truckLoads')).filter(
+				(load) => load.loadingLocation === 'Unrefined Copper' && load.felWeight === ''
+			);
+
+			// Filter trucks where the truckId matches the truckLoad's truckId
+			const linkedTrucks = allTrucks.filter((truck) =>
+				truckLoads.some((load) => load.truckId === truck.serverId)
 			);
 
 			// Sort the filtered trucks alphabetically by registration
-			return allTrucks.sort((a, b) => a.registration.localeCompare(b.registration));
+			return linkedTrucks.sort((a, b) => a.registration.localeCompare(b.registration));
 		} catch (error) {
 			console.error('No trucks available', error);
 			return [];
@@ -49,7 +58,7 @@
 				}
 
 				const truckLoad = await indexedDBService.getAllRecords('truckLoads').then(loads => 
-					loads.find(load => load.truckId === truck.serverId)
+					loads.find(load => load.truckId === truck.serverId && load.loadingLocation === 'Unrefined Copper')
 				);
 
 				if (!truckLoad) {
