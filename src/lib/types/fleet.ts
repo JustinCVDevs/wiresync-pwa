@@ -1,6 +1,7 @@
 import type { BaseRecord } from '$lib';
 
 export interface Fleet extends BaseRecord {
+	id: string; // FLEET_ID
 	sampleId: string; // FLEET_TRUCK_SAMPLE_ID
 	sampleSize?: string; // FLEET_TRUCK_SAMPLE_SIZE
 	commodity?: string; // FLEET_TRUCK_COMMODITY
