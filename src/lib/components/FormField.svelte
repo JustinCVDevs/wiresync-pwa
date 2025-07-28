@@ -123,37 +123,36 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        background-color: white;
+        background-color: #F9F9F9;
         border: 1px solid #ccc;
-        border-radius: 0.375rem; /* Matches the rounded corners of the native dropdown */
-        padding: 0.5rem 0.75rem; /* Matches the padding of the native dropdown */
-        font-size: 0.875rem; /* Matches the font size of the native dropdown */
-        color: #374151; /* Matches the text color of the native dropdown */
+        border-radius: 0.375rem;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        color: #374151;
         cursor: pointer;
         transition: background-color 0.2s;
     }
 
     .dropdown-display:hover {
-        background-color: #f3f4f6; /* Light gray background on hover */
+        background-color: #f3f4f6;
     }
 
     .dropdown-arrow {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 1.25rem; /* Matches the size of the native dropdown arrow */
+        width: 1.25rem; 
         height: 1.25rem;
         border-radius: 0.25rem;
-        color: #6b7280; /* Matches the arrow color of the native dropdown */
         transition: background-color 0.2s;
-        background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"%3E%3Cpath fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 011.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /%3E%3C/svg%3E');
+        background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="%237A7A7A"%3E%3Cpath fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 011.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /%3E%3C/svg%3E');
         background-repeat: no-repeat;
         background-position: center;
         background-size: 1rem;
     }
 
     .dropdown-arrow:hover {
-        background-color: #e5e7eb; /* Slightly darker gray background on hover */
+        background-color: #e5e7eb;
     }
 
     .suggestions-list {

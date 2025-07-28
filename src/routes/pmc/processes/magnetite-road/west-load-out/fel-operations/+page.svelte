@@ -27,7 +27,7 @@
 
 	onMount(async () => {
 		availableTrucks = await getTrucks();
-		filteredTrucks = availableTrucks; // Initialize filtered trucks
+		filteredTrucks = availableTrucks;
 	});
 
 	async function getTrucks() {

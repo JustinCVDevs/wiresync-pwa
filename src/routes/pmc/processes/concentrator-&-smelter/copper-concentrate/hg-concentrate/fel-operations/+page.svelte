@@ -12,7 +12,6 @@
 
 	let truckInput = '';
 	let availableTrucks: any[] = [];
-	let truckLoads: any[] = [];
 	let selectedTruck: any = '';
 
 	const steps = ["FEL Details", "Complete"]
@@ -28,7 +27,7 @@
 
 			// Fetch all truck loads with the correct loading location
 			const truckLoads = (await indexedDBService.getAllRecords('truckLoads')).filter(
-				(load) => load.loadingLocation === 'HG Concentrate'
+				(load) => load.loadingLocation === 'HG Concentrate' && load.felWeight === ''
 			);
 
 			// Filter trucks where the truckId matches the truckLoad's truckId
@@ -56,7 +55,7 @@
 				}
 
 				const truckLoad = await indexedDBService.getAllRecords('truckLoads').then(loads => 
-					loads.find(load => load.truckId === truck.serverId)
+					loads.find(load => load.truckId === truck.serverId && load.loadingLocation === 'HG Concentrate')
 				);
 
 				if (!truckLoad) {
