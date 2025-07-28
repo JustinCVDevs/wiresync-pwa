@@ -76,7 +76,7 @@
 					</div>
           
           <div>
-						<p class="text-sm text-gray-500 font-bold">Strong/Weak</p>
+						<p class="text-sm text-gray-500 font-bold">Strong Acid/Weak Acid</p>
 						<p class="font-medium">{truckLoad.acidType}</p>
 					</div>
 

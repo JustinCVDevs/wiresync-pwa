@@ -57,13 +57,9 @@
 	}
 
 	async function loadWagonAndTrain() {
-		try {
-			console.log('Loading wagon with ID:', wagonId);
-			console.log('Loading train with ID:', trainId);
-			
+		try {	
 			// Load the shunting train first
 			shuntingTrain = await indexedDBService.getRecord('shuntingTrains', trainId) ?? null;
-			console.log('Loaded shunting train:', shuntingTrain);
 			
 			if (!shuntingTrain) {
 				console.error('Shunting train not found');
@@ -80,12 +76,10 @@
 				console.error('Wagon not found with ID:', wagonId);
 				// If wagon not found, try to find it in the linked wagons list
 				if (shuntingTrain.linkedWagons && shuntingTrain.linkedWagons.length > 0) {
-					console.log('Searching in linked wagons:', shuntingTrain.linkedWagons);
 					// Try to find the wagon by position if wagonId doesn't work
 					const wagonIndex = wagonPosition - 1;
 					if (wagonIndex >= 0 && wagonIndex < shuntingTrain.linkedWagons.length) {
 						const linkedWagonId = shuntingTrain.linkedWagons[wagonIndex];
-						console.log('Trying linked wagon ID:', linkedWagonId);
 						wagon = await indexedDBService.getRecord('wagons', linkedWagonId) ?? null;
 					}
 				}
@@ -98,7 +92,7 @@
 			}
 
 			// Initialize editable fields with current values
-			editableWagonId = wagon.wagonIdSimple || '';
+			editableWagonId = wagon.wagonId || '';
 			editableTemporaryRfid = wagon.transcoreTag || '';
 			
 			console.log('Successfully loaded wagon and train data');
@@ -114,7 +108,6 @@
 	// Wrap onMount in try-catch to prevent any exceptions from causing redirects
 	onMount(() => {
 		try {
-			console.log('Component mounted, starting data load...');
 			loadWagonAndTrain();
 		} catch (e) {
 			console.error('Error in onMount:', e);
@@ -145,7 +138,6 @@
 
 			// Save updated wagon to IndexedDB
 			await indexedDBService.saveRecord('wagons', updatedWagon);
-			console.log('Wagon updated successfully');
 
 			success = 'Wagon details updated successfully';
 			
@@ -168,7 +160,6 @@
 
 	function handleBackToWagonDetails() {
 		try {
-			console.log('Navigating back to wagon details');
 			goto(`/bosveld/processes/marshaling-yard/wagon-id-linking/wagons/${trainId}`);
 		} catch (e) {
 			console.error('Error navigating back:', e);
@@ -305,16 +296,16 @@
 			<div class="flex gap-4 mt-6">
 				<button 
 					type="button"
-					class="flex-1 bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded font-medium"
+					class="cancel-button flex-1 border-2 rounded-lg py-3 border border-gray-800 text-sm  text-white transition hover:bg-red-700 active:bg-red-800 disabled:opacity-50"
 					on:click={handleBackToWagonDetails}
 					disabled={isSubmitting}
 				>
-					Back to Wagon Details
+					Cancel
 				</button>
 				
 				<button 
 					type="button"
-					class="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded font-medium disabled:opacity-50"
+					class="submit-button flex-1 items-center justify-center rounded-lg py-3 text-white transition hover:bg-green-700 active:bg-green-800 disabled:opacity-50"
 					on:click={handleSubmit}
 					disabled={isSubmitting || !editableWagonId.trim() || !editableTemporaryRfid.trim()}
 				>

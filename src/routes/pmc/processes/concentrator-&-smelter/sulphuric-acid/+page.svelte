@@ -207,7 +207,7 @@
 
 		<FormField
 			id="acidType"
-			label="Acid Type"
+			label="Strong Acid/Weak Acid"
 			bind:value={acidType}
 			placeholder="Select Acid Type"
 			isSelect={true}
