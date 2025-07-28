@@ -864,6 +864,7 @@ export const syncService = {
 					await indexedDBService.saveRecord('wagons', {
 						id: wagon.id,
 						wagonId: wagon.wagonId,
+						sampleId: wagon.sampleId,
 						wagonIdSimple: wagon.wagonIdSimple,
 						transcoreTag: wagon.transcoreTag,
 						componentType: wagon.componentType,
