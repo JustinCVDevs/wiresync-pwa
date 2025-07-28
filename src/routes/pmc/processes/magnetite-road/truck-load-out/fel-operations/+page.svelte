@@ -124,11 +124,9 @@
                     syncStatus: 'pending',
                     felWeight: felWeight,
                 });
+				goto(`/pmc/processes/magnetite-road/truck-load-out/fel-operations/verification?truckRegistration=${encodeURIComponent(selectedTruck || '')}&sampleId=${encodeURIComponent(truckLoad?.serverId || '')}`);
             }
-
             formPersistenceService.clearForm('fel-operations-truck-load-out');
-
-            goto(`/pmc/processes/magnetite-road/truck-load-out/fel-operations/verification?truckRegistration=${encodeURIComponent(selectedTruck || '')}`);
         }
     } catch (err) {
         error = 'Failed to submit data';
@@ -137,7 +135,7 @@
 }
 	  let currentStep = 1;
 	  function handleCancel() {
-		  goto('/pmc/processes');
+		  goto('/pmc/processes/magnetite-road/truck-load-out');
 	  }
 
 	$: if (dedicatedFleet !== '') {
@@ -152,7 +150,7 @@
 	{currentStep}
 	isSubmitting={false}
 	bind:this={processLayout}
-	cancelPath="/pmc/processes"
+	cancelPath="/pmc/processes/magnetite-road/truck-load-out"
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
 	on:error={({ detail }) => (error = detail)}

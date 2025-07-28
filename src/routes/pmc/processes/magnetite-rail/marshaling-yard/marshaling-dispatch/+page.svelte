@@ -126,8 +126,8 @@
 	{steps}
 	{currentStep}
 	isSubmitting={isLoading}
-	cancelPath="/pmc/processes"
-	on:cancel={() => goto('/pmc/processes')}
+	cancelPath="/pmc/processes/magnetite-rail/marshaling-yard"
+	on:cancel={() => goto('/pmc/processes/magnetite-rail/marshaling-yard')}
 	on:submit={handleSubmit}
 	on:error={({ detail }) => (error = detail)}
 	on:success={({ detail }) => (success = detail)}

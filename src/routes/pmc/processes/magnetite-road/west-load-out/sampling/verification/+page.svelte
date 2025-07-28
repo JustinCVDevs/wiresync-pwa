@@ -5,12 +5,12 @@
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Assay } from '$lib/types/assay';
-	import type { Truck } from '$lib/types/truck';
+	import type { TruckLoad } from '$lib';
 
 	const sampleId = $page.url.searchParams.get('sampleId') || '';
 	const truckRegistration = $page.url.searchParams.get('truckRegistration') || '';
 	let assay: Assay | null = null;
-	let truck: Truck | null = null;
+	let truckLoad: TruckLoad | null = null;
 	let currentStep = 2;
 	let processLayout: ProcessLayout;
 	
@@ -19,7 +19,7 @@
 
 	onMount(async () => {
 		await loadAssayData();
-		await loadTruckData();
+		await loadTruckLoadData();
 	});
 
 	async function loadAssayData() {
@@ -31,17 +31,17 @@
 		}
 	}
 
-	async function loadTruckData() {
-		if (truckRegistration) {
-			const result = (await indexedDBService.getAllRecords('trucks')).filter(
-				(t) => t.registration === truckRegistration
+	async function loadTruckLoadData() {
+		if (sampleId) {
+			const result = (await indexedDBService.getAllRecords('truckLoads')).filter(
+				(t) => t.sampleId === sampleId
 			)[0];
-			truck = result ?? null;
+			truckLoad = result ?? null;
 		}
 	}
 
 	function handleCancel() {
-		goto('/pmc/processes');
+		goto('/pmc/processes/magnetite-road/west-load-out');
 	}
 
 	function handleSubmit() {
@@ -61,18 +61,18 @@
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
 	bind:this={processLayout}
-	cancelPath="/pmc/processes"
+	cancelPath="/pmc/processes/magnetite-road/west-load-out"
 >
 <!-- t -->
 
 	<div class="space-y-4">
-		{#if assay && truck}
+		{#if assay && truckLoad}
 			{#if assay.dedicatedFleet === false}
 				<div class="bg-white p-4 rounded-lg shadow-sm">
 					<div class="grid grid-cols-1 gap-4">
 						<div>
 							<p class="text-sm text-gray-500 font-bold">Truck Registration Nr</p>
-							<p class="font-medium">{truck.registration}</p>
+							<p class="font-medium">{truckRegistration}</p>
 						</div>
 
 						<div>
@@ -96,7 +96,7 @@
 					<div class="grid grid-cols-1 gap-4">
 						<div>
 							<p class="text-sm text-gray-500 font-bold">Truck Registration Nr</p>
-							<p class="font-medium">{truck.registration}</p>
+							<p class="font-medium">{truckLoad?.loadingHour}</p>
 						</div>
 
 						<div>
@@ -111,12 +111,12 @@
 						
 						<div>
 							<p class="text-sm text-gray-500 font-bold">Loading Location</p>
-							<p class="font-medium">{truck.loadingLocation}</p>
+							<p class="font-medium">{truckLoad.loadingLocation}</p>
 						</div>
 
 						<div>
 							<p class="text-sm text-gray-500 font-bold">Loading Time (Hours)</p>
-							<p class="font-medium">{truck.loadingHour}</p>
+							<p class="font-medium">{truckLoad.loadingHour}</p>
 						</div>
 					</div>
 				</div>

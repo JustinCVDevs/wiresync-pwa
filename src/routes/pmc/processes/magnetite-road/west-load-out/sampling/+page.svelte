@@ -206,7 +206,7 @@
 	  }
 	  let currentStep = 1;
 	  function handleCancel() {
-		  goto('/pmc/processes');
+		  goto('/pmc/processes/magnetite-road/west-load-out');
 	  }
 
   </script>
@@ -216,7 +216,7 @@
   {currentStep}
   isSubmitting={false}
   bind:this={processLayout}
-  cancelPath="/pmc/processes"
+  cancelPath="/pmc/processes/magnetite-road/west-load-out"
   on:cancel={handleCancel}
   on:submit={handleSubmit}
   on:error={({ detail }) => (error = detail)}
