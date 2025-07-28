@@ -101,7 +101,7 @@
                 trainNumber: trainNumber,
                 loadingLocation: loadingLocation,
                 created: new Date(),
-                wagonIdSimple: sampleId,
+                sampleId: sampleId,
                 syncStatus: 'pending',
             }
 
