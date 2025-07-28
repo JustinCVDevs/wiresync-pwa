@@ -153,7 +153,7 @@
                         <FormField
 							label="Wagon (ID):"
 							id="wagonName_{index}"
-							value={wagon.wagonIdSimple || ''}
+							value={wagon.wagonId || ''}
 							disabled={true}
 						/>
 						

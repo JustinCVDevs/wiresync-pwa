@@ -138,7 +138,7 @@
 			// Update wagon with new values
 			const updatedWagon: Wagon = {
 				...wagon,
-				wagonIdSimple: editableWagonId,
+				wagonId: editableWagonId,
 				transcoreTag: editableTemporaryRfid,
 				syncStatus: 'pending'
 			};

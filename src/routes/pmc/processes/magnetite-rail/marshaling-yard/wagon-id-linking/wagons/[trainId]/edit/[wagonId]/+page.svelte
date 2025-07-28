@@ -125,7 +125,7 @@
 			// Update wagon with new values
 			const updatedWagon: Wagon = {
 				...wagon,
-				wagonIdSimple: editableWagonId,
+				wagonId: editableWagonId,
 				transcoreTag: editableTemporaryRfid,
 				syncStatus: 'pending'
 			};
@@ -293,7 +293,7 @@
 					on:click={handleBackToWagonDetails}
 					disabled={isSubmitting}
 				>
-					Back to Wagon Details
+					Cancel
 				</button>
 				
 				<button 

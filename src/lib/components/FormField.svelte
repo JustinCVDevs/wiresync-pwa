@@ -68,7 +68,7 @@
                     }
                 }}
             >
-                <span>{value ? options.find(option => option.value === value)?.label : placeholder || 'Select an option'}</span>
+                <span>{value ? options.find(option => option.value === value)?.label : placeholder}</span>
                 <div class="dropdown-arrow"></div>
             </div>
 
@@ -138,6 +138,7 @@
     }
 
     .dropdown-arrow {
+        transform: translateX(54%);
         display: flex;
         align-items: center;
         justify-content: center;
