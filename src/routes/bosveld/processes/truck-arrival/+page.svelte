@@ -76,7 +76,7 @@
 			// Check if truck exists in Pocketbase DB
 			const pbTrucks = await indexedDBService.getAllRecords('trucks');
 			const truckToUse = pbTrucks.find(truck => truck.registration === selectedTruck);
-			console.log('Truck to use:', truckToUse);
+
 			if (!truckToUse) {
 				processLayout.setError('Truck Not in Pre-Registration List');
 				isSubmitting = false;
@@ -94,7 +94,7 @@
 			const truckArrival = (await indexedDBService.getAllRecords('truckArrivals')).filter(
 				arrival => arrival.port_arrival_sample_id === selectedTruck
 			)[0];
-			console.log('Truck Arrival to update:', truckArrival);
+
 			// Save to IndexedDB using the generic saveRecord method
 			await indexedDBService.updateRecord('truckArrivals', truckArrival.id, {
 					...truckArrival,
