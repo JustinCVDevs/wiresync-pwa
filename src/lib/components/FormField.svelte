@@ -52,6 +52,8 @@
 		</select>
 	{:else if search}
 		<div class="relative">
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
                 class="dropdown-display flex items-center justify-between w-full rounded-lg border text-sm py-2 px-3 border-gray-300 text-gray focus:ring-2 focus:ring-gray-400 focus:outline-none cursor-pointer hover:bg-gray-100"
                 on:click={() => {
