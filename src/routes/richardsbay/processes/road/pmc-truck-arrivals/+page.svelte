@@ -42,6 +42,38 @@
 		);
 	});
 
+	// Reactive statement to filter trucks based on the search query
+	$: {
+		filteredTrucks = availableTrucks.filter(truck =>
+			truck.registration.toLowerCase().includes(searchQuery.toLowerCase())
+		);
+	}
+
+	// Reactive statement to set showTruckNotFound based on filteredTrucks
+    $: if (filteredTrucks.length === 0 && searchQuery) {
+        showTruckNotFound = true;
+    }
+
+	$: if (selectedTruck) {
+			currentStep = 2;
+	}
+
+	$: {
+		const matchedTruck = availableTrucks.find(truck => truck.registration === selectedTruck);
+
+		if (matchedTruck) {
+			showTruckNotFound = false;
+			matchFound = true;
+			arrivalTimestamp = formatTimestamp(new Date());
+			submit = false;
+		} else if (selectedTruck && filteredTrucks.length !> 0) {
+			showTruckNotFound = true;
+		} else {
+			showTruckNotFound = false;
+			matchFound = false;
+		}
+	}
+
 	function formatTimestamp(date: Date) {
 		const yyyy = date.getFullYear();
 		const mm = String(date.getMonth() + 1).padStart(2, '0');

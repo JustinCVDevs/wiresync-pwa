@@ -117,7 +117,6 @@
 					syncStatus: 'pending',
 					port_truck_arrival_timestamp: new Date().toISOString(),
 					status: 'received',
-					truck_origin_location: 'BOP',
 				});
 
 			processLayout.setSuccess('Truck Successfully Received!');
