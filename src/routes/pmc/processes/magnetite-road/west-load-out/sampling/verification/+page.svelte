@@ -28,6 +28,7 @@
 			const result = (await indexedDBService.getAllRecords('assays')).filter(
 				(a) => a.sampleId === sampleId && a.siteLocation === 'PMC'
 			)[0];
+
 			assay = result ?? null;
 		}
 	}
@@ -46,7 +47,18 @@
 			const result = (await indexedDBService.getAllRecords('truckLoads')).filter(
 				(t) => t.sampleId === sampleId
 			)[0];
+
 			truckLoad = result ?? null;
+		}
+	}
+
+	async function loadFleetData() {
+		if (sampleId) {
+			const result = (await indexedDBService.getAllRecords('fleet')).filter(
+				(f) => f.sampleId === sampleId
+			)[0];
+
+			fleet = result ?? null;
 		}
 	}
 

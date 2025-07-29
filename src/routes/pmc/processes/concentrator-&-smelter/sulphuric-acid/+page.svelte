@@ -117,6 +117,7 @@
 				acidType: acidType,
 				sampleId: sampleId,
 				loadingLocation: loadingLocation,
+				tankLocation: tankLocation,
 				created: new Date(),
 				updated: new Date().toISOString(),
 				siteLocation: 'PMC',
@@ -183,16 +184,18 @@
 	</div>
 
 	<div class="container">
-		<FormField
-			id="truckRegistration"
-			label="Truck Registration"
-			bind:value={truckRegistration}
-			placeholder="Select Truck Registration"
-			search={true}
-			options={availableTrucks.map((truck) => ({ value: truck.registration, label: truck.registration  }))}
-			required={true}
-			error={formErrors.tankLocation}
-		/>
+		<div class="form-field">
+			<FormField
+				id="truckRegistration"
+				label="Truck Registration"
+				bind:value={truckRegistration}
+				placeholder="Select Truck Registration"
+				search={true}
+				options={availableTrucks.map((truck) => ({ value: truck.registration, label: truck.registration  }))}
+				required={true}
+				error={formErrors.tankLocation}
+			/>
+		</div>
 
 		<FormField
 			id="tankLocation"
@@ -244,5 +247,9 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
+	}
+
+	.form-field {
+		position: relative;
 	}
 </style>

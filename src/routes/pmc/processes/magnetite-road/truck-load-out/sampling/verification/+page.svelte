@@ -50,6 +50,16 @@
 		}
 	}
 
+	async function loadFleetData() {
+		if (sampleId) {
+			const result = (await indexedDBService.getAllRecords('fleet')).filter(
+				(f) => f.sampleId === sampleId
+			)[0];
+
+			fleet = result ?? null;
+		}
+	}
+
 	function handleCancel() {
 		goto('/pmc/processes/magnetite-road/truck-load-out');
 	}
@@ -58,7 +68,7 @@
 		processLayout.setSuccess('Data saved successfully');
 
 		setTimeout(() => {
-			goto('/pmc/processes/magnetite-road/truck-load-out');
+			goto('/pmc/processes/magnetite-road/truck-load-out/sampling');
 		}, 1000);
 	}
 </script>

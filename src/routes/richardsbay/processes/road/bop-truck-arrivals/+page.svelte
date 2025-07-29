@@ -12,12 +12,14 @@
 	let submit = false;
 	let currentStep = 1;
 	let arrivalTimestamp = formatTimestamp(new Date());
+	let showSearch = false;
+	let matchFound = false;
+	let searchQuery = '';
 
 	let availableTrucks: Truck[] = [];
-	let filteredTruckSuggestions: Truck[] = [];
-	let showTruckSuggestions = false;
+	let filteredTrucks: any[] = [];
 	let showTruckNotFound = false;
-	let selectedTruck: Truck | null = null;
+	let selectedTruck: any = '';
 
 	// Process steps
 	const processSteps = ['Registration', 'Verification'];
@@ -26,46 +28,49 @@
 	let processLayout: ProcessLayout;
 
 	onMount(async () => {
-		availableTrucks = (await indexedDBService.getAllRecords('trucks')).filter(
-			truck => truck.loadingLocation === 'BOP'
+		// Fetch all truck arrivals
+		const truckArrivals = (await indexedDBService.getAllRecords('truckArrivals')).filter(
+			arrival => arrival.port_truck_arrival_timestamp === ''
+		);
+
+		// Fetch all trucks
+		const allTrucks = await indexedDBService.getAllRecords('trucks');
+
+		// Filter trucks that match the truck arrivals' port_arrival_sample_id
+		availableTrucks = allTrucks.filter(truck =>
+			truckArrivals.some(arrival => arrival.port_arrival_sample_id === truck.registration)
 		);
 	});
 
-	function handleTruckInput() {
-		const value = truckRegistration.trim();
-		selectedTruck = null;
-		showTruckNotFound = false;
-
-		if (value.length === 0) {
-			showTruckSuggestions = false;
-			filteredTruckSuggestions = [];
-			return;
-		}
-
-		filteredTruckSuggestions = availableTrucks.filter(truck =>
-			truck.registration?.toLowerCase().includes(value.toLowerCase())
-		).slice(0, 6);
-
-		const exactMatch = availableTrucks.find(truck =>
-			truck.registration?.toLowerCase() === value.toLowerCase()
+	// Reactive statement to filter trucks based on the search query
+	$: {
+		filteredTrucks = availableTrucks.filter(truck =>
+			truck.registration.toLowerCase().includes(searchQuery.toLowerCase())
 		);
-
-		if (exactMatch) {
-			selectedTruck = exactMatch;
-			truckRegistration = exactMatch.registration;
-			showTruckSuggestions = false;
-		} else if (value.length >= 2) {
-			showTruckSuggestions = filteredTruckSuggestions.length > 0;
-			if (value.length >= 3 && filteredTruckSuggestions.length === 0) {
-				showTruckNotFound = true;
-			}
-		}
 	}
 
-	function showAllTruckSuggestions() {
-		if (availableTrucks.length > 0) {
-			filteredTruckSuggestions = availableTrucks.slice(0, 6);
-			showTruckSuggestions = true;
+	// Reactive statement to set showTruckNotFound based on filteredTrucks
+    $: if (filteredTrucks.length === 0 && searchQuery) {
+        showTruckNotFound = true;
+    }
+
+	$: if (selectedTruck) {
+			currentStep = 2;
+	}
+
+	$: {
+		const matchedTruck = availableTrucks.find(truck => truck.registration === selectedTruck);
+
+		if (matchedTruck) {
+			showTruckNotFound = false;
+			matchFound = true;
+			arrivalTimestamp = formatTimestamp(new Date());
+			submit = false;
+		} else if (selectedTruck && filteredTrucks.length !> 0) {
+			showTruckNotFound = true;
+		} else {
+			showTruckNotFound = false;
+			matchFound = false;
 		}
 	}
 
@@ -103,11 +108,11 @@
 
 			// Update Truck Arrival data
 			const truckArrival = (await indexedDBService.getAllRecords('truckArrivals')).filter(
-				arrival => arrival.port_arrival_sample_id === truckRegistration
+				arrival => arrival.port_arrival_sample_id === selectedTruck
 			)[0];
 
 			// Save to IndexedDB using the generic saveRecord method
-			await indexedDBService.updateRecord('truckArrivals', truckArrival.serverId ?? truckArrival.id, {
+			await indexedDBService.updateRecord('truckArrivals', truckArrival.id, {
 					...truckArrival,
 					syncStatus: 'pending',
 					port_truck_arrival_timestamp: new Date().toISOString(),
@@ -117,8 +122,8 @@
 			processLayout.setSuccess('Truck Successfully Received!');
 
 			setTimeout(() => {
-				goto('/richardsbay/processes/road');
-			}, 1500);
+				location.reload();
+			}, 1000);
 		} catch (error) {
 			console.error('Failed to submit truck arrival:', error);
 			processLayout.setError('Failed to submit truck arrival. Please try again.');
@@ -140,7 +145,7 @@
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes');
+		goto('/richardsbay/processes/road');
 	}
 
 </script>
@@ -151,7 +156,7 @@
 	{currentStep}
 	{isSubmitting}
 	showSubmit={!showTruckNotFound}
-	cancelPath="/richardsbay/processes"
+	cancelPath="/richardsbay/processes/road"
 	bind:this={processLayout}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
@@ -162,38 +167,19 @@
 
 	<div class="space-y-6">
 		<div class="form">
-			<label for="truckRegistration" class="block font-medium text-gray text-sm">Truck Registration *</label>
-			<input
+			<FormField
 				id="truckRegistration"
-				type="text"
-				bind:value={truckRegistration}
-				placeholder="Enter Truck Registration"
-				on:input={handleTruckInput}
-				on:focus={showAllTruckSuggestions}
-				on:blur={() => setTimeout(() => showTruckSuggestions = false, 100)}
+				label="Truck Registration"
+				search={true}
+				options={filteredTrucks.map(truck => ({ value: truck.registration, label: truck.registration }))}
+				bind:value={selectedTruck}
+				placeholder="Select Truck Registration"
 				required
-				class="w-full rounded-lg text-sm border px-3 py-2 text-gray border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none"
+				on:focus={() => showSearch = true}
+				on:blur={() => setTimeout(() => (showSearch = false), 200)}
 			/>
-			{#if showTruckSuggestions}
-				<ul class="suggestions-list">
-					{#each filteredTruckSuggestions as suggestion, i}
-						<li>
-							<button
-								type="button"
-								on:click={() => {
-									truckRegistration = suggestion.registration;
-									showTruckSuggestions = false;
-									selectedTruck = suggestion;
-									currentStep = 2;
-								}}
-							>
-								{suggestion.registration}
-							</button>
-						</li>
-					{/each}
-				</ul>
-			{/if}
-			{#if selectedTruck}
+
+			{#if matchFound && !showTruckNotFound}
 				<div style="margin-top: 1.2rem;">
 					<FormField
 						id="arrivalTimestamp"
@@ -224,50 +210,6 @@
 	.form {
 		margin-top: 1rem;
 		position: relative;
-	}
-	.form #truckRegistration {
-		min-height: 40px;
-	}
-
-	.suggestions-list {
-		border: 1px solid #ccc;
-		background: #fff;
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		max-height: 150px;
-		overflow-y: auto;
-		position: absolute;
-		z-index: 10;
-		width: 100%;
-	}
-
-	.suggestions-list li:nth-child(even) {
-		background: #f6f8fa;
-	}
-	.suggestions-list li:nth-child(odd) {
-		background: #fff;
-	}
-
-	.suggestions-list button {
-		width: 100%;
-		text-align: left;
-		padding: 0.5rem;
-		background: transparent;
-		border: none;
-		cursor: pointer;
-		color: #222;
-		transition: background 0.2s;
-	}
-
-	.suggestions-list button:hover {
-		background: #2563eb;
-		color: #fff;
-	}
-
-	.suggestions-list li {
-		padding: 0;
-		margin: 0;
 	}
 
 	.text-red-500.mt-1.font-bold.text-center {

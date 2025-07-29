@@ -21,6 +21,12 @@
 			icon: ArrowRightCircle,
 			color: 'text-green-500',
 			href: '/bosveld/processes/loading-station'
+		},
+		{
+			name: 'Truck Arrival',
+			icon: Train,
+			color: 'text-yellow-500',
+			href: '/bosveld/processes/truck-arrival'
 		}
 	] as const;
 

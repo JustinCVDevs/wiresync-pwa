@@ -26,6 +26,7 @@
 			const result = (await indexedDBService.getAllRecords('truckLoads')).filter(
 				(t) => t.sampleId === sampleId && t.siteLocation === 'PMC'
 			)[0];
+			console.log('Loaded truck load:', result);
 			truckLoad = result ?? null;
 		}
 	}
@@ -61,7 +62,7 @@
             {error}
         </div>
     {/if}
-
+	
     {#if truckLoad}
 			<div class="bg-white p-4 rounded-lg shadow-sm">
 				<div class="grid grid-cols-1 gap-4">
@@ -72,10 +73,10 @@
 
 					<div>
 						<p class="text-sm text-gray-500 font-bold">Tank Loaded From</p>
-						<p class="font-medium">{truckLoad.loadingLocation}</p>
+						<p class="font-medium">{truckLoad.tankLocation}</p>
 					</div>
           
-          <div>
+          			<div>
 						<p class="text-sm text-gray-500 font-bold">Strong Acid/Weak Acid</p>
 						<p class="font-medium">{truckLoad.acidType}</p>
 					</div>

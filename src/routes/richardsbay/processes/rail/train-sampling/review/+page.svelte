@@ -105,7 +105,7 @@
 							<Container size={16} class="inline text-xs" />
 							<div class="flex-1">
 								<div class="font-medium text-gray">
-									<span class="text-sm font-light">Wagon ID:</span> {wagon.wagonIdSimple}
+									<span class="text-sm font-light">Wagon ID:</span> {wagon.wagonId}
 								</div>
 								<div class="font-medium text-gray">
 									<span class="text-sm font-light">

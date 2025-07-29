@@ -50,6 +50,15 @@
 		}
 	}
 
+	async function loadFleetData() {
+		if (sampleId) {
+			const result = (await indexedDBService.getAllRecords('fleet')).filter(
+				(f) => f.sampleId === sampleId
+			)[0];
+			fleet = result ?? null;
+		}
+	} 
+
 	function handleCancel() {
 		goto('/pmc/processes/magnetite-road/gravelotte');
 	}
