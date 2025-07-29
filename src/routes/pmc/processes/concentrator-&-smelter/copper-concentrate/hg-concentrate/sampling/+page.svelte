@@ -128,50 +128,48 @@
 	<h2 class='header'>Truck Details Capturing</h2>
 	<span class='note' style="margin-top: -0.2rem; display: block; font-size: 12px;">Please note that every truck has to be sampled</span>
 
-	<div>
-		<div class='form-field'>
-			<FormField
-				id="truckRegistration"
-				label="Select the Truck Registration"
-				search={true}
-				options={trucks.map((truck) => ({ value: truck.registration, label: truck.registration }))} 
-				bind:value={truckRegistration}
-				placeholder="Select Truck Registration"
-				required
-			/>
-		</div>
-		<div class='form-field'>
-			<FormField
-				id="materialType"
-				label="Material Type"
-				isSelect={true}
-				options={[
-					{ value: 'HG', label: 'HG' },
-					{ value: 'LG', label: 'LG' },
-					{ value: 'Reverts', label: 'Reverts' }
-				]}
-				bind:value={materialType}
-				placeholder="Enter Material Type"
-				required
-			/>
-		</div>
-		<div class='form-field'>
-			<FormField
-				id="sampleId"
-				label="Sample ID"
-				type="text"
-				bind:value={sampleId}
-				placeholder="Enter Sample ID"
-				required
-			/>
-		</div>
+	<div class='form-field'>
+		<FormField
+			id="truckRegistration"
+			label="Select the Truck Registration"
+			search={true}
+			options={trucks.map((truck) => ({ value: truck.registration, label: truck.registration }))} 
+			bind:value={truckRegistration}
+			placeholder="Select Truck Registration"
+			required
+		/>
 	</div>
+
+	<FormField
+		id="materialType"
+		label="Material Type"
+		isSelect={true}
+		options={[
+			{ value: 'HG', label: 'HG' },
+			{ value: 'LG', label: 'LG' },
+			{ value: 'Reverts', label: 'Reverts' }
+		]}
+		bind:value={materialType}
+		placeholder="Enter Material Type"
+		required
+	/>
+
+	<FormField
+		id="sampleId"
+		label="Sample ID"
+		type="text"
+		bind:value={sampleId}
+		placeholder="Enter Sample ID"
+		required
+	/>
+
+
 </ProcessLayout>
 
 <style>
 	.form-field {
-		width: 100%;
-		margin-bottom: 1.5rem;
+		margin-top: 1rem;
+		position: relative;
 	}
 	
 	.header {

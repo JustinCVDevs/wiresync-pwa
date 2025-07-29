@@ -29,7 +29,6 @@
 	let formErrors = {
 		sampleId: '',
 		productGrade: '',
-		consignment: '',
 		wagonId: '',
 		trainNumber: ''
 	};
@@ -57,7 +56,6 @@
 		formErrors = {
 			sampleId: '',
 			productGrade: '',
-			consignment: '',
 			wagonId: '',
 			trainNumber: ''
 		};
