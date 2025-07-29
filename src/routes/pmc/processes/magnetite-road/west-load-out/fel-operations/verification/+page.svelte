@@ -6,11 +6,9 @@
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Fleet } from '$lib/types/fleet';
 	import type { TruckLoad } from '$lib';
-	import { AwardIcon } from 'lucide-svelte';
 
 	const truckRegistration = $page.url.searchParams.get('truckRegistration') || '';
 	const sampleId = $page.url.searchParams.get('sampleId') || '';
-	const fleetServerId = $page.url.searchParams.get('fleetServerId') || '';
 	let truckLoad: TruckLoad | null = null;
 	let fleet: Fleet | null = null;
 	let currentStep = 2;
@@ -34,9 +32,9 @@
 	}
 
 	async function loadFleetData() {
-		if (fleetServerId) {
+		if (sampleId) {
 			const result = (await indexedDBService.getAllRecords('fleet')).filter(
-				(f) => f.serverId === fleetServerId
+				(f) => f.sampleId === sampleId
 			)[0];
 			fleet = result ?? null;
 		}

@@ -26,14 +26,12 @@
 
 	async function getTrucks() {
 		try {
-			const allTrucks = (await indexedDBService.getAllRecords('trucks')).filter(
-				truck => truck.loadingLocation === 'Truck Load Out'
-			);
+			const allTrucks = await indexedDBService.getAllRecords('trucks');
 			
 			let filteredTrucks: any[] = [];
 
 			if (dedicatedFleet === 'Yes') {
-				// Filter trucks where dedicatedFleet is true and loadingLocation is "Gravelotte"
+				// Filter trucks where dedicatedFleet is true and loadingLocation is "Truck Load Out"
 				const fleet = (await indexedDBService.getAllRecords('fleet')).filter(
 					(f) => f.felMassKg === 0 && f.loadingLocation === loadingLocation
 				);
@@ -53,7 +51,7 @@
 					linkedTruckIds.some(truck => truck === trucks.serverId)
 				);
 			} else {
-				// Filter assays where dedicatedFleet is false and location is "Gravelotte"
+				// Filter assays where dedicatedFleet is false and location is "Truck Load Out"
 				const filteredAssays = (await indexedDBService.getAllRecords('assays')).filter(
 					assay => assay.dedicatedFleet === false && assay.location === loadingLocation
 				);
@@ -114,7 +112,7 @@
 
                 formPersistenceService.clearForm('fel-operations-truck-load-out');
 
-                goto(`/pmc/processes/magnetite-road/truck-load-out/fel-operations/verification?truckRegistration=${encodeURIComponent(selectedTruck || '')}&fleetServerId=${encodeURIComponent(fleet?.serverId || '')}`);
+                goto(`/pmc/processes/magnetite-road/truck-load-out/fel-operations/verification?truckRegistration=${encodeURIComponent(selectedTruck || '')}&sampleId=${encodeURIComponent(fleet?.sampleId || '')}`);
             }
         } else {
             isDedicatedFleet = false;
@@ -135,7 +133,7 @@
                     syncStatus: 'pending',
                     felWeight: felWeight,
                 });
-				goto(`/pmc/processes/magnetite-road/truck-load-out/fel-operations/verification?truckRegistration=${encodeURIComponent(selectedTruck || '')}&sampleId=${encodeURIComponent(truckLoad?.serverId || '')}`);
+				goto(`/pmc/processes/magnetite-road/truck-load-out/fel-operations/verification?truckRegistration=${encodeURIComponent(selectedTruck || '')}&sampleId=${encodeURIComponent(truckLoad?.sampleId || '')}`);
             }
             formPersistenceService.clearForm('fel-operations-truck-load-out');
         }
