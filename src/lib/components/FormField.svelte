@@ -84,6 +84,7 @@
                         }
 					}}
 					on:blur={() => {
+
                         setTimeout(() => {
                             showDropdown = false;
                         }, 100);
