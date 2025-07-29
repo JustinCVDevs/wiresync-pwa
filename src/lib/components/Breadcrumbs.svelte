@@ -13,7 +13,7 @@
 
     const crumbs = derived(page, ($page) => {
         const segments = $page.url.pathname.split('/').filter(Boolean);
-        const excludeCrumbs = ['sampling', 'verification', 'fel operations', 'locations', 'wagons', 'wagon linkage', 'wagon id linking'];
+        const excludeCrumbs = ['sampling', 'verification', 'fel operations', 'locations', 'wagons', 'wagon linkage', 'wagon id linking', 'register'];
 
         const idPattern = /^[a-zA-Z0-9]{10,}$/;
 

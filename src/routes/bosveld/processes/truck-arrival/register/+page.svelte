@@ -176,7 +176,7 @@
 
 			processLayout.setSuccess('Truck registered successfully');
 			setTimeout(() => {
-				goto('/richardsbay/processes/road/bop-truck-arrivals');
+				goto('/bosveld/processes/road/truck-arrival');
 			}, 1000);
 		} catch (err) {
 			processLayout.setError('Failed to register truck');
@@ -187,18 +187,18 @@
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes');
+		goto('/bosveld/processes');
 	}
 
 	$: isFormValid = truckRegistration && date && haulier && product && grossMass && grossTimestamp && tareMass && tareTimestamp && sender;
 </script>
 
 <ProcessLayout
-	title="BOP Truck Registration"
+	title="Truck Registration"
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
-	cancelPath="/richardsbay/processes"
+	cancelPath="/bosveld/processes"
 	bind:this={processLayout}
 	showSubmit={false}
 	on:cancel={handleCancel}

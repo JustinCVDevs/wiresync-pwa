@@ -13,6 +13,7 @@
 	let currentStep = 1;
 	let arrivalTimestamp = formatTimestamp(new Date());
 	let showSearch = false;
+	let matchFound = false;
 	let searchQuery = '';
 
 	let availableTrucks: Truck[] = [];
@@ -52,9 +53,28 @@
 		);
 	}
 
-	$: {
-		if (selectedTruck) {
+	// Reactive statement to set showTruckNotFound based on filteredTrucks
+    $: if (filteredTrucks.length === 0 && searchQuery) {
+        showTruckNotFound = true;
+    }
+
+	$: if (selectedTruck) {
 			currentStep = 2;
+	}
+
+	$: {
+		const matchedTruck = availableTrucks.find(truck => truck.registration === selectedTruck);
+
+		if (matchedTruck) {
+			showTruckNotFound = false;
+			matchFound = true;
+			arrivalTimestamp = formatTimestamp(new Date());
+			submit = false;
+		} else if (selectedTruck && filteredTrucks.length !> 0) {
+			showTruckNotFound = true;
+		} else {
+			showTruckNotFound = false;
+			matchFound = false;
 		}
 	}
 
@@ -108,7 +128,7 @@
 
 			setTimeout(() => {
 				location.reload();
-			}, 1500);
+			}, 1000);
 		} catch (error) {
 			console.error('Failed to submit truck arrival:', error);
 			processLayout.setError('Failed to submit truck arrival. Please try again.');
@@ -164,7 +184,7 @@
 				on:blur={() => setTimeout(() => (showSearch = false), 200)}
 			/>
 
-			{#if selectedTruck}
+			{#if matchFound && !showTruckNotFound}
 				<div style="margin-top: 1.2rem;">
 					<FormField
 						id="arrivalTimestamp"

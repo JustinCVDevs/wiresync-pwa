@@ -11,11 +11,11 @@
     // For select inputs
     export let options: { value: string; label: string }[] = [];
     export let isSelect: boolean = false;
-    export let search: boolean = false; // Ensure this is properly typed if using TypeScript
+    export let search: boolean = false;
 
-    let showDropdown: boolean = false; // Controls the visibility of the dropdown
-    let searchQuery: string = ''; // For filtering options
-    let filteredOptions = options; // To store filtered options
+    let showDropdown: boolean = false;
+    let searchQuery: string = '';
+    let filteredOptions = options;
 
     // Reactive statement to filter options based on the search query
     $: if (search) {
@@ -23,12 +23,26 @@
             option.label.toLowerCase().includes(searchQuery.toLowerCase())
         );
     } else {
-        filteredOptions = options; // Show all options if search is disabled
+        filteredOptions = options;
     }
 
+    // Reactive statement to hide dropdown if filteredOptions is empty
+    $: if (filteredOptions.length === 0) {
+        showDropdown = false;
+    }
+
+    $: {
+		const perfectMatch = filteredOptions.some(option => option.label.toLowerCase() === searchQuery.toLowerCase());
+        showDropdown = !perfectMatch && filteredOptions.length > 0 && searchQuery.length > 0;
+	}
+
     function selectOption(optionValue: string) {
+        const selectedOption = options.find(option => option.value === optionValue);
+        if (selectedOption) {
+            searchQuery = selectedOption.label;
+        }
         value = optionValue;
-        showDropdown = false; // Close dropdown after selection
+        showDropdown = false;
     }
 </script>
 
@@ -51,56 +65,51 @@
 			{/each}
 		</select>
 	{:else if search}
-		<div class="relative">
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <div
-                class="dropdown-display flex items-center justify-between w-full rounded-lg border text-sm py-2 px-3 border-gray-300 text-gray focus:ring-2 focus:ring-gray-400 focus:outline-none cursor-pointer hover:bg-gray-100"
-                on:click={() => {
-                    showDropdown = !showDropdown;
-
-                    if (showDropdown && search) {
-                        // Delay focus until the dropdown is rendered
+				<!-- Search input -->
+				<input
+					id="truckRegistration-search"
+                    class="w-full rounded-lg border text-sm py-2 px-3 border-gray-300 text-gray focus:ring-2 focus:ring-gray-400 focus:outline-none {error
+                        ? 'border-red-500'
+                        : ''}"
+					type="text"
+					placeholder={placeholder}
+					bind:value={searchQuery}
+                    on:input={() => {
+                        value = searchQuery;
+                    }}
+					on:focus={() => {
+                        if (filteredOptions.length > 0) {
+                            showDropdown = true;
+                        }
+					}}
+					on:blur={() => {
                         setTimeout(() => {
-                            const searchInput = document.querySelector('#truckRegistartion-search') as HTMLInputElement;
-                            if (searchInput) {
-                                searchInput.focus();
-                            }
-                        }, 0);
-                    }
-                }}
-            >
-                <span>{value ? options.find(option => option.value === value)?.label : placeholder}</span>
-                <div class="dropdown-arrow"></div>
-            </div>
+                            showDropdown = false;
+                        }, 100);
+					}}
+				/>
+				<!-- Dropdown arrow inside the search box -->
+				<div class="dropdown-arrow absolute right-2 top-1/2 transform -translate-y-1/2" style="display: {searchQuery ? 'none' : 'flex'};"></div>
 
-            {#if showDropdown}
-                <div class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 shadow-lg">
-                    {#if search}
-                        <input
-                            id="truckRegistartion-search"
-                            type="text"
-                            placeholder="Search..."
-                            bind:value={searchQuery}
-                            class="w-full border-b border-gray-300 text-sm py-2 px-3 focus:outline-none"
-                        />
-                    {/if}
-
-                    <ul class="suggestions-list">
-                        {#each filteredOptions as option}
-                            <li>
-                                <button
-                                    on:click={() => selectOption(option.value)}
-                                    class="{value === option.value ? 'selected' : ''}"
-                                >
-                                    {option.label}
-                                </button>
-                            </li>
-                        {/each}
-                    </ul>
-                </div>
-            {/if}
-        </div>
+			{#if showDropdown}
+				<div class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 shadow-lg">
+					<ul class="suggestions-list">
+						{#each filteredOptions as option}
+							<li>
+								<button
+                                    type="button"
+									on:click={() => {
+										selectOption(option.value);
+									}}
+									class="{value === option.value ? 'selected' : ''}"
+								>
+									{option.label}
+								</button>
+							</li>
+						{/each}
+					</ul>
+				</div>
+			{/if}
 	{:else}
 		<input
 			{id}
@@ -121,36 +130,19 @@
 </div>
 
 <style>
-    .dropdown-display {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        background-color: #F9F9F9;
-        border: 1px solid #ccc;
-        border-radius: 0.375rem;
-        padding: 0.5rem 0.75rem;
-        font-size: 0.875rem;
-        color: #374151;
-        cursor: pointer;
-        transition: background-color 0.2s;
-    }
-
-    .dropdown-display:hover {
-        background-color: #f3f4f6;
-    }
-
     .dropdown-arrow {
-        transform: translateX(54%);
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 1.25rem; 
+        width: 1.25rem;
         height: 1.25rem;
         border-radius: 0.25rem;
         transition: background-color 0.2s;
         background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="%237A7A7A"%3E%3Cpath fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 011.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /%3E%3C/svg%3E');
         background-repeat: no-repeat;
         background-position: center;
+        top: 65%;
+        left: 93%;
         background-size: 1rem;
     }
 
