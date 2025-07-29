@@ -7,13 +7,10 @@
 	import type { TrainArrival } from '$lib/types/trainArrival';
 
 	let trainRefNr = '';
-	let trainRfidNr = '';
-	let capturedPhoto: string | null = null;
 	let isSubmitting = false;
 	let currentStep = 2;
-	let verificationResult: 'success' | 'not_found' | 'pending' = 'pending';
 	let arrivalTimestamp = '';
-	let foundTrain: TrainArrival | null = null;
+	let trainArrival: TrainArrival | null = null;
 
 	// Process steps
 	const processSteps = ['Train Arrival Details', 'Verification'];
@@ -25,72 +22,45 @@
 		// Get data from URL params
 		const urlParams = new URLSearchParams($page.url.search);
 		trainRefNr = urlParams.get('trainRefNr') || '';
-		
-		// Get photo from session storage if available
-		capturedPhoto = sessionStorage.getItem('trainArrivalPhoto');
 
-		// Automatically start verification
-		if (trainRefNr) {
-			await handleVerification();
-		}
+		await loadTrainArrival();
 	});
 
-	async function handleVerification() {
-		try {
-			isSubmitting = true;
-			processLayout.setError('');
-			processLayout.setSuccess('');
+	function formatTimestamp(timestamp: string | undefined): string {
+		if (!timestamp) {
+			return 'Timestamp not available';
+		}
 
-			// Find the train by reference number
-			const trains = await indexedDBService.getTrains();
-			const matchingTrain = trains.find(train => train.refNr === trainRefNr);
-			console.log('Matching train:', matchingTrain);
-			if (!matchingTrain) {
-				// Train reference not found in trains database
-				verificationResult = 'not_found';
-				processLayout.setError('Train Not Found in Pre-Registration List');
-				return;
-			}
+		const date = new Date(timestamp);
+		const yyyy = date.getFullYear();
+		const mm = String(date.getMonth() + 1).padStart(2, '0');
+		const dd = String(date.getDate()).padStart(2, '0');
+		const hh = String(date.getHours()).padStart(2, '0');
+		const min = String(date.getMinutes()).padStart(2, '0');
 
-			// Now get all train arrivals and find one with matching trainId
-			const trainArrivals = await indexedDBService.getTrainArrivals();
-			const matchingTrainArrival = trainArrivals.find(arrival => 
-				arrival.trainId === matchingTrain.id
-			);
+		return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+	}
 
-			if (matchingTrainArrival) {
-				// Train found
-				foundTrain = matchingTrainArrival;
-				arrivalTimestamp = matchingTrainArrival.portRailArrivalTimestamp || new Date().toISOString();
-				trainRfidNr = matchingTrainArrival.trainRfidNr || matchingTrain.rfidNr || 'N/A';
-				
-				// Update the train arrival record with status
-				const updatedTrainArrival: TrainArrival = {
-					...matchingTrainArrival,
-					status: 'received',
-					updated: new Date().toISOString()
-				};
+	async function loadTrainArrival() {
+		if (trainRefNr) {
+			const result = (await indexedDBService.getAllRecords('trainArrivals')).filter(
+				arrival => arrival.trainRefNr === trainRefNr
+			)[0];
 
-				await indexedDBService.saveRecord('trainArrivals', updatedTrainArrival);
-				
-				verificationResult = 'success';
-				processLayout.setSuccess('Train Successfully Received!');
-			} else {
-				// Train exists but no arrival record found
-				verificationResult = 'not_found';
-				processLayout.setError('Train Not Found in Pre-Registration List');
-			}
-		} catch (err) {
-			processLayout.setError('Failed to verify train reference');
-			console.error(err);
-			verificationResult = 'not_found';
-		} finally {
-			isSubmitting = false;
+			trainArrival = result ?? null;
 		}
 	}
 
-	function handleBackToProcesses() {
-		goto('/richardsbay/processes/rail/train-arrival');
+	async function handleSubmit() {
+		processLayout.setSuccess('Train Successfully Received!');
+
+		setTimeout(() => {
+			goto('/richardsbay/processes/rail/train-arrival');
+		}, 1000);	
+	}
+
+	function handleCancel() {
+		goto('/richardsbay/processes/rail');
 	}
 </script>
 
@@ -99,44 +69,32 @@
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
-	cancelPath="/richardsbay/processes"
+	cancelPath="/richardsbay/processes/rail"
 	bind:this={processLayout}
-	showCancel={false}
-	showSubmit={false}
+	on:cancel={handleCancel}
+	on:submit={handleSubmit}
 >
 	<div class="space-y-6">
 		<!-- Verification Result -->
-		{#if verificationResult === 'success'}
+		{#if trainArrival}
 			<!-- Train Information Display -->
 			<div class="box bg-gray-50 rounded-lg p-4">
 				<h4 class="font-semibold text-gray-800 mb-3">Train Details</h4>
 				<div class="grid grid-cols-1 gap-4">
 					<div>
 						<span class="font-medium text-gray-600">Train Reference Number:</span>
-						<div class="text-gray-800">{trainRefNr}</div>
+						<div class="text-gray-800">{trainArrival.trainRefNr}</div>
 					</div>
 					<div>
 						<span class="font-medium text-gray-600">Train RFID Number:</span>
-						<div class="text-gray-800">{trainRfidNr}</div>
+						<div class="text-gray-800">{trainArrival.trainRfidNr}</div>
 					</div>
 					<div>
 						<span class="font-medium text-gray-600">Arrival Timestamp:</span>
-						<div class="text-gray-800">{new Date(arrivalTimestamp).toLocaleString()}</div>
+						<div class="text-gray-800">{formatTimestamp(trainArrival.portRailArrivalTimestamp)}</div>
 					</div>
 				</div>
 			</div>
-
-			<!-- Success Actions -->
-			<div class="mt-6">
-				<button
-					type="button"
-					class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-					on:click={handleBackToProcesses}
-				>
-					Back to Processes
-				</button>
-			</div>
-
 		{:else}
 			<!-- Loading State -->
 			<div class="text-center py-8">
