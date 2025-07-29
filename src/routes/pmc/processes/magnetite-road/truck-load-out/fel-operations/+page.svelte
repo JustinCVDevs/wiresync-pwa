@@ -33,30 +33,41 @@
 			let filteredTrucks: any[] = [];
 
 			if (dedicatedFleet === 'Yes') {
-				// Fetch all assays where dedicatedFleet is true
-				const allAssays = (await indexedDBService.getAllRecords('assays')).filter(
-					(a) => a.location === 'Truck Load Out' && a.dedicatedFleet === true
+				// Filter trucks where dedicatedFleet is true and loadingLocation is "Gravelotte"
+				const fleet = (await indexedDBService.getAllRecords('fleet')).filter(
+					(f) => f.felMassKg === 0 && f.loadingLocation === loadingLocation
 				);
 
-				// Collect all linkedTruckIds from relevant assays
-				const linkedTruckIds = allAssays.flatMap(a => a.linkedTruckIds ?? []);
+				// Map fleet to get linkedFleetIds
+				const linkedFleetIds = fleet.map(f => f.serverId);
 
-				// Filter trucks whose serverId matches any linkedTruckId
-				filteredTrucks = allTrucks.filter(
-					truck => linkedTruckIds.includes(truck.serverId ?? '')
+				// Find matching assays
+				const matchingAssays = (await indexedDBService.getAllRecords('assays')).filter(
+					assay => assay.linkedFleetIds?.some(id => linkedFleetIds.includes(id))
+				);
+
+				// Map truck to get linkedTruckIds
+				const linkedTruckIds = matchingAssays.flatMap(assay => assay.linkedTruckIds ?? []);
+
+				filteredTrucks = allTrucks.filter(trucks =>
+					linkedTruckIds.some(truck => truck === trucks.serverId)
 				);
 			} else {
-				// Fetch all assays where dedicatedFleet is false
-				const allAssays = (await indexedDBService.getAllRecords('assays')).filter(
-					(a) => a.location === 'Truck Load Out' && a.dedicatedFleet === false
+				// Filter assays where dedicatedFleet is false and location is "Gravelotte"
+				const filteredAssays = (await indexedDBService.getAllRecords('assays')).filter(
+					assay => assay.dedicatedFleet === false && assay.location === loadingLocation
 				);
 
-				// Collect all linkedTruckIds from relevant assays
-				const linkedTruckIds = allAssays.flatMap(a => a.linkedTruckIds ?? []);
+				// Collect all linkedTruckIds from the filtered assays
+				const linkedTruckIds = filteredAssays.flatMap(assay => assay.linkedTruckIds ?? []);
 
-				// Filter trucks whose serverId matches any linkedTruckId
-				filteredTrucks = allTrucks.filter(
-					truck => linkedTruckIds.includes(truck.serverId ?? '')
+				// Filter truckLoads where truckLoadId matches any linkedTruckId
+				const matchingTruckLoads = await indexedDBService.getAllRecords('truckLoads').then(loads =>
+					loads.filter(truckLoad => truckLoad.felWeight === '' && truckLoad.loadingLocation === loadingLocation && linkedTruckIds.includes(truckLoad.truckId ?? ''))
+				);
+
+				filteredTrucks = allTrucks.filter(truck =>
+					matchingTruckLoads.some(truckLoad => truckLoad.truckId === truck.serverId)
 				);
 			}
 

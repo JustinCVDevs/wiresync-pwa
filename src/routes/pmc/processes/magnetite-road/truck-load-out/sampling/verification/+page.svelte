@@ -32,15 +32,6 @@
 		}
 	}
 
-	async function loadFleetData() {
-		if (sampleId) {
-			const result = (await indexedDBService.getAllRecords('fleet')).filter(
-				(f) => f.sampleId === sampleId
-			)[0];
-			fleet = result ?? null;
-		}
-	}
-
 	async function loadTruckLoadData() {
 		if (sampleId) {
 			const result = (await indexedDBService.getAllRecords('truckLoads')).filter(
