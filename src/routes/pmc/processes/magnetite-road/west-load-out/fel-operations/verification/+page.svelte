@@ -6,6 +6,7 @@
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Fleet } from '$lib/types/fleet';
 	import type { TruckLoad } from '$lib';
+	import { AwardIcon } from 'lucide-svelte';
 
 	const truckRegistration = $page.url.searchParams.get('truckRegistration') || '';
 	const sampleId = $page.url.searchParams.get('sampleId') || '';
@@ -65,7 +66,7 @@
 	bind:this={processLayout}
 >
 	<div class="space-y-4">
-		{#if truckLoad && fleet}
+		{#if fleet}
 				<div class="bg-white p-4 rounded-lg shadow-sm">
 					<div class="grid grid-cols-1 gap-4">
 						<div>
@@ -84,7 +85,7 @@
 						</div>
 					</div>
 				</div>
-		{:else if truckLoad && !fleet}
+		{:else if truckLoad}
 				<div class="bg-white p-4 rounded-lg shadow-sm">
 					<div class="grid grid-cols-1 gap-4">
 						<div>

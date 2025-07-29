@@ -107,6 +107,7 @@
 				id: crypto.randomUUID(),
 				wagonId: wagonId,
 				trainNumber: trainNumber,
+				productType: productGrade,
 				loadingLocation: loadingLocation,
 				created: new Date(),
 				sampleId: sampleId,
@@ -151,7 +152,7 @@
 			processLayout.setSuccess('Data saved successfully');
 			setTimeout(() => {
 				goto(
-					`/pmc/processes/magnetite-rail/west-load-out/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&wagonId=${encodeURIComponent(wagonId)}`
+					`/pmc/processes/magnetite-rail/west-load-out/sampling/verification?wagonId=${encodeURIComponent(wagonId)}`
 				);
 			}, 1000);
 		} catch (err) {
