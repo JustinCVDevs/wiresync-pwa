@@ -9,8 +9,6 @@
 	import type { Truck } from '$lib/types/truck';
 
 	let truckRegistration = '';
-	let capturedPhoto: string | null = null;
-	let portArrivalSampleId = '';
 	let date = '';
 	let haulier = '';
 	let product = '';
@@ -20,10 +18,10 @@
 	let tareTimestamp = '';
 	let sender = '';
 	let isSubmitting = false;
-	let currentStep = 1;
+	let currentStep = 2;
 
 	// Process steps
-	const processSteps = ['Truck Registration'];
+	const processSteps = ['Registration Scanning', 'Truck Registration'];
 
 	// Reference to the ProcessLayout component
 	let processLayout: ProcessLayout;
@@ -52,8 +50,6 @@
 		// Get data from URL params
 		const urlParams = new URLSearchParams($page.url.search);
 		truckRegistration = urlParams.get('truckRegistration') || '';
-		portArrivalSampleId = urlParams.get('portArrivalSampleId') || '';
-		capturedPhoto = sessionStorage.getItem('truckArrivalPhoto');
 		
 		// Set current date as default
 		date = new Date().toISOString().split('T')[0];
@@ -144,7 +140,7 @@
 				syncStatus: 'pending',
 				serverId: '',
 				created: new Date(),
-				updated: new Date().toISOString()
+				loadingLocation: 'BOP'
 			};
 
 			// Save the truck record
@@ -160,9 +156,7 @@
 			const truckArrival: TruckArrival = {
 				id: crypto.randomUUID(),
 				truckId: linkedTrucks?.id,
-				port_arrival_sample_id: portArrivalSampleId,
-				truck_photo: capturedPhoto ?? '',
-				port_truck_arrival_timestamp: new Date(date).toISOString(),
+				port_arrival_sample_id: linkedTrucks?.registration,
 				status: 'registered',
 				transporter: haulier,
 				truck_commodity: product,
@@ -182,8 +176,8 @@
 
 			processLayout.setSuccess('Truck registered successfully');
 			setTimeout(() => {
-				goto('/richardsbay/processes');
-			}, 1500);
+				goto('/bosveld/processes/road/truck-arrival');
+			}, 1000);
 		} catch (err) {
 			processLayout.setError('Failed to register truck');
 			console.error(err);
@@ -193,7 +187,7 @@
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes/truck-arrival');
+		goto('/bosveld/processes');
 	}
 
 	$: isFormValid = truckRegistration && date && haulier && product && grossMass && grossTimestamp && tareMass && tareTimestamp && sender;
@@ -204,25 +198,17 @@
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
-	cancelPath="/richardsbay/processes/truck-arrival/verification"
+	cancelPath="/bosveld/processes"
 	bind:this={processLayout}
 	showSubmit={false}
 	on:cancel={handleCancel}
 >
-	<div slot="header">
-		<h5 class="text-xl font-bold text-gray">Truck Registration</h5>
-		<p class="text-sm text-gray-600">
-			Step 1: Registration Scanning &nbsp;&nbsp;&nbsp; Step 2: Truck Registration
-		</p>
-	</div>
-
 	<div class="space-y-4">
 		<div class="bg-white rounded-lg border border-gray-200 p-6">
-			<h6 class="text-lg font-semibold text-gray-800 mb-4">Enter Truck Data</h6>
+			<h6 style="font-size: 22px;" class="text-xl font-bold text-gray mb-2">Enter Truck Data</h6>
 			<p class="text-sm text-gray-600 mb-6">Please enter truck registration data below</p>
 
 			<div class="space-y-4">
-				<!-- Date -->
 				<FormField
 					id="date"
 					label="Date:"
@@ -232,7 +218,6 @@
 					error={formErrors.date}
 				/>
 
-				<!-- Vehicle Registration -->
 				<FormField
 					id="truckRegistration"
 					label="Vehicle Registration:"
@@ -243,7 +228,6 @@
 					disabled={true}
 				/>
 
-				<!-- Haulier -->
 				<FormField
 					id="haulier"
 					label="Haulier:"
@@ -253,7 +237,6 @@
 					error={formErrors.haulier}
 				/>
 
-				<!-- Product -->
 				<FormField
 					id="product"
 					label="Product:"
@@ -263,7 +246,6 @@
 					error={formErrors.product}
 				/>
 
-				<!-- Gross mass -->
 				<FormField
 					id="grossMass"
 					label="Gross mass:"
@@ -274,7 +256,6 @@
 					error={formErrors.grossMass}
 				/>
 
-				<!-- Gross time -->
 				<FormField
 					id="grossTimestamp"
 					label="Gross time:"
@@ -284,7 +265,6 @@
 					error={formErrors.grossTimestamp}
 				/>
 
-				<!-- Tare mass -->
 				<FormField
 					id="tareMass"
 					label="Tare mass:"
@@ -295,7 +275,6 @@
 					error={formErrors.tareMass}
 				/>
 
-				<!-- Tare time -->
 				<FormField
 					id="tareTimestamp"
 					label="Tare time:"
@@ -305,7 +284,6 @@
 					error={formErrors.tareTimestamp}
 				/>
 
-				<!-- Sender -->
 				<FormField
 					id="sender"
 					label="Sender:"
@@ -318,7 +296,6 @@
 				/>
 			</div>
 
-			<!-- Register Button -->
 			<div class="mt-6">
 				<button
 					type="button"

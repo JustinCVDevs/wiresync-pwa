@@ -177,18 +177,19 @@
 
 				{#if dedicatedFleet}
 					{#if dedicatedFleet === 'No'}
-						<FormField
-							id="truckRegistration"
-							label="Truck Registration"
-							search={true}
-							options={filteredTrucks.map(truck => ({ value: truck.registration, label: truck.registration }))}
-							bind:value={selectedTruck}
-							placeholder="Select Truck Registration"
-							required
-							on:focus={() => showSearch = true}
-							on:blur={() => setTimeout(() => (showSearch = false), 200)}
-						/>
-
+						<div class="form-field">
+							<FormField
+								id="truckRegistration"
+								label="Truck Registration"
+								search={true}
+								options={filteredTrucks.map(truck => ({ value: truck.registration, label: truck.registration }))}
+								bind:value={selectedTruck}
+								placeholder="Select Truck Registration"
+								required
+								on:focus={() => showSearch = true}
+								on:blur={() => setTimeout(() => (showSearch = false), 200)}
+							/>
+						</div>
 						<FormField
 							id="felWeight"
 							label="FEL Weight (Tons)"
@@ -211,16 +212,17 @@
 							required
 						/>
 					{:else}
-						<FormField
-							id="truckRegistration"
-							label="Truck Registration"
-							search={true}
-							options={availableTrucks.map(truck => ({value: truck.registration, label: truck.registration}))}
-							bind:value={selectedTruck}
-							placeholder="Select Truck Registration"
-							required
-						/>
-
+						<div class="form-field">
+							<FormField
+								id="truckRegistration"
+								label="Truck Registration"
+								search={true}
+								options={availableTrucks.map(truck => ({value: truck.registration, label: truck.registration}))}
+								bind:value={selectedTruck}
+								placeholder="Select Truck Registration"
+								required
+							/>
+						</div>
 						<FormField
 							id="felWeight"
 							label="FEL Weight (Tons)"
@@ -248,5 +250,8 @@
 	</ProcessLayout>
 
 <style>
-    
+	.form-field {
+		margin-top: 1rem;
+		position: relative;
+	}
 </style>

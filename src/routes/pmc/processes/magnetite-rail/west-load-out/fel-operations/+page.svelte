@@ -7,9 +7,8 @@
 	import { formPersistenceService } from '$lib/services/formPersistenceService';
 
 	let availableWagons: any[] = [];
-	let selectedWagon: any = null;
+	let selectedWagon = '';
 
-	let wagonId = '';
 	let felWeight = '';
 	let loadingLocation = 'West Load Out';
 	let isSubmitting = false;
@@ -26,9 +25,7 @@
 	}
 	// Form errors
 	let formErrors = {
-		sampleId: '',
-		productGrade: '',
-		wagonId: '',
+		selectedWagon: '',
 		felWeight: '',
 	};
 
@@ -64,19 +61,17 @@
 	function validateForm() {
 		let isValid = true;
 		formErrors = {
-			sampleId: '',
-			productGrade: '',
-			wagonId: '',
+			selectedWagon: '',
 			felWeight: '',
 		};
 
-		if (!wagonId) {
-			formErrors.sampleId = 'Wagon ID is required';
+		if (!selectedWagon) {
+			formErrors.selectedWagon = 'Wagon ID is required';
 			isValid = false;
 		}
 
 		if (!felWeight || isNaN(Number(felWeight)) || Number(felWeight) <= 0) {
-			formErrors.productGrade = 'FEL Weight is required';
+			formErrors.felWeight = 'FEL Weight is required';
 			isValid = false;
 		}
 
@@ -89,7 +84,7 @@
 		try {
 			const wagons = (await indexedDBService.getAllRecords('wagons')).filter((w) => {
 				return (
-					w.loadingLocation === 'West Load Out' && (w.felWeight === null || w.felWeight === 0)
+					w.loadingLocation === 'West Load Out' && w.felWeight === 0
 				);
 			});
 
@@ -111,22 +106,30 @@
 			processLayout.setSuccess('');
 
 			if (selectedWagon) {
-				selectedWagon.loadingLocation = loadingLocation;
-				selectedWagon.felWeight = felWeight;
-				selectedWagon.syncStatus = 'pending';
-				selectedWagon.updated = new Date().toISOString();
+				let wagon = (await indexedDBService.getAllRecords('wagons')).find(
+					(w) => w.sampleId === selectedWagon
+				);
 
-				await indexedDBService.updateRecord('wagons', selectedWagon.id, selectedWagon);
+				if (!wagon) {
+					processLayout.setError('Wagon not found');
+					return;
+				}
+
+				wagon.loadingLocation = loadingLocation;
+				wagon.felWeight = Number(felWeight);
+				wagon.syncStatus = 'pending';
+				wagon.updated = new Date().toISOString();
+
+				await indexedDBService.updateRecord('wagons', wagon.id, wagon);
+
+				processLayout.setSuccess('Data saved successfully');
+				setTimeout(() => {
+					// Navigate to verification page
+					goto(`/pmc/processes/magnetite-rail/west-load-out/fel-operations/verification?wagonId=${encodeURIComponent(wagon.wagonId || '')}`);
+				}, 1000);
 			}
-
 			// Clear persisted form data
 			formPersistenceService.clearForm('west_loadout');
-
-			processLayout.setSuccess('Data saved successfully');
-			setTimeout(() => {
-				// Navigate to verification page
-				goto(`/pmc/processes/magnetite-rail/west-load-out/fel-operations/verification?wagonId=${encodeURIComponent(wagonId)}`);
-			}, 1000);
 		} catch (err) {
 			processLayout.setError('Failed to save assay data');
 			console.error(err);
@@ -152,7 +155,7 @@
 	</div>
 
 <div class="container">
-	<div>
+	<div class="form">
 		<FormField
 			id="wagonId"
 			label="Wagon ID"

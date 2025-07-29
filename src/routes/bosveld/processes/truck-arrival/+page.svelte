@@ -28,18 +28,22 @@
 	let processLayout: ProcessLayout;
 
 	onMount(async () => {
-		// Fetch all truck arrivals
-		const truckArrivals = (await indexedDBService.getAllRecords('truckArrivals')).filter(
-			arrival => arrival.port_truck_arrival_timestamp === ''
-		);
+		try {
+			// Fetch all truck arrivals
+			const truckArrivals = (await indexedDBService.getAllRecords('truckArrivals')).filter(
+				arrival => arrival.port_truck_arrival_timestamp === ''
+			);
 
-		// Fetch all trucks
-		const allTrucks = await indexedDBService.getAllRecords('trucks');
+			// Fetch all trucks
+			const allTrucks = await indexedDBService.getAllRecords('trucks');
 
-		// Filter trucks that match the truck arrivals' port_arrival_sample_id
-		availableTrucks = allTrucks.filter(truck =>
-			truckArrivals.some(arrival => arrival.port_arrival_sample_id === truck.registration)
-		);
+			// Filter trucks that match the truck arrivals' port_arrival_sample_id
+			availableTrucks = allTrucks.filter(truck =>
+				truckArrivals.some(arrival => arrival.port_arrival_sample_id === truck.registration)
+			);
+		} catch (error) {
+			console.error('Failed to fetch trucks or truck arrivals:', error);
+		}
 	});
 
 	// Reactive statement to filter trucks based on the search query
@@ -91,7 +95,7 @@
 
 			// Check if truck exists in Pocketbase DB
 			const pbTrucks = await indexedDBService.getAllRecords('trucks');
-			const truckToUse = pbTrucks.find(truck => truck.registration === truckRegistration);
+			const truckToUse = pbTrucks.find(truck => truck.registration === selectedTruck);
 
 			if (!truckToUse) {
 				processLayout.setError('Truck Not in Pre-Registration List');
@@ -100,7 +104,7 @@
 			}
 
 			// Update truck
-			await indexedDBService.updateRecord('trucks', truckToUse.serverId ?? truckToUse.id, {
+			await indexedDBService.updateRecord('trucks', truckToUse.id, {
 				...truckToUse,
 				syncStatus: 'pending',
 				updated: new Date().toDateString(),
@@ -108,22 +112,23 @@
 
 			// Update Truck Arrival data
 			const truckArrival = (await indexedDBService.getAllRecords('truckArrivals')).filter(
-				arrival => arrival.port_arrival_sample_id === truckRegistration
+				arrival => arrival.port_arrival_sample_id === selectedTruck
 			)[0];
 
 			// Save to IndexedDB using the generic saveRecord method
-			await indexedDBService.updateRecord('truckArrivals', truckArrival.serverId ?? truckArrival.id, {
+			await indexedDBService.updateRecord('truckArrivals', truckArrival.id, {
 					...truckArrival,
 					syncStatus: 'pending',
 					port_truck_arrival_timestamp: new Date().toISOString(),
 					status: 'received',
+					truck_origin_location: 'BOP'
 				});
 
 			processLayout.setSuccess('Truck Successfully Received!');
 
 			setTimeout(() => {
-				goto('/richardsbay/processes/road/pmc-truck-arrivals');
-			}, 2000);
+				location.reload();
+			}, 1000);
 		} catch (error) {
 			console.error('Failed to submit truck arrival:', error);
 			processLayout.setError('Failed to submit truck arrival. Please try again.');
@@ -140,23 +145,23 @@
 			processLayout.setError('Truck Has Been Already Received');
 			return;
 		} else {
-			goto('/richardsbay/processes/road/pmc-truck-arrivals/register?truckRegistration=' + truckRegistration);
+			goto('/bosveld/processes/truck-arrival/register?truckRegistration=' + truckRegistration);
 		}
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes');
+		goto('/bosveld/processes');
 	}
 
 </script>
 
 <ProcessLayout
-	title="PMC Truck Arrival"
+	title="Truck Arrival"
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
 	showSubmit={!showTruckNotFound}
-	cancelPath="/richardsbay/processes"
+	cancelPath="/bosveld/processes"
 	bind:this={processLayout}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}

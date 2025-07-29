@@ -162,7 +162,7 @@
 									wagonID = suggestion.wagonId ?? '';
 									showWagonSuggestions = false;
 									selectedWagon = suggestion;
-									sampleID = suggestion.wagonIdSimple ?? '';
+									sampleID = suggestion.sampleId ?? '';
 								}}
 							>
 								{suggestion.wagonId}

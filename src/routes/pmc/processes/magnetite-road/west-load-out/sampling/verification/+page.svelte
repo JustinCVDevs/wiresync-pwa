@@ -4,13 +4,13 @@
 	import { goto } from '$app/navigation';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
-	import type { Assay } from '$lib/types/assay';
-	import type { TruckLoad } from '$lib';
+	import type { Fleet, TruckLoad, Assay } from '$lib';
 
 	const sampleId = $page.url.searchParams.get('sampleId') || '';
 	const truckRegistration = $page.url.searchParams.get('truckRegistration') || '';
 	let assay: Assay | null = null;
 	let truckLoad: TruckLoad | null = null;
+	let fleet: Fleet | null = null;
 	let currentStep = 2;
 	let processLayout: ProcessLayout;
 	
@@ -20,6 +20,7 @@
 	onMount(async () => {
 		await loadAssayData();
 		await loadTruckLoadData();
+		await loadFleetData();
 	});
 
 	async function loadAssayData() {
@@ -27,6 +28,7 @@
 			const result = (await indexedDBService.getAllRecords('assays')).filter(
 				(a) => a.sampleId === sampleId && a.siteLocation === 'PMC'
 			)[0];
+
 			assay = result ?? null;
 		}
 	}
@@ -36,7 +38,18 @@
 			const result = (await indexedDBService.getAllRecords('truckLoads')).filter(
 				(t) => t.sampleId === sampleId
 			)[0];
+
 			truckLoad = result ?? null;
+		}
+	}
+
+	async function loadFleetData() {
+		if (sampleId) {
+			const result = (await indexedDBService.getAllRecords('fleet')).filter(
+				(f) => f.sampleId === sampleId
+			)[0];
+
+			fleet = result ?? null;
 		}
 	}
 
@@ -66,8 +79,8 @@
 <!-- t -->
 
 	<div class="space-y-4">
-		{#if assay && truckLoad}
-			{#if assay.dedicatedFleet === false}
+		{#if assay}
+			{#if (assay.dedicatedFleet === false && truckLoad)}
 				<div class="bg-white p-4 rounded-lg shadow-sm">
 					<div class="grid grid-cols-1 gap-4">
 						<div>
@@ -77,46 +90,46 @@
 
 						<div>
 							<p class="text-sm text-gray-500 font-bold">Sample ID</p>
-							<p class="font-medium">{assay.sampleId}</p>
+							<p class="font-medium">{truckLoad.sampleId}</p>
 						</div>
 
 						<div>
 							<p class="text-sm text-gray-500 font-bold">Product</p>
-							<p class="font-medium">{assay.productType}</p>
-						</div>
-						
-						<div>
-							<p class="text-sm text-gray-500 font-bold">Loading Location</p>
-							<p class="font-medium">{assay.location}</p>
-						</div>
-					</div>
-				</div>
-			{:else}
-				<div class="bg-white p-4 rounded-lg shadow-sm">
-					<div class="grid grid-cols-1 gap-4">
-						<div>
-							<p class="text-sm text-gray-500 font-bold">Truck Registration Nr</p>
-							<p class="font-medium">{truckLoad?.loadingHour}</p>
-						</div>
-
-						<div>
-							<p class="text-sm text-gray-500 font-bold">Sample ID</p>
-							<p class="font-medium">{assay.sampleId}</p>
-						</div>
-
-						<div>
-							<p class="text-sm text-gray-500 font-bold">Product</p>
-							<p class="font-medium">{assay.productType}</p>
+							<p class="font-medium">{truckLoad.materialType}</p>
 						</div>
 						
 						<div>
 							<p class="text-sm text-gray-500 font-bold">Loading Location</p>
 							<p class="font-medium">{truckLoad.loadingLocation}</p>
 						</div>
+					</div>
+				</div>
+			{:else if (assay.dedicatedFleet === true && fleet)}
+				<div class="bg-white p-4 rounded-lg shadow-sm">
+					<div class="grid grid-cols-1 gap-4">
+						<div>
+							<p class="text-sm text-gray-500 font-bold">Truck Registration Nr</p>
+							<p class="font-medium">{truckRegistration}</p>
+						</div>
+
+						<div>
+							<p class="text-sm text-gray-500 font-bold">Sample ID</p>
+							<p class="font-medium">{fleet.sampleId}</p>
+						</div>
+
+						<div>
+							<p class="text-sm text-gray-500 font-bold">Product</p>
+							<p class="font-medium">{fleet.commodity}</p>
+						</div>
+						
+						<div>
+							<p class="text-sm text-gray-500 font-bold">Loading Location</p>
+							<p class="font-medium">{fleet.loadingLocation}</p>
+						</div>
 
 						<div>
 							<p class="text-sm text-gray-500 font-bold">Loading Time (Hours)</p>
-							<p class="font-medium">{truckLoad.loadingHour}</p>
+							<p class="font-medium">{fleet.loadingHour}</p>
 						</div>
 					</div>
 				</div>

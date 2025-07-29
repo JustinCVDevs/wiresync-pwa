@@ -7,9 +7,8 @@
 	import { formPersistenceService } from '$lib/services/formPersistenceService';
 
 	let availableWagons: any[] = [];
-	let selectedWagon: any = null;
+	let selectedWagon = '';
 
-	let wagonId = '';
 	let felWeight = '';
 	let loadingLocation = 'Bosveld';
 	let isSubmitting = false;
@@ -26,9 +25,7 @@
 	}
 	// Form errors
 	let formErrors = {
-		sampleId: '',
-		productGrade: '',
-		wagonId: '',
+		selectedWagon: '',
 		felWeight: '',
 	};
 
@@ -64,19 +61,17 @@
 	function validateForm() {
 		let isValid = true;
 		formErrors = {
-			sampleId: '',
-			productGrade: '',
-			wagonId: '',
+			selectedWagon: '',
 			felWeight: '',
 		};
 
-		if (!wagonId) {
-			formErrors.sampleId = 'Wagon ID is required';
+		if (!selectedWagon) {
+			formErrors.selectedWagon = 'Wagon ID is required';
 			isValid = false;
 		}
 
 		if (!felWeight || isNaN(Number(felWeight)) || Number(felWeight) <= 0) {
-			formErrors.productGrade = 'FEL Weight is required';
+			formErrors.felWeight = 'FEL Weight is required';
 			isValid = false;
 		}
 		return isValid;
@@ -87,7 +82,7 @@
 		try {
 			const wagons = (await indexedDBService.getAllRecords('wagons')).filter((w) => {
 				return (
-					w.loadingLocation === 'Bosveld' && w.felWeight === null
+					w.loadingLocation === 'Bosveld' && w.felWeight === 0
 				);
 			});
 
@@ -100,6 +95,7 @@
 
 	async function handleSubmit() {
 		if (!validateForm()) {
+			console.error('Form validation failed', formErrors);
 			return;
 		}
 
@@ -109,24 +105,32 @@
 			processLayout.setSuccess('');
 
 			if (selectedWagon) {
-				selectedWagon.loadingLocation = loadingLocation;
-				selectedWagon.felWeight = felWeight;
-				selectedWagon.syncStatus = 'pending';
-				selectedWagon.updated = new Date().toISOString();
+				const wagon = (await indexedDBService.getAllRecords('wagons')).find(
+					w => w.sampleId === selectedWagon
+				);
 
-				await indexedDBService.updateRecord('wagons', selectedWagon.id, selectedWagon);
+				if (!wagon) {
+					processLayout.setError('Wagon not found');
+					return;
+				}
+
+				wagon.loadingLocation = loadingLocation;
+				wagon.felWeight = Number(felWeight);
+				wagon.syncStatus = 'pending';
+				wagon.updated = new Date().toISOString();
+
+				await indexedDBService.updateRecord('wagons', wagon.id, wagon);
+
+				processLayout.setSuccess('Data saved successfully');
+				setTimeout(() => {
+					// Navigate to verification page
+					goto(`/bosveld/processes/loading-station/fel-operations/verification?wagonId=${encodeURIComponent(wagon.wagonId || '')}`);
+				}, 1000);
 			}
-
 			// Clear persisted form data
 			formPersistenceService.clearForm('loading_station');
-
-			processLayout.setSuccess('Data saved successfully');
-			setTimeout(() => {
-				// Navigate to verification page
-				goto(`/bosveld/processes/loading-station/fel-operations/verification?wagonId=${encodeURIComponent(wagonId)}`);
-			}, 1000);
 		} catch (err) {
-			processLayout.setError('Failed to save assay data');
+			processLayout.setError('Failed to save wagon data');
 			console.error(err);
 		} finally {
 			isSubmitting = false;
@@ -153,11 +157,11 @@
 	<div class="form">
 		<FormField
 			id="wagonId"
-			label="Wagon ID"
+			label="Please enter Wagon ID"
 			search={true}
 			options={availableWagons.map(wagon => ({value: wagon.sampleId, label: wagon.wagonId}))}
 			bind:value={selectedWagon}
-			placeholder="Select Wagon ID"
+			placeholder="Enter Wagon ID"
 			required
 		/>
 	</div>
