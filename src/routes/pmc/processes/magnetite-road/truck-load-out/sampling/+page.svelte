@@ -21,25 +21,25 @@
 
 	const steps = ["Sample Details", "Complete"];
 
-	let sampleNumber = 1;
+	let sampleNumberTruck = 1;
 	let trucks: Truck[] = [];
 	let productTypes = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite 62%', 'Magnetite 65%'];
 
 	// Function to get or reset the sample number for the day
 	function getSampleNumber() {
 		const currentDate = new Date().toISOString().split('T')[0];
-		const storedData = JSON.parse(localStorage.getItem('sampleNumber') || '{}');
+		const storedData = JSON.parse(localStorage.getItem('sampleNumberTruck') || '{}');
 
 		if (storedData.date === currentDate) {
-			sampleNumber = storedData.number + 1;
+			sampleNumberTruck = storedData.number + 1;
 		} else {
-			sampleNumber = 1;
+			sampleNumberTruck = 1;
 		}
 
 		// Save the updated sample number in localStorage
 		localStorage.setItem(
-			'sampleNumber',
-			JSON.stringify({ date: currentDate, number: sampleNumber })
+			'sampleNumberTruck',
+			JSON.stringify({ date: currentDate, number: sampleNumberTruck })
 		);
 	}
 
@@ -70,7 +70,7 @@
 		}[productType];
 
 		if (dedicatedFleet === 'Yes') {
-			sampleId = `${YYMMDD}${truckRegistration ? `_${truckRegistration}` : ''}${sampleNumber ? `_#${sampleNumber}` : ''}${productCode ? `_${productCode}` : ''}`;
+			sampleId = `${YYMMDD}${truckRegistration ? `_${truckRegistration}` : ''}${sampleNumberTruck ? `_#${sampleNumberTruck}` : ''}${productCode ? `_${productCode}` : ''}`;
 		} else {
 			sampleId = `${YYMMDD}${truckRegistration ? `_${truckRegistration}` : ''}${productCode ? `_${productCode}` : ''}`;
 		}
