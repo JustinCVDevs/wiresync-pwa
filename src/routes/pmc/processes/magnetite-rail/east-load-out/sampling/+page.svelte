@@ -12,7 +12,7 @@
 	let sampleId = '';
 	let wagonId = '';
 	let trainNumber = '';
-	let productGrade = '';
+	let productGrade = localStorage.getItem('productGrade') || '';
 	let loadingLocation = 'East Load Out';
 	let isSubmitting = false;
 	let currentStep = 1;
@@ -57,7 +57,6 @@
 		return () => {
 			if (sampleId || productGrade) {
 				formPersistenceService.saveForm('east_loadout', {
-					sampleId,
 					productGrade,
 					loadingLocation
 				});
@@ -106,14 +105,6 @@
 			processLayout.setError('');
 			processLayout.setSuccess('');
 
-			let wagons = await indexedDBService.getAllRecords('wagons');
-			// Check if the wagon already exists
-			const existingWagon = wagons.find((w) => w.transcoreTag === wagonId);
-			if (existingWagon) {
-				processLayout.setError('Wagon ID has already been scanned. Please use a different Wagon ID.');
-				return;
-			}
-
 			//Create the wagon object
 			const wagon: Wagon = {
 				id: crypto.randomUUID(),
@@ -121,7 +112,7 @@
 				trainNumber: trainNumber,
 				loadingLocation: loadingLocation,
 				created: new Date(),
-				wagonIdSimple: sampleId,
+				sampleId: sampleId,
 				syncStatus: 'pending',
 			}
 
@@ -145,7 +136,6 @@
 				updated: new Date().toISOString(),
 				linkedWagonIds: [foundWagon?.serverId || ''],
 				syncStatus: 'pending',
-				process: 'East Loadout',
 				siteLocation: 'PMC',
 			};
 
