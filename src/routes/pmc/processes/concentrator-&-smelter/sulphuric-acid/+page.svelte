@@ -117,6 +117,7 @@
 				acidType: acidType,
 				sampleId: sampleId,
 				loadingLocation: loadingLocation,
+				tankLocation: tankLocation,
 				created: new Date(),
 				updated: new Date().toISOString(),
 				siteLocation: 'PMC',

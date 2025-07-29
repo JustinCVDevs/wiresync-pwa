@@ -65,7 +65,8 @@
 			{/each}
 		</select>
 	{:else if search}
-				<!-- Search input -->
+        <div class="relative">
+            <!-- Search input -->
 				<input
 					id="truckRegistration-search"
                     class="w-full rounded-lg border text-sm py-2 px-3 border-gray-300 text-gray focus:ring-2 focus:ring-gray-400 focus:outline-none {error
@@ -89,8 +90,9 @@
 					}}
 				/>
 				<!-- Dropdown arrow inside the search box -->
-				<div class="dropdown-arrow absolute right-2 top-1/2 transform -translate-y-1/2" style="display: {searchQuery ? 'none' : 'flex'};"></div>
+				<div class="dropdown-arrow absolute" style="display: {searchQuery ? 'none' : 'flex'};"></div>
 
+        </div>	
 			{#if showDropdown}
 				<div class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 shadow-lg">
 					<ul class="suggestions-list">
@@ -141,7 +143,7 @@
         background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="%237A7A7A"%3E%3Cpath fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 011.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /%3E%3C/svg%3E');
         background-repeat: no-repeat;
         background-position: center;
-        top: 65%;
+        top: 25%;
         left: 93%;
         background-size: 1rem;
     }
