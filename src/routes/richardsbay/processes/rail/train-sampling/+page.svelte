@@ -66,7 +66,7 @@
 		}
 	}
 
-	function showAllTruckSuggestions() {
+	function showAllWagonSuggestions() {
 		if (availableWagons.length > 0) {
 			filteredWagonSuggestions = availableWagons.slice(0, 6);
 			showWagonSuggestions = true;
@@ -87,12 +87,12 @@
 			isSubmitting = true;
 			processLayout.setError('');
 
-			// Check if truck exists in Pocketbase DB
+			// Check if wagon exists in Pocketbase DB
 			const pbWagons = await indexedDBService.getAllRecords('wagons');
 			const wagonToUse = pbWagons.find(wagon => wagon.wagonId === wagonID);
 
 			if (!wagonToUse) {
-				processLayout.setError('Truck Not in Pre-Registration List');
+				processLayout.setError('Wagon Not in Pre-Registration List');
 				isSubmitting = false;
 				return;
 			}
@@ -108,8 +108,8 @@
 			const dispatchedIds = [...(existingIdsArray), wagonToUse.id];
 			goto(`/richardsbay/processes/rail/train-sampling/review?wagonIds=${dispatchedIds.join(',')}`);
 		} catch (error) {
-			console.error('Failed to submit truck arrival:', error);
-			processLayout.setError('Failed to submit truck arrival. Please try again.');
+			console.error('Failed to submit wagon arrival:', error);
+			processLayout.setError('Failed to submit wagon arrival. Please try again.');
 		} finally {
 			isSubmitting = false;
 		}
@@ -147,7 +147,7 @@
 				bind:value={wagonID}
 				placeholder="Scan/Enter Wagon ID"
 				on:input={handleWagonInput}
-				on:focus={showAllTruckSuggestions}
+				on:focus={showAllWagonSuggestions}
 				on:blur={() => setTimeout(() => showWagonSuggestions = false, 100)}
 				required
 				class="w-full rounded-lg text-sm border px-3 py-2 text-gray border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none"
@@ -177,8 +177,7 @@
 						id="arrivalTimestamp"
 						label="Arrival Timestamp:"
 						bind:value={arrivalTimestamp}
-						placeholder="Enter vehicle registration"
-						disabled={true}
+						placeholder="Enter wagon registration"
 					/>
 				</div>
 
@@ -188,7 +187,6 @@
 						label="Sample ID:"
 						bind:value={sampleID}
 						placeholder="Enter wagon sample ID"
-						disabled={true}
 					/>
 				</div>
 			{/if}
