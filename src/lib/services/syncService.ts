@@ -711,16 +711,37 @@ export const syncService = {
 				page++
 			} while (items.length === perPage)
 
-			// pull all local records that have a serverId
-			const local = await indexedDBService.getRecords(
+			// Pull all local records that have a serverId
+			const localRecords = await indexedDBService.getRecords(
 				collectionName,
 				(rec: { serverId?: string }) => !!rec.serverId
 			)
 
-			// delete any local whose serverId isn't on the server
-			for (const rec of local) {
+			// Identify duplicate records based on serverId
+			const duplicates = localRecords.reduce((acc, rec: { id: string; serverId: string }) => {
+				if (rec.serverId) {
+					acc[rec.serverId] = acc[rec.serverId] || [];
+					acc[rec.serverId].push(rec);
+				}
+				return acc;
+			}, {} as Record<string, { id: string; serverId: string }[]>);
+
+			for (const [serverId, records] of Object.entries(duplicates)) {
+				const typedRecords = records as { id: string; serverId: string }[]; // Explicitly define the type
+				if (typedRecords.length > 1) {
+					// Delete all records except the one where id === serverId
+					for (const rec of typedRecords) {
+						if (rec.id !== serverId) {
+							await indexedDBService.deleteRecord(collectionName, rec.id);
+						}
+					}
+				}
+			}
+
+			// Delete any local record whose serverId isn't on the server
+			for (const rec of localRecords) {
 				if (!serverIds.has(rec.serverId!)) {
-					await indexedDBService.deleteRecord(collectionName, rec.id)
+					await indexedDBService.deleteRecord(collectionName, rec.id);
 				}
 			}
 
@@ -977,7 +998,7 @@ export const syncService = {
 			const allIndexedTruckArrivals = await indexedDBService.getRecords('truckArrivals');
 
 			for (const arrival of allTruckArrivals.items) {
-				const existingTruckArrival = allIndexedTruckArrivals.find((t) => t.serverId === arrival.id || t.id === arrival.id);
+				const existingTruckArrival = allIndexedTruckArrivals.find((truckarrival) => truckarrival.serverId === arrival.id || truckarrival.id === arrival.id);
 
 				if (existingTruckArrival) {
 					// Update the existing record
