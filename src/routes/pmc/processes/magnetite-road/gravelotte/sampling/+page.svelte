@@ -179,13 +179,12 @@
 					name: sampleId,
 					productType: productType,
 					dedicatedFleet: isDedicatedFleet,
-					linkedTruckLoadIds: [newTruckLoad?.serverId || newTruckLoad?.id || ''],
+					linkedTruckLoadIds: [newTruckLoad?.serverId || ''],
 					linkedTruckIds: [linkedTruck?.serverId || ''],
 					syncStatus: 'pending',
 					location: loadingLocation,
 					created: new Date(),
 					updated: new Date().toISOString(),
-
 					sampleId: sampleId,
 					siteLocation: 'PMC',
 				};

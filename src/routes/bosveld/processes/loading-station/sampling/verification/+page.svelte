@@ -4,13 +4,10 @@
 	import { goto } from '$app/navigation';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
-	import type { Assay } from '$lib/types/assay';
-	import type { Wagon } from '$lib/types/wagon';
+	import type { Wagon } from '$lib/types';
 
 	let processLayout: ProcessLayout;
-	const sampleId = $page.url.searchParams.get('sampleId') || '';
 	const wagonId = $page.url.searchParams.get('wagonId') || '';
-	let assay: Assay | null = null;
 	let wagon: Wagon | null = null;
 	let currentStep = 2;
 	
@@ -18,18 +15,8 @@
 	const processSteps = ['Sample Details', 'Complete'];
 
 	onMount(async () => {
-		await loadAssayData();
 		await loadWagonData();
 	});
-
-	async function loadAssayData() {
-		if (sampleId) {
-			const result = (await indexedDBService.getAllRecords('assays')).filter(
-				(a) => a.sampleId === sampleId
-			)[0];
-			assay = result ?? null;
-		}
-	}
 
 	async function loadWagonData() {
 		if (wagonId) {
@@ -64,7 +51,7 @@
 	bind:this={processLayout}
 >
 	<div class="space-y-4">
-		{#if assay && wagon}
+		{#if wagon}
 			<div class="bg-white p-4 rounded-lg shadow-sm">
 				<div class="grid grid-cols-2 gap-4">
 					<div>
@@ -74,7 +61,7 @@
 
 					<div>
 						<p class="text-sm text-gray-500 font-bold">Product Selection</p>
-						<p class="font-medium">{assay.productType}</p>
+						<p class="font-medium">{wagon.productType}</p>
 					</div>
 
 					<div>
@@ -84,12 +71,12 @@
 					
 					<div>
 						<p class="text-sm text-gray-500 font-bold">Loading Location</p>
-						<p class="font-medium">{assay.location}</p>
+						<p class="font-medium">{wagon.loadingLocation}</p>
 					</div>
 
 					<div>
 						<p class="text-sm text-gray-500 font-bold">Sample ID</p>
-						<p class="font-medium">{assay.name}</p>
+						<p class="font-medium">{wagon.sampleId}</p>
 					</div>
 				</div>
 			</div>

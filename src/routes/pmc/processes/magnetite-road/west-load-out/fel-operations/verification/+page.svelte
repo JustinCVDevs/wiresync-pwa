@@ -9,7 +9,6 @@
 
 	const truckRegistration = $page.url.searchParams.get('truckRegistration') || '';
 	const sampleId = $page.url.searchParams.get('sampleId') || '';
-	const fleetServerId = $page.url.searchParams.get('fleetServerId') || '';
 	let truckLoad: TruckLoad | null = null;
 	let fleet: Fleet | null = null;
 	let currentStep = 2;
@@ -33,9 +32,9 @@
 	}
 
 	async function loadFleetData() {
-		if (fleetServerId) {
+		if (sampleId) {
 			const result = (await indexedDBService.getAllRecords('fleet')).filter(
-				(f) => f.serverId === fleetServerId
+				(f) => f.sampleId === sampleId
 			)[0];
 			fleet = result ?? null;
 		}
@@ -65,7 +64,7 @@
 	bind:this={processLayout}
 >
 	<div class="space-y-4">
-		{#if truckLoad && fleet}
+		{#if fleet}
 				<div class="bg-white p-4 rounded-lg shadow-sm">
 					<div class="grid grid-cols-1 gap-4">
 						<div>
@@ -84,7 +83,7 @@
 						</div>
 					</div>
 				</div>
-		{:else if truckLoad && !fleet}
+		{:else if truckLoad}
 				<div class="bg-white p-4 rounded-lg shadow-sm">
 					<div class="grid grid-cols-1 gap-4">
 						<div>

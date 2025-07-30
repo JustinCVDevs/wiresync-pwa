@@ -32,7 +32,7 @@
 		const truckArrivals = (await indexedDBService.getAllRecords('truckArrivals')).filter(
 			arrival => arrival.port_truck_arrival_timestamp === ''
 		);
-
+		
 		// Fetch all trucks
 		const allTrucks = await indexedDBService.getAllRecords('trucks');
 

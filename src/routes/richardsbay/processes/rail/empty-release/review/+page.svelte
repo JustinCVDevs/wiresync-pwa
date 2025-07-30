@@ -14,7 +14,6 @@
     let releasedWagons: Wagon[] = [];
     let error = '';
     let isLoading = true;
-    let isCompleting = false;
     let processLayout: ProcessLayout;
 
     const steps = ['Select', 'Review & Release'];
@@ -24,7 +23,9 @@
         isLoading = true;
         try {
             if (wagonId) {
-                wagon = await indexedDBService.getRecord('wagons', wagonId);
+                wagon = (await indexedDBService.getAllRecords('wagons')).filter(
+                    (w) => w.wagonId === wagonId
+                )[0];
                 if (!wagon) {
                     error = 'Wagon not found';
                     return;
@@ -44,7 +45,6 @@
             // Load all released wagons for this session
             const allWagons = await indexedDBService.getAllRecords('wagons');
             releasedWagons = allWagons.filter(w => 
-                w.process === 'Wagon_Release' && 
                 w.releaseTimestamp &&
                 new Date(w.releaseTimestamp).toDateString() === new Date().toDateString()
             );
@@ -64,21 +64,19 @@
     $: if (wagonId) loadWagon();
 
     function handleCancel() {
-        goto('/richardsbay/processes');
+        goto('/richardsbay/processes/rail');
     }
 
     function handleNewWagon() {
         goto('/richardsbay/processes/rail/empty-release');
     }
 
-    async function handleCompleteRelease() {
-        isCompleting = true;
+    async function handleSubmit() {
         try {
             // Mark all released wagons as completed
             for (const releasedWagon of releasedWagons) {
                 await indexedDBService.updateRecord('wagons', releasedWagon.id!, {
                     ...releasedWagon,
-                    process: 'Wagon_Release_Complete',
                     syncStatus: 'pending',
                     dispatchTimestamp: null,
                     releaseTimestamp: new Date(),
@@ -86,16 +84,16 @@
                 });
             }
 
-            processLayout.setSuccess('Release completed successfully!');
+            // Show success message
+            processLayout.setSuccess('Wagon/s released successfully');
+
+            // Redirect after a short delay
             setTimeout(() => {
                 goto('/richardsbay/processes/rail');
             }, 1000);
-
-        } catch (e) {
-            console.error('Error completing release:', e);
-            error = 'Failed to complete release';
-        } finally {
-            isCompleting = false;
+        } catch (error) {
+            console.error('Error releasing wagons:', error);
+            processLayout.setError('Failed to release wagons. Please try again.');
         }
     }
 
@@ -115,10 +113,10 @@
     title="Empty Wagon Release Review"
     steps={steps}
     currentStep={currentStep}
-    cancelPath="/richardsbay/processes"
+    cancelPath="/richardsbay/processes/rail"
     bind:this={processLayout}
-    showSubmit={false}
-    showCancel={false}
+    on:cancel={handleCancel}
+    on:submit={handleSubmit}
 >
     {#if isLoading}
         <div class="flex justify-center items-center py-8">
@@ -190,28 +188,6 @@
                     <PlusCircle size={20} />
                     +New Wagon
                 </button>
-
-                <div class="flex justify-between items-center">
-                    <button
-                        type="button"
-                        on:click={handleCancel}
-                        class="w-36 text-sm rounded-lg bg-red-600 py-3 text-white transition hover:bg-red-700 active:bg-red-800 disabled:opacity-50 px-2"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="button"
-                        on:click={handleCompleteRelease}
-                        disabled={isCompleting || releasedWagons.length === 0}
-                        class="w-36 text-sm items-center justify-center rounded-lg bg-green-600 py-3 px-2 text-white transition hover:bg-green-700 active:bg-green-800 disabled:opacity-50"
-                    >
-                        {#if isCompleting}
-                            Completing...
-                        {:else}
-                            Complete Release
-                        {/if}
-                    </button>
-                </div>
             </div>
         </div>
     {/if}

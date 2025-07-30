@@ -68,7 +68,7 @@
 </script>
 
 <ProcessLayout
-	title="  Sample Details Verification"
+	title="Sample Details Verification"
 	steps={processSteps}
 	{currentStep}
 	on:cancel={handleCancel}
