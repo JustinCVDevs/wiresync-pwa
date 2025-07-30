@@ -111,6 +111,7 @@
 				wagonId: wagonId,
 				trainNumber: trainNumber,
 				loadingLocation: loadingLocation,
+				productType: productGrade,
 				created: new Date(),
 				sampleId: sampleId,
 				syncStatus: 'pending',
