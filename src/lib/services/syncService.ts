@@ -469,61 +469,65 @@ export const syncService = {
 	},
 
 	async syncTruckLoadList() {
-		try {
-			const allTruckLoads = await fetchAllFromPocketBase('truckLoads');
-			const allIndexedTruckLoads = await indexedDBService.getRecords('truckLoads');
+	try {
+		const allTruckLoads = await fetchAllFromPocketBase('truckLoads');
+		const allIndexedTruckLoads = await indexedDBService.getRecords('truckLoads');
 
-			for (const truckLoad of allTruckLoads) {
-				const existingTruckLoad = allIndexedTruckLoads.find((t) => t.serverId === truckLoad.id || t.id === truckLoad.id);
+		for (const truckLoad of allTruckLoads) {
+			// Only match on serverId to avoid duplicates
+			const existingTruckLoad = allIndexedTruckLoads.find((t) => t.serverId === truckLoad.id);
 
-				if (existingTruckLoad) {
-					// Update the existing record
-					await indexedDBService.updateRecord('truckLoads', existingTruckLoad.id, {
-						id: truckLoad.id,
-						process: truckLoad.process,
-						truckId: truckLoad.truckId,
-						felWeight: truckLoad.felWeight,
-						samplingStatus: truckLoad.samplingStatus,
-						loadingLocation: truckLoad.loadingLocation,
-						tankLocation: truckLoad.tankLocation,
-						loadingHour: truckLoad.loadingHour,
-						acidType: truckLoad.acidType,
-						materialType: truckLoad.materialType,
-						sampleId: truckLoad.sampleId,
-						created: truckLoad.created,
-						updated: truckLoad.updated,
-						syncStatus: 'synced',
-						serverId: truckLoad.id,
-						siteLocation: truckLoad.siteLocation,
-					});
-				} else {
-					// Create a new record
-					await indexedDBService.saveRecord('truckLoads', {
-						id: truckLoad.id,
-						process: truckLoad.process,
-						truckId: truckLoad.truckId,
-						felWeight: truckLoad.felWeight,
-						samplingStatus: truckLoad.samplingStatus,
-						loadingLocation: truckLoad.loadingLocation,
-						tankLocation: truckLoad.tankLocation,
-						loadingHour: truckLoad.loadingHour,
-						acidType: truckLoad.acidType,
-						materialType: truckLoad.materialType,
-						sampleId: truckLoad.sampleId,
-						created: truckLoad.created,
-						updated: truckLoad.updated,
-						syncStatus: 'synced',
-						serverId: truckLoad.id,
-						siteLocation: truckLoad.siteLocation,
-					});
-				}
+			if (existingTruckLoad) {
+				// Update the existing record (keep the original local ID)
+				await indexedDBService.updateRecord('truckLoads', existingTruckLoad.id, {
+					...existingTruckLoad, // Preserve existing data including local ID
+					process: truckLoad.process,
+					truckId: truckLoad.truckId,
+					felWeight: truckLoad.felWeight,
+					samplingStatus: truckLoad.samplingStatus,
+					loadingLocation: truckLoad.loadingLocation,
+					tankLocation: truckLoad.tankLocation,
+					loadingHour: truckLoad.loadingHour,
+					acidType: truckLoad.acidType,
+					materialType: truckLoad.materialType,
+					sampleId: truckLoad.sampleId,
+					created: truckLoad.created,
+					updated: truckLoad.updated,
+					syncStatus: 'synced',
+					serverId: truckLoad.id,
+					siteLocation: truckLoad.siteLocation,
+				});
+			} else {
+				// Only create new records for data from other devices/sessions
+				// Generate a new local ID for this record
+				const localId = crypto.randomUUID(); 
+				
+				await indexedDBService.saveRecord('truckLoads', {
+					id: localId, // Use local ID, not PocketBase ID
+					process: truckLoad.process,
+					truckId: truckLoad.truckId,
+					felWeight: truckLoad.felWeight,
+					samplingStatus: truckLoad.samplingStatus,
+					loadingLocation: truckLoad.loadingLocation,
+					tankLocation: truckLoad.tankLocation,
+					loadingHour: truckLoad.loadingHour,
+					acidType: truckLoad.acidType,
+					materialType: truckLoad.materialType,
+					sampleId: truckLoad.sampleId,
+					created: truckLoad.created,
+					updated: truckLoad.updated,
+					syncStatus: 'synced',
+					serverId: truckLoad.id, // PocketBase ID goes here
+					siteLocation: truckLoad.siteLocation,
+				});
 			}
-			return true;
-		} catch (err) {
-			console.warn('Failed to sync truck load list:', err);
-			return false;
 		}
-	},
+		return true;
+	} catch (err) {
+		console.warn('Failed to sync truck load list:', err);
+		return false;
+	}
+},
 
 	async syncTruckLoad(truckLoad: TruckLoad) {
 		try {
@@ -540,7 +544,7 @@ export const syncService = {
 				await indexedDBService.updateRecord('truckLoads', truckLoad.id, {
 					...truckLoad,
 					syncStatus: 'synced',
-					serverId: created.id,
+					serverId: created.id
 				});
 			}
 			return true;
@@ -1159,12 +1163,13 @@ export const syncService = {
 			const allIndexedFleets = await indexedDBService.getRecords('fleet');
 
 			for (const fleet of allFleets) {
-				const existingFleet = allIndexedFleets.find((f) => f.serverId === fleet.id || f.id === fleet.id);
+				// Only match on serverId to avoid duplicates
+				const existingFleet = allIndexedFleets.find((f) => f.serverId === fleet.id);
 
 				if (existingFleet) {
-					// Update the existing record
+					// Update the existing record (preserve local ID)
 					await indexedDBService.updateRecord('fleet', existingFleet.id, {
-						id: fleet.id,
+						...existingFleet, // Preserve existing data including local ID
 						sampleId: fleet.sampleId,
 						sampleSize: fleet.sampleSize,
 						commodity: fleet.commodity,
@@ -1181,9 +1186,12 @@ export const syncService = {
 						updated: fleet.updated,
 					});
 				} else {
-					// Create a new record
+					// Only create new records for data from other devices/sessions
+					// Generate a new local ID for this record
+					const localId = crypto.randomUUID();
+					
 					await indexedDBService.saveRecord('fleet', {
-						id: fleet.id,
+						id: localId, // Use local ID, not PocketBase ID
 						sampleId: fleet.sampleId,
 						sampleSize: fleet.sampleSize,
 						commodity: fleet.commodity,
@@ -1195,7 +1203,7 @@ export const syncService = {
 						felMassKg: fleet.felMassKg,
 						siteLocation: fleet.siteLocation,
 						syncStatus: 'synced',
-						serverId: fleet.id,
+						serverId: fleet.id, // PocketBase ID goes here
 						created: fleet.created,
 						updated: fleet.updated,
 					});
