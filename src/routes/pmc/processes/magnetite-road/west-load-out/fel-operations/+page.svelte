@@ -195,8 +195,6 @@
 								bind:value={selectedTruck}
 								placeholder="Select Truck Registration"
 								required
-								on:focus={() => showSearch = true}
-								on:blur={() => setTimeout(() => (showSearch = false), 200)}
 							/>
 						</div>
 						<FormField
