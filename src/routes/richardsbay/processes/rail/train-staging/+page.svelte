@@ -140,7 +140,7 @@
 	
 
 		<div class="form">
-			<label for="wagonId" class="block font-medium text-gray text-sm">Wagon ID *</label>
+			<label for="wagonId" class="block font-medium text-gray text-sm mb-1">Wagon ID *</label>
 			<input
 				id="wagonId"
 				type="text"

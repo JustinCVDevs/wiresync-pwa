@@ -711,37 +711,16 @@ export const syncService = {
 				page++
 			} while (items.length === perPage)
 
-			// Pull all local records that have a serverId
-			const localRecords = await indexedDBService.getRecords(
+			// pull all local records that have a serverId
+			const local = await indexedDBService.getRecords(
 				collectionName,
 				(rec: { serverId?: string }) => !!rec.serverId
 			)
 
-			// Identify duplicate records based on serverId
-			const duplicates = localRecords.reduce((acc, rec: { id: string; serverId: string }) => {
-				if (rec.serverId) {
-					acc[rec.serverId] = acc[rec.serverId] || [];
-					acc[rec.serverId].push(rec);
-				}
-				return acc;
-			}, {} as Record<string, { id: string; serverId: string }[]>);
-
-			for (const [serverId, records] of Object.entries(duplicates)) {
-				const typedRecords = records as { id: string; serverId: string }[]; // Explicitly define the type
-				if (typedRecords.length > 1) {
-					// Delete all records except the one where id === serverId
-					for (const rec of typedRecords) {
-						if (rec.id !== serverId) {
-							await indexedDBService.deleteRecord(collectionName, rec.id);
-						}
-					}
-				}
-			}
-
-			// Delete any local record whose serverId isn't on the server
-			for (const rec of localRecords) {
+			// delete any local whose serverId isn't on the server
+			for (const rec of local) {
 				if (!serverIds.has(rec.serverId!)) {
-					await indexedDBService.deleteRecord(collectionName, rec.id);
+					await indexedDBService.deleteRecord(collectionName, rec.id)
 				}
 			}
 
