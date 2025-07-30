@@ -116,7 +116,7 @@
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes');
+		goto('/richardsbay/processes/rail');
 	}
 
 </script>
@@ -126,7 +126,7 @@
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
-	cancelPath="/richardsbay/processes"
+	cancelPath="/richardsbay/processes/rail"
 	bind:this={processLayout}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}

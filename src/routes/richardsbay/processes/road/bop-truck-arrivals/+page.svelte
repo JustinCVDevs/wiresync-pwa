@@ -54,10 +54,6 @@
         showTruckNotFound = true;
     }
 
-	$: if (selectedTruck) {
-			currentStep = 2;
-	}
-
 	$: {
 		const matchedTruck = availableTrucks.find(truck => truck.registration === selectedTruck);
 
@@ -65,12 +61,14 @@
 			showTruckNotFound = false;
 			matchFound = true;
 			arrivalTimestamp = formatTimestamp(new Date());
+			currentStep = 2;
 			submit = false;
 		} else if (selectedTruck && filteredTrucks.length !> 0) {
 			showTruckNotFound = true;
 		} else {
 			showTruckNotFound = false;
 			matchFound = false;
+			currentStep = 1;
 		}
 	}
 

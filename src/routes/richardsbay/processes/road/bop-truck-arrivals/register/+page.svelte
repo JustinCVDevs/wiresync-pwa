@@ -187,7 +187,7 @@
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes');
+		goto('/richardsbay/processes/road');
 	}
 
 	$: isFormValid = truckRegistration && date && haulier && product && grossMass && grossTimestamp && tareMass && tareTimestamp && sender;
@@ -198,7 +198,7 @@
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
-	cancelPath="/richardsbay/processes"
+	cancelPath="/richardsbay/processes/road"
 	bind:this={processLayout}
 	showSubmit={false}
 	on:cancel={handleCancel}

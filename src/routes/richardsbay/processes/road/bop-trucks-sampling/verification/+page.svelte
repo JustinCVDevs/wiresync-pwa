@@ -42,7 +42,7 @@
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes');
+		goto('/richardsbay/processes/road');
 	}
 
 	function handleSubmit() {
@@ -62,7 +62,7 @@
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
 	bind:this={processLayout}
-	cancelPath="/richardsbay/processes"
+	cancelPath="/richardsbay/processes/road"
 >
 	<div class="space-y-4">
 		{#if assay && truck}

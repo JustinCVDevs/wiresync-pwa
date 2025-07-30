@@ -9,7 +9,6 @@
 
 	// Form state
 	let trainRefNr = '';
-	let capturedPhoto: File | null = null;
 	let isSubmitting = false;
 	let currentStep = 1;
 	let availableTrains: Train[] = [];
@@ -75,7 +74,7 @@
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes');
+		goto('/richardsbay/processes/rail');
 	}
 
 	function isFormValid() {
@@ -88,7 +87,7 @@
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
-	cancelPath="/richardsbay/processes"
+	cancelPath="/richardsbay/processes/rail"
 	bind:this={processLayout}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
