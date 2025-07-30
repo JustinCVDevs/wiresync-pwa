@@ -7,7 +7,7 @@
 	import type { Truck } from '$lib/types/truck';
 
 	// Form state
-	let truckRegistration = '';
+	let truckRegistration = localStorage.getItem('truckRegistration') || '';
 	let isSubmitting = false;
 	let submit = false;
 	let currentStep = 1;
@@ -28,6 +28,7 @@
 	let processLayout: ProcessLayout;
 
 	onMount(async () => {
+		console.log('truckRegistration:', truckRegistration);
 		// Fetch all truck arrivals
 		const truckArrivals = (await indexedDBService.getAllRecords('truckArrivals')).filter(
 			arrival => arrival.port_truck_arrival_timestamp === ''

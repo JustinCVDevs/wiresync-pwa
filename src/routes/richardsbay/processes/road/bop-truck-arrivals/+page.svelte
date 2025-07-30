@@ -5,6 +5,7 @@
 	import FormField from '$lib/components/FormField.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Truck } from '$lib/types/truck';
+	import { Value } from 'sass';
 
 	// Form state
 	let truckRegistration = '';
@@ -32,44 +33,35 @@
 		const truckArrivals = (await indexedDBService.getAllRecords('truckArrivals')).filter(
 			arrival => arrival.port_truck_arrival_timestamp === ''
 		);
-		
+
+		// Get linked trucks from truck arrivals
+		const linkedTrucks = truckArrivals.map(arrival => arrival.truckId);
+
 		// Fetch all trucks
-		const allTrucks = await indexedDBService.getAllRecords('trucks');
+		const allTrucks = (await indexedDBService.getAllRecords('trucks')).filter(
+			truck => truck.loadingLocation === 'BOP'
+		);
 
 		// Filter trucks that match the truck arrivals' port_arrival_sample_id
 		availableTrucks = allTrucks.filter(truck =>
-			truckArrivals.some(arrival => arrival.port_arrival_sample_id === truck.registration)
+			truckArrivals.some(arrival => arrival.truckId=== truck.serverId)
 		);
 	});
 
-	// Reactive statement to filter trucks based on the search query
 	$: {
-		filteredTrucks = availableTrucks.filter(truck =>
-			truck.registration.toLowerCase().includes(searchQuery.toLowerCase())
-		);
+		if (selectedTruck) {
+			if (filteredTrucks.length > 0) {
+				matchFound = filteredTrucks.some(truck => truck.registration.toLowerCase() === selectedTruck.toLowerCase());
+			} else {
+				showTruckNotFound = true;
+			}
+		}
 	}
 
-	// Reactive statement to set showTruckNotFound based on filteredTrucks
-    $: if (filteredTrucks.length === 0 && searchQuery) {
-        showTruckNotFound = true;
-    }
-
 	$: {
-		const matchedTruck = availableTrucks.find(truck => truck.registration === selectedTruck);
-
-		if (matchedTruck) {
-			showTruckNotFound = false;
-			matchFound = true;
-			arrivalTimestamp = formatTimestamp(new Date());
-			currentStep = 2;
-			submit = false;
-		} else if (selectedTruck && filteredTrucks.length !> 0) {
-			showTruckNotFound = true;
-		} else {
-			showTruckNotFound = false;
-			matchFound = false;
-			currentStep = 1;
-		}
+		filteredTrucks = availableTrucks.filter(truck =>
+			truck.registration.toLowerCase().includes(selectedTruck?.toLowerCase() ?? '')
+		);
 	}
 
 	function formatTimestamp(date: Date) {
@@ -88,25 +80,13 @@
 			processLayout.setError('');
 
 			// Check if truck exists in Pocketbase DB
-			const pbTrucks = await indexedDBService.getAllRecords('trucks');
-			const truckToUse = pbTrucks.find(truck => truck.registration === truckRegistration);
-
-			if (!truckToUse) {
-				processLayout.setError('Truck Not in Pre-Registration List');
-				isSubmitting = false;
-				return;
-			}
-
-			// Update truck
-			await indexedDBService.updateRecord('trucks', truckToUse.serverId ?? truckToUse.id, {
-				...truckToUse,
-				syncStatus: 'pending',
-				updated: new Date().toDateString(),
-			});
+			const trucks = (await indexedDBService.getAllRecords('trucks')).filter(
+				truck => truck.registration.toLowerCase() === selectedTruck.toLowerCase()
+			)[0];
 
 			// Update Truck Arrival data
 			const truckArrival = (await indexedDBService.getAllRecords('truckArrivals')).filter(
-				arrival => arrival.port_arrival_sample_id === selectedTruck
+				arrival => arrival.truckId === trucks.serverId
 			)[0];
 
 			// Save to IndexedDB using the generic saveRecord method
@@ -131,15 +111,7 @@
 	}
 
 	async function handleNewTruck() {
-		const truckArrivalExists = (await indexedDBService.getAllRecords('truckArrivals')).filter(
-			arrival => arrival.port_arrival_sample_id === truckRegistration
-		)[0];
-		if (truckArrivalExists) {
-			processLayout.setError('Truck Has Been Already Received');
-			return;
-		} else {
-			goto('/richardsbay/processes/road/bop-truck-arrivals/register?truckRegistration=' + truckRegistration);
-		}
+		goto(`/richardsbay/processes/road/bop-truck-arrivals/register?truckRegistration=${encodeURIComponent(selectedTruck)}`);
 	}
 
 	function handleCancel() {
