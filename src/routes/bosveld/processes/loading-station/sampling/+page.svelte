@@ -119,7 +119,7 @@
                 location: loadingLocation,
                 created: new Date(),
                 updated: new Date().toISOString(),
-                linkedWagonIds: [newWagon?.serverId || ''],
+                linkedWagonIds: [newWagon?.serverId || newWagon?.id || ''],
                 syncStatus: 'pending',
                 siteLocation: 'Bosveld',
             };

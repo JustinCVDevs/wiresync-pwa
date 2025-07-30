@@ -41,7 +41,7 @@
 				const fleet = (await indexedDBService.getAllRecords('fleet')).filter(
 					(f) => f.felMassKg === 0 && f.loadingLocation === loadingLocation
 				);
-
+				console.log('Filtered Fleet:', fleet);
 				// Map fleet to get linkedFleetIds
 				const linkedFleetIds = fleet.map(f => f.serverId);
 

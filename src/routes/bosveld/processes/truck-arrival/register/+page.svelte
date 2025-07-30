@@ -140,7 +140,7 @@
 				syncStatus: 'pending',
 				serverId: '',
 				created: new Date(),
-				loadingLocation: 'BOP'
+				loadingLocation: 'Bosveld'
 			};
 
 			// Save the truck record
@@ -156,7 +156,6 @@
 			const truckArrival: TruckArrival = {
 				id: crypto.randomUUID(),
 				truckId: linkedTrucks?.id,
-				port_arrival_sample_id: linkedTrucks?.registration,
 				status: 'registered',
 				transporter: haulier,
 				truck_commodity: product,
@@ -168,7 +167,7 @@
 				created: new Date(),
 				updated: new Date().toISOString(),
 				syncStatus: 'pending',
-				siteLocation: 'Richards Bay'
+				siteLocation: 'Bosveld'
 			};
 
 			// Save truck arrival record
@@ -176,7 +175,7 @@
 
 			processLayout.setSuccess('Truck registered successfully');
 			setTimeout(() => {
-				goto('/bosveld/processes/road/truck-arrival');
+				goto('/bosveld/processes/truck-arrival');
 			}, 1000);
 		} catch (err) {
 			processLayout.setError('Failed to register truck');
@@ -187,7 +186,7 @@
 	}
 
 	function handleCancel() {
-		goto('/bosveld/processes');
+		goto('/bosveld/processes/truck-arrival');
 	}
 
 	$: isFormValid = truckRegistration && date && haulier && product && grossMass && grossTimestamp && tareMass && tareTimestamp && sender;
@@ -198,7 +197,7 @@
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
-	cancelPath="/bosveld/processes"
+	cancelPath="/bosveld/processes/truck-arrival"
 	bind:this={processLayout}
 	showSubmit={false}
 	on:cancel={handleCancel}
