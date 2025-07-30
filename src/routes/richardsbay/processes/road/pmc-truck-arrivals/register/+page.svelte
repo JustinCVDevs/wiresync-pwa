@@ -8,7 +8,7 @@
 	import type { TruckArrival } from '$lib/types/truckArrival';
 	import type { Truck } from '$lib/types/truck';
 
-	let truckRegistration = '';
+	let truckRegistration = $page.url.searchParams.get('truckRegistration') || '';
 	let date = '';
 	let haulier = '';
 	let product = '';
@@ -47,10 +47,6 @@
 	];
 
 	onMount(async () => {
-		// Get data from URL params
-		const urlParams = new URLSearchParams($page.url.search);
-		truckRegistration = urlParams.get('truckRegistration') || '';
-		
 		// Set current date as default
 		date = new Date().toISOString().split('T')[0];
 	});
@@ -138,7 +134,6 @@
 				id: crypto.randomUUID(),
 				registration: truckRegistration,
 				syncStatus: 'pending',
-				serverId: '',
 				created: new Date(),
 				loadingLocation: 'PMC'
 			};
@@ -147,16 +142,13 @@
 			await indexedDBService.saveRecord('trucks', newTruck);
 
 			const trucks = await indexedDBService.getAllRecords('trucks');
-			const linkedTrucks = trucks.find(t => {
-				if (!t.created) return false;
-				return t.registration === truckRegistration &&
-					Math.abs(new Date(t.created).getTime() - Date.now()) < 5000;
-			});
+			const linkedTrucks = trucks.find(t => 
+				t.registration === truckRegistration && t.loadingLocation === 'PMC'
+			);
 			// Create truck arrival record with all the manual data
 			const truckArrival: TruckArrival = {
 				id: crypto.randomUUID(),
 				truckId: linkedTrucks?.id,
-				port_arrival_sample_id: linkedTrucks?.registration,
 				status: 'registered',
 				transporter: haulier,
 				truck_commodity: product,
@@ -177,7 +169,7 @@
 			processLayout.setSuccess('Truck registered successfully');
 			setTimeout(() => {
 				goto('/richardsbay/processes/road/pmc-truck-arrivals');
-			}, 1500);
+			}, 1000);
 		} catch (err) {
 			processLayout.setError('Failed to register truck');
 			console.error(err);
@@ -187,7 +179,7 @@
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes/road');
+		goto('/richardsbay/processes/road/pmc-truck-arrivals');
 	}
 
 	$: isFormValid = truckRegistration && date && haulier && product && grossMass && grossTimestamp && tareMass && tareTimestamp && sender;
@@ -198,7 +190,7 @@
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
-	cancelPath="/richardsbay/processes/road"
+	cancelPath="/richardsbay/processes/road/pmc-truck-arrivals"
 	bind:this={processLayout}
 	showSubmit={false}
 	on:cancel={handleCancel}

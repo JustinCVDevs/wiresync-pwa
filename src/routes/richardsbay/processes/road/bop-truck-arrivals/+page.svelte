@@ -5,17 +5,14 @@
 	import FormField from '$lib/components/FormField.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Truck } from '$lib/types/truck';
-	import { Value } from 'sass';
 
 	// Form state
-	let truckRegistration = '';
 	let isSubmitting = false;
 	let submit = false;
 	let currentStep = 1;
 	let arrivalTimestamp = formatTimestamp(new Date());
 	let showSearch = false;
 	let matchFound = false;
-	let searchQuery = '';
 
 	let availableTrucks: Truck[] = [];
 	let filteredTrucks: any[] = [];

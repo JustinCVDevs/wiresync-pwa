@@ -4,12 +4,11 @@
 	import { goto } from '$app/navigation';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
-	import type { Assay } from '$lib/types/assay';
-	import type { Truck } from '$lib/types/truck';
+	import type { TruckArrival, Truck } from '$lib';
 
 	const sampleId = $page.url.searchParams.get('sampleId') || '';
 	const truckRegistration = $page.url.searchParams.get('truckRegistration') || '';
-	let assay: Assay | null = null;
+	let truckArrival: TruckArrival | null = null;
 	let truck: Truck | null = null;
 	let currentStep = 2;
 	let processLayout: ProcessLayout;
@@ -18,16 +17,16 @@
 	const processSteps = ['Registration', 'Verification'];
 
 	onMount(async () => {
-		await loadAssayData();
+		await loadTruckArrivalData();
 		await loadTruckData();
 	});
 
-	async function loadAssayData() {
+	async function loadTruckArrivalData() {
 		if (sampleId) {
-			const result = (await indexedDBService.getAllRecords('assays')).filter(
-				(a) => a.sampleId === sampleId && a.siteLocation === 'Richards Bay'
+			const result = (await indexedDBService.getAllRecords('truckArrivals')).filter(
+				(a) => a.port_arrival_sample_id === sampleId
 			)[0];
-			assay = result ?? null;
+			truckArrival = result ?? null;
 		}
 	}
 
@@ -61,11 +60,11 @@
 	{currentStep}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
-	cancelPath="/richardsbay/processes/road"
 	bind:this={processLayout}
+	cancelPath="/richardsbay/processes/road"
 >
 	<div class="space-y-4">
-		{#if assay && truck}
+		{#if truckArrival && truck}
 			<div class="bg-white p-4 rounded-lg shadow-sm">
 				<div class="grid grid-cols-1 gap-4">
 					<div>
@@ -75,7 +74,7 @@
 
 					<div>
 						<p class="text-sm text-gray-500 font-bold">Sample ID</p>
-						<p class="font-medium">{assay.sampleId}</p>
+						<p class="font-medium">{truckArrival.port_arrival_sample_id}</p>
 					</div>
 				</div>
 			</div>
