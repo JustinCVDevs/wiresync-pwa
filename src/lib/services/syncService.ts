@@ -46,7 +46,7 @@ export const syncService = {
 				if (existingAssay) {
 					// Update the existing record
 					await indexedDBService.updateRecord('assays', existingAssay.id, {
-						id: assay.id,
+						...existingAssay,
 						process: assay.process,
 						name: assay.name,
 						materialType: assay.materialType,
@@ -67,9 +67,10 @@ export const syncService = {
 						updated: assay.updated,
 					});
 				} else {
+					const localId = crypto.randomUUID();
 					// Create a new record
 					await indexedDBService.saveRecord('assays', {
-						id: assay.id,
+						id: localId,
 						process: assay.process,
 						name: assay.name,
 						materialType: assay.materialType,
@@ -287,7 +288,7 @@ export const syncService = {
 				if (existingTruck) {
 					// Update the existing record
 					await indexedDBService.updateRecord('trucks', existingTruck.id, {
-						id: truck.id,
+						...existingTruck,
 						registration: truck.registration,
 						loadingLocation: truck.loadingLocation,
 						syncStatus: 'synced',
@@ -296,9 +297,10 @@ export const syncService = {
 						updated: truck.updated
 					});
 				} else {
+					const localId = crypto.randomUUID();
 					// Create a new record
 					await indexedDBService.saveRecord('trucks', {
-						id: truck.id,
+						id: localId,
 						registration: truck.registration,
 						loadingLocation: truck.loadingLocation,
 						syncStatus: 'synced',
@@ -362,7 +364,7 @@ export const syncService = {
 				if (existingTrain) {
 					// Update the existing record
 					await indexedDBService.updateRecord('trains', existingTrain.id, {
-						id: train.id,
+						...existingTrain,
 						refNr: train.refNr,
 						rfidNr: train.rfidNr,
 						syncStatus: 'synced',
@@ -371,9 +373,10 @@ export const syncService = {
 						updated: train.updated,
 					});
 				} else {
+					const localId = crypto.randomUUID();
 					// Create a new record
 					await indexedDBService.saveRecord('trains', {
-						id: train.id,
+						id: localId,
 						refNr: train.refNr,
 						rfidNr: train.rfidNr,
 						syncStatus: 'synced',
@@ -401,7 +404,7 @@ export const syncService = {
 				if (existingConsignment) {
 					// Update the existing record
 					await indexedDBService.updateRecord('consignments', existingConsignment.id, {
-						id: consignment.id,
+						...existingConsignment,
 						name: consignment.name,
 						linkedTrainId: consignment.linkedTrainId,
 						syncStatus: 'synced',
@@ -411,9 +414,10 @@ export const syncService = {
 						updated: consignment.updated,
 					});
 				} else {
+					const localId = crypto.randomUUID();
 					// Create a new record
 					await indexedDBService.saveRecord('consignments', {
-						id: consignment.id,
+						id: localId,
 						name: consignment.name,
 						linkedTrainId: consignment.linkedTrainId,
 						syncStatus: 'synced',
@@ -576,7 +580,7 @@ export const syncService = {
 				if (existingTrainDispatch) {
 					// Update the existing record
 					await indexedDBService.updateRecord('trainDispatches', existingTrainDispatch.id, {
-						id: trainDispatch.id,
+						...existingTrainDispatch,
 						linkedTrainId: trainDispatch.linkedTrainId,
 						linkedConsignmentId: trainDispatch.linkedConsignmentId,
 						linkedWagonIds: trainDispatch.linkedWagonIds,
@@ -588,9 +592,10 @@ export const syncService = {
 						updated: trainDispatch.updated,
 					});
 				} else {
+					const localId = crypto.randomUUID();
 					// Create a new record
 					await indexedDBService.saveRecord('trainDispatches', {
-						id: trainDispatch.id,
+						id: localId,
 						linkedTrainId: trainDispatch.linkedTrainId,
 						linkedConsignmentId: trainDispatch.linkedConsignmentId,
 						linkedWagonIds: trainDispatch.linkedWagonIds,
@@ -805,7 +810,7 @@ export const syncService = {
 				if (existingShuntingTrain) {
 					// Update the existing record
 					await indexedDBService.updateRecord('shuntingTrains', existingShuntingTrain.id, {
-						id: train.id,
+						...existingShuntingTrain,
 						postDate: train.postDate,
 						linkedWagons: train.linkedWagons,
 						verificationTimestamp: train.verificationTimestamp,
@@ -816,9 +821,10 @@ export const syncService = {
 						updated: train.updated,
 					});
 				} else {
+					const localId = crypto.randomUUID();
 					// Create a new record
 					await indexedDBService.saveRecord('shuntingTrains', {
-						id: train.id,
+						id: localId,
 						postDate: train.postDate,
 						linkedWagons: train.linkedWagons,
 						verificationTimestamp: train.verificationTimestamp,
@@ -848,7 +854,7 @@ export const syncService = {
 				if (existingWagon) {
 					// Update the existing record
 					await indexedDBService.updateRecord('wagons', existingWagon.id, {
-						id: wagon.id,
+						...existingWagon,
 						wagonId: wagon.wagonId,
 						sampleId: wagon.sampleId,
 						wagonIdSimple: wagon.wagonIdSimple,
@@ -866,9 +872,10 @@ export const syncService = {
 						updated: wagon.updated
 					});
 				} else {
+					const localId = crypto.randomUUID();
 					// Create a new record
 					await indexedDBService.saveRecord('wagons', {
-						id: wagon.id,
+						id: localId,
 						wagonId: wagon.wagonId,
 						sampleId: wagon.sampleId,
 						wagonIdSimple: wagon.wagonIdSimple,
@@ -982,7 +989,7 @@ export const syncService = {
 				if (existingTruckArrival) {
 					// Update the existing record
 					await indexedDBService.updateRecord('truckArrivals', existingTruckArrival.id, {
-						id: arrival.id,
+						...existingTruckArrival,
 						truckId: arrival.truckId,
 						port_arrival_sample_id: arrival.port_arrival_sample_id,
 						truck_photo: arrival.truck_photo,
@@ -1002,9 +1009,10 @@ export const syncService = {
 						serverId: arrival.id
 					});
 				} else {
+					const localId = crypto.randomUUID();
 					// Create a new record
 					await indexedDBService.saveRecord('truckArrivals', {
-						id: arrival.id,
+						id: localId,
 						truckId: arrival.truckId,
 						port_arrival_sample_id: arrival.port_arrival_sample_id,
 						truck_photo: arrival.truck_photo,
@@ -1043,7 +1051,7 @@ export const syncService = {
 				if (existingTrainArrival) {
 					// Update the existing record
 					await indexedDBService.updateRecord('trainArrivals', existingTrainArrival.id, {
-						id: trainArrival.id,
+						...existingTrainArrival,
 						trainRefNr: trainArrival.trainRefNr,
 						trainRfidNr: trainArrival.trainRfidNr,
 						portRailArrivalTimestamp: trainArrival.portRailArrivalTimestamp,
@@ -1057,9 +1065,10 @@ export const syncService = {
 						updated: trainArrival.updated,
 					});
 				} else {
+					const localId = crypto.randomUUID();
 					// Create a new record
 					await indexedDBService.saveRecord('trainArrivals', {
-						id: trainArrival.id,
+						id: localId,
 						trainRefNr: trainArrival.trainRefNr,
 						trainRfidNr: trainArrival.trainRfidNr,
 						portRailArrivalTimestamp: trainArrival.portRailArrivalTimestamp,
