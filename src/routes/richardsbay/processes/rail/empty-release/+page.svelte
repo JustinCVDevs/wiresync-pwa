@@ -48,7 +48,7 @@
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes');
+		goto('/richardsbay/processes/rail');
 	}
 
 	async function handleSubmit() {
@@ -93,7 +93,7 @@
 	title="Empty Wagon Release"
 	steps={steps}
 	currentStep={currentStep}
-	cancelPath="/richardsbay/processes"
+	cancelPath="/richardsbay/processes/rail"
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
 >

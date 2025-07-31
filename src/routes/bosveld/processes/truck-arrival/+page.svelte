@@ -7,18 +7,15 @@
 	import type { Truck } from '$lib/types/truck';
 
 	// Form state
-	let truckRegistration = '';
 	let isSubmitting = false;
 	let submit = false;
 	let currentStep = 1;
 	let arrivalTimestamp = formatTimestamp(new Date());
 	let showSearch = false;
 	let matchFound = false;
-	let searchQuery = '';
 
 	let availableTrucks: Truck[] = [];
 	let filteredTrucks: any[] = [];
-	let showTruckNotFound = false;
 	let selectedTruck: any = '';
 
 	// Process steps
@@ -28,54 +25,37 @@
 	let processLayout: ProcessLayout;
 
 	onMount(async () => {
-		try {
-			// Fetch all truck arrivals
-			const truckArrivals = (await indexedDBService.getAllRecords('truckArrivals')).filter(
-				arrival => arrival.port_truck_arrival_timestamp === ''
-			);
+		// Fetch all truck arrivals
+		const truckArrivals = (await indexedDBService.getAllRecords('truckArrivals')).filter(
+			arrival => arrival.port_truck_arrival_timestamp === ''
+		);
 
-			// Fetch all trucks
-			const allTrucks = await indexedDBService.getAllRecords('trucks');
+		// Get linked trucks from truck arrivals
+		const linkedTrucks = truckArrivals.map(arrival => arrival.truckId);
 
-			// Filter trucks that match the truck arrivals' port_arrival_sample_id
-			availableTrucks = allTrucks.filter(truck =>
-				truckArrivals.some(arrival => arrival.port_arrival_sample_id === truck.registration)
-			);
-		} catch (error) {
-			console.error('Failed to fetch trucks or truck arrivals:', error);
-		}
+		// Fetch all trucks
+		const allTrucks = (await indexedDBService.getAllRecords('trucks')).filter(
+			truck => truck.loadingLocation === 'Bosveld'
+		);
+
+		// Filter trucks that match the truck arrivals' port_arrival_sample_id
+		availableTrucks = allTrucks.filter(truck =>
+			truckArrivals.some(arrival => arrival.truckId === truck.serverId)
+		);
 	});
 
-	// Reactive statement to filter trucks based on the search query
+	$: {
+		if (selectedTruck) {
+			if (filteredTrucks.length > 0) {
+				matchFound = filteredTrucks.some(truck => truck.registration.toLowerCase() === selectedTruck.toLowerCase());
+			}
+		}
+	}
+
 	$: {
 		filteredTrucks = availableTrucks.filter(truck =>
-			truck.registration.toLowerCase().includes(searchQuery.toLowerCase())
+			truck.registration.toLowerCase().includes(selectedTruck?.toLowerCase() ?? '')
 		);
-	}
-
-	// Reactive statement to set showTruckNotFound based on filteredTrucks
-    $: if (filteredTrucks.length === 0 && searchQuery) {
-        showTruckNotFound = true;
-    }
-
-	$: if (selectedTruck) {
-			currentStep = 2;
-	}
-
-	$: {
-		const matchedTruck = availableTrucks.find(truck => truck.registration === selectedTruck);
-
-		if (matchedTruck) {
-			showTruckNotFound = false;
-			matchFound = true;
-			arrivalTimestamp = formatTimestamp(new Date());
-			submit = false;
-		} else if (selectedTruck && filteredTrucks.length !> 0) {
-			showTruckNotFound = true;
-		} else {
-			showTruckNotFound = false;
-			matchFound = false;
-		}
 	}
 
 	function formatTimestamp(date: Date) {
@@ -94,25 +74,13 @@
 			processLayout.setError('');
 
 			// Check if truck exists in Pocketbase DB
-			const pbTrucks = await indexedDBService.getAllRecords('trucks');
-			const truckToUse = pbTrucks.find(truck => truck.registration === selectedTruck);
-
-			if (!truckToUse) {
-				processLayout.setError('Truck Not in Pre-Registration List');
-				isSubmitting = false;
-				return;
-			}
-
-			// Update truck
-			await indexedDBService.updateRecord('trucks', truckToUse.id, {
-				...truckToUse,
-				syncStatus: 'pending',
-				updated: new Date().toDateString(),
-			});
+			const trucks = (await indexedDBService.getAllRecords('trucks')).filter(
+				truck => truck.registration.toLowerCase() === selectedTruck.toLowerCase()
+			)[0];
 
 			// Update Truck Arrival data
 			const truckArrival = (await indexedDBService.getAllRecords('truckArrivals')).filter(
-				arrival => arrival.port_arrival_sample_id === selectedTruck
+				arrival => arrival.truckId === trucks.serverId
 			)[0];
 
 			// Save to IndexedDB using the generic saveRecord method
@@ -121,7 +89,6 @@
 					syncStatus: 'pending',
 					port_truck_arrival_timestamp: new Date().toISOString(),
 					status: 'received',
-					truck_origin_location: 'BOP'
 				});
 
 			processLayout.setSuccess('Truck Successfully Received!');
@@ -138,15 +105,7 @@
 	}
 
 	async function handleNewTruck() {
-		const truckArrivalExists = (await indexedDBService.getAllRecords('truckArrivals')).filter(
-			arrival => arrival.port_arrival_sample_id === truckRegistration
-		)[0];
-		if (truckArrivalExists) {
-			processLayout.setError('Truck Has Been Already Received');
-			return;
-		} else {
-			goto('/bosveld/processes/truck-arrival/register?truckRegistration=' + truckRegistration);
-		}
+		goto(`/bosveld/processes/truck-arrival/register?truckRegistration=${encodeURIComponent(selectedTruck)}`);
 	}
 
 	function handleCancel() {
@@ -160,7 +119,6 @@
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
-	showSubmit={!showTruckNotFound}
 	cancelPath="/bosveld/processes"
 	bind:this={processLayout}
 	on:cancel={handleCancel}
@@ -184,7 +142,7 @@
 				on:blur={() => setTimeout(() => (showSearch = false), 200)}
 			/>
 
-			{#if matchFound && !showTruckNotFound}
+			{#if matchFound}
 				<div style="margin-top: 1.2rem;">
 					<FormField
 						id="arrivalTimestamp"
@@ -193,18 +151,6 @@
 						placeholder="Enter vehicle registration"
 						disabled={true}
 					/>
-				</div>
-				{#if !submit}
-					<div style="margin-top: 1.5rem;" class="text-green-500 mt-1 font-bold text-center">Truck Successfully Received</div>
-				{/if}
-			{/if}
-			{#if showTruckNotFound}
-				{ @html `<script>showSubmit = false;</script>` }
-				<div class="text-red-500 mt-1 font-bold text-center">Truck Not in Pre-Registration List. Please register the truck</div>
-				<div>
-					<button class='register' on:click={() => handleNewTruck()} type="button">
-						Register Truck
-					</button>
 				</div>
 			{/if}
 		</div>
@@ -215,21 +161,5 @@
 	.form {
 		margin-top: 1rem;
 		position: relative;
-	}
-
-	.text-red-500.mt-1.font-bold.text-center {
-		margin-top: 1.5rem;
-	}
-
-	.register {
-		width: 100%;
-		color: white;
-		padding: 0.5rem;
-		border: none;
-		border-radius: 0.375rem;
-		cursor: pointer;
-		font-weight: bold;
-		text-align: center;
-		margin-top: 1.2rem;
 	}
 </style>

@@ -12,16 +12,35 @@
 	let loadingLocation = 'PMC';
 	let error = '';
 	let processLayout: ProcessLayout;
+	let currentStep = 1;
 
 	const steps = ["Registration", "Verification"];
 
 	let truckOptions: { value: string; label: string }[] = [];
 
 	onMount(async () => {
-		const trucks = await indexedDBService.getAllRecords('trucks');
-		truckOptions = trucks
-			.filter(truck => truck.loadingLocation === 'PMC')
-			.map((truck: Truck) => ({ value: truck.registration, label: truck.registration }));
+		// Fetch all truck arrivals
+		const truckArrivals = (await indexedDBService.getAllRecords('truckArrivals')).filter(
+			arrival => arrival.port_truck_arrival_timestamp !== '' && arrival.port_arrival_sample_id === ''
+		);
+
+		// Get linked trucks from truck arrivals
+		const linkedTrucks = truckArrivals.map(arrival => arrival.truckId);
+
+		// Fetch all trucks
+		const allTrucks = (await indexedDBService.getAllRecords('trucks')).filter(
+			truck => truck.loadingLocation === 'PMC'
+		);
+
+		// Filter trucks that match the truck arrivals' port_arrival_sample_id
+		let availableTrucks = allTrucks.filter(truck =>
+			truckArrivals.some(arrival => arrival.truckId === truck.serverId)
+		);
+
+		truckOptions = availableTrucks.map(truck => ({
+			value: truck.registration,
+			label: truck.registration
+		}));
 	});
 
 	async function handleSubmit() {
@@ -41,7 +60,6 @@
 				location: loadingLocation,
 				created: new Date(),
 				updated: new Date().toISOString(),
-				process: 'PMC Sampling',
 				sampleId: sampleId,
 				siteLocation: 'Richards Bay',
 			};
@@ -50,15 +68,28 @@
 			await indexedDBService.saveRecord('assays', assay);
 			await syncService.syncAssay(assay);
 
+			// Update truck arrival with the sample ID
+			const truckArrival = (await indexedDBService.getAllRecords('truckArrivals')).find(
+				arrival => arrival.truckId === findTruck?.serverId
+			);
+
+			if (truckArrival) {
+				await indexedDBService.updateRecord('truckArrivals', truckArrival.id, {
+					...truckArrival,
+					port_arrival_sample_id: sampleId,
+					syncStatus: 'pending',
+				});
+			}
+
 			goto(`/richardsbay/processes/road/pmc-trucks-sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`);
 		} catch (err) {
 			error = 'Failed to submit data';
 			console.error(err);
 		}
 	}
-	let currentStep = 1;
+	
 	function handleCancel() {
-		goto('/richardsbay/processes');
+		goto('/richardsbay/processes/road');
 	}
 </script>
 
@@ -68,7 +99,7 @@
 	{currentStep}
 	isSubmitting={false}
 	bind:this={processLayout}
-	cancelPath="/richardsbay/processes"
+	cancelPath="/richardsbay/processes/road"
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
 	on:error={({ detail }) => (error = detail)}

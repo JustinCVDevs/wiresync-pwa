@@ -41,12 +41,14 @@ export const syncService = {
 			const allIndexedAssays = await indexedDBService.getRecords('assays');
 
 			for (const assay of allAssays) {
-				const existingAssay = allIndexedAssays.find((a) => a.serverId === assay.id || a.id === assay.id);
+				const existingAssay = allIndexedAssays.find(
+					(a) => a.serverId === assay.id || a.id === assay.id
+				);
 
 				if (existingAssay) {
 					// Update the existing record
 					await indexedDBService.updateRecord('assays', existingAssay.id, {
-						id: assay.id,
+						...existingAssay,
 						process: assay.process,
 						name: assay.name,
 						materialType: assay.materialType,
@@ -282,21 +284,24 @@ export const syncService = {
 			const allIndexedTrucks = await indexedDBService.getRecords('trucks');
 
 			for (const truck of allTrucks) {
-				const existingTruck = allIndexedTrucks.find((t) => t.serverId === truck.id || t.id === truck.id);
+				// Match on either serverId or local id
+				const existingTruck = allIndexedTrucks.find(
+					(t) => t.serverId === truck.id || t.id === truck.id
+				);
 
 				if (existingTruck) {
 					// Update the existing record
 					await indexedDBService.updateRecord('trucks', existingTruck.id, {
-						id: truck.id,
+						...existingTruck,
 						registration: truck.registration,
 						loadingLocation: truck.loadingLocation,
 						syncStatus: 'synced',
 						serverId: truck.id,
 						created: truck.created,
-						updated: truck.updated
+						updated: truck.updated,
 					});
 				} else {
-					// Create a new record
+					// Create a new record only if no matching record exists
 					await indexedDBService.saveRecord('trucks', {
 						id: truck.id,
 						registration: truck.registration,
@@ -304,7 +309,7 @@ export const syncService = {
 						syncStatus: 'synced',
 						serverId: truck.id,
 						created: truck.created,
-						updated: truck.updated
+						updated: truck.updated,
 					});
 				}
 			}
@@ -357,12 +362,14 @@ export const syncService = {
 			const allIndexedTrains = await indexedDBService.getRecords('trains');
 
 			for (const train of allTrains) {
-				const existingTrain = allIndexedTrains.find((t) => t.serverId === train.id || t.id === train.id);
+				const existingTrain = allIndexedTrains.find(
+					(t) => t.serverId === train.id || t.id === train.id
+				);
 
 				if (existingTrain) {
 					// Update the existing record
 					await indexedDBService.updateRecord('trains', existingTrain.id, {
-						id: train.id,
+						...existingTrain,
 						refNr: train.refNr,
 						rfidNr: train.rfidNr,
 						syncStatus: 'synced',
@@ -396,12 +403,14 @@ export const syncService = {
 			const allIndexedConsignments = await indexedDBService.getRecords('consignments');
 
 			for (const consignment of allConsignments) {
-				const existingConsignment = allIndexedConsignments.find((c) => c.serverId === consignment.id || c.id === consignment.id);
+				const existingConsignment = allIndexedConsignments.find(
+					(c) => c.serverId === consignment.id || c.id === consignment.id
+				);
 
 				if (existingConsignment) {
 					// Update the existing record
 					await indexedDBService.updateRecord('consignments', existingConsignment.id, {
-						id: consignment.id,
+						...existingConsignment,
 						name: consignment.name,
 						linkedTrainId: consignment.linkedTrainId,
 						syncStatus: 'synced',
@@ -475,12 +484,14 @@ export const syncService = {
 
 		for (const truckLoad of allTruckLoads) {
 			// Only match on serverId to avoid duplicates
-			const existingTruckLoad = allIndexedTruckLoads.find((t) => t.serverId === truckLoad.id);
+			const existingTruckLoad = allIndexedTruckLoads.find(
+				(t) => t.serverId === truckLoad.id || t.id === truckLoad.id
+			);
 
 			if (existingTruckLoad) {
 				// Update the existing record (keep the original local ID)
 				await indexedDBService.updateRecord('truckLoads', existingTruckLoad.id, {
-					...existingTruckLoad, // Preserve existing data including local ID
+					...existingTruckLoad,
 					process: truckLoad.process,
 					truckId: truckLoad.truckId,
 					felWeight: truckLoad.felWeight,
@@ -499,11 +510,8 @@ export const syncService = {
 				});
 			} else {
 				// Only create new records for data from other devices/sessions
-				// Generate a new local ID for this record
-				const localId = crypto.randomUUID(); 
-				
 				await indexedDBService.saveRecord('truckLoads', {
-					id: localId, // Use local ID, not PocketBase ID
+					id: truckLoad.id, 
 					process: truckLoad.process,
 					truckId: truckLoad.truckId,
 					felWeight: truckLoad.felWeight,
@@ -517,7 +525,7 @@ export const syncService = {
 					created: truckLoad.created,
 					updated: truckLoad.updated,
 					syncStatus: 'synced',
-					serverId: truckLoad.id, // PocketBase ID goes here
+					serverId: truckLoad.id,
 					siteLocation: truckLoad.siteLocation,
 				});
 			}
@@ -571,12 +579,14 @@ export const syncService = {
 			const allIndexedTrainDispatches = await indexedDBService.getRecords('trainDispatches');
 
 			for (const trainDispatch of allTrainDispatches) {
-				const existingTrainDispatch = allIndexedTrainDispatches.find((t) => t.serverId === trainDispatch.id || t.id === trainDispatch.id);
+				const existingTrainDispatch = allIndexedTrainDispatches.find(
+					(t) => t.serverId === trainDispatch.id || t.id === trainDispatch.id
+				);
 
 				if (existingTrainDispatch) {
 					// Update the existing record
 					await indexedDBService.updateRecord('trainDispatches', existingTrainDispatch.id, {
-						id: trainDispatch.id,
+						...existingTrainDispatch,
 						linkedTrainId: trainDispatch.linkedTrainId,
 						linkedConsignmentId: trainDispatch.linkedConsignmentId,
 						linkedWagonIds: trainDispatch.linkedWagonIds,
@@ -800,12 +810,14 @@ export const syncService = {
 			const allIndexedShuntingTrains = await indexedDBService.getRecords('shuntingTrains');
 
 			for (const train of allShuntingTrains) {
-				const existingShuntingTrain = allIndexedShuntingTrains.find((t) => t.serverId === train.id || t.id === train.id);
+				const existingShuntingTrain = allIndexedShuntingTrains.find(
+					(t) => t.serverId === train.id || t.id === train.id
+				);
 
 				if (existingShuntingTrain) {
 					// Update the existing record
 					await indexedDBService.updateRecord('shuntingTrains', existingShuntingTrain.id, {
-						id: train.id,
+						...existingShuntingTrain,
 						postDate: train.postDate,
 						linkedWagons: train.linkedWagons,
 						verificationTimestamp: train.verificationTimestamp,
@@ -843,12 +855,14 @@ export const syncService = {
 			const allIndexedWagons = await indexedDBService.getRecords('wagons');
 
 			for (const wagon of allWagons) {
-				const existingWagon = allIndexedWagons.find((w) => w.serverId === wagon.id || w.id === wagon.wagonId);
+				const existingWagon = allIndexedWagons.find(
+					(w) => w.serverId === wagon.id || w.id === wagon.wagonId
+				);
 
 				if (existingWagon) {
 					// Update the existing record
 					await indexedDBService.updateRecord('wagons', existingWagon.id, {
-						id: wagon.id,
+						...existingWagon,
 						wagonId: wagon.wagonId,
 						sampleId: wagon.sampleId,
 						wagonIdSimple: wagon.wagonIdSimple,
@@ -977,12 +991,14 @@ export const syncService = {
 			const allIndexedTruckArrivals = await indexedDBService.getRecords('truckArrivals');
 
 			for (const arrival of allTruckArrivals.items) {
-				const existingTruckArrival = allIndexedTruckArrivals.find((t) => t.serverId === arrival.id || t.id === arrival.id);
+				const existingTruckArrival = allIndexedTruckArrivals.find(
+					(t) => t.serverId === arrival.id || t.id === arrival.id
+				);
 
 				if (existingTruckArrival) {
 					// Update the existing record
 					await indexedDBService.updateRecord('truckArrivals', existingTruckArrival.id, {
-						id: arrival.id,
+						...existingTruckArrival,
 						truckId: arrival.truckId,
 						port_arrival_sample_id: arrival.port_arrival_sample_id,
 						truck_photo: arrival.truck_photo,
@@ -1038,12 +1054,14 @@ export const syncService = {
 			const allIndexedTrainArrivals = await indexedDBService.getRecords('trainArrivals');
 
 			for (const trainArrival of allTrainArrivals) {
-				const existingTrainArrival = allIndexedTrainArrivals.find((t) => t.serverId === trainArrival.id || t.id === trainArrival.id);
+				const existingTrainArrival = allIndexedTrainArrivals.find(
+					(t) => t.serverId === trainArrival.id || t.id === trainArrival.id
+				);
 
 				if (existingTrainArrival) {
 					// Update the existing record
 					await indexedDBService.updateRecord('trainArrivals', existingTrainArrival.id, {
-						id: trainArrival.id,
+						...existingTrainArrival,
 						trainRefNr: trainArrival.trainRefNr,
 						trainRfidNr: trainArrival.trainRfidNr,
 						portRailArrivalTimestamp: trainArrival.portRailArrivalTimestamp,
@@ -1164,12 +1182,14 @@ export const syncService = {
 
 			for (const fleet of allFleets) {
 				// Only match on serverId to avoid duplicates
-				const existingFleet = allIndexedFleets.find((f) => f.serverId === fleet.id);
+				const existingFleet = allIndexedFleets.find(
+					(f) => f.serverId === fleet.id || f.id === fleet.id
+				);
 
 				if (existingFleet) {
 					// Update the existing record (preserve local ID)
 					await indexedDBService.updateRecord('fleet', existingFleet.id, {
-						...existingFleet, // Preserve existing data including local ID
+						...existingFleet,
 						sampleId: fleet.sampleId,
 						sampleSize: fleet.sampleSize,
 						commodity: fleet.commodity,
@@ -1186,12 +1206,9 @@ export const syncService = {
 						updated: fleet.updated,
 					});
 				} else {
-					// Only create new records for data from other devices/sessions
-					// Generate a new local ID for this record
-					const localId = crypto.randomUUID();
-					
+					// Only create new records for data from other devices/sessions				
 					await indexedDBService.saveRecord('fleet', {
-						id: localId, // Use local ID, not PocketBase ID
+						id: fleet.id,
 						sampleId: fleet.sampleId,
 						sampleSize: fleet.sampleSize,
 						commodity: fleet.commodity,

@@ -11,7 +11,7 @@
 	let wagonID = '';
 	let isSubmitting = false;
 	let currentStep = 1;
-	let arrivalTimestamp = formatTimestamp(new Date());
+	let samplingDate = formatTimestamp(new Date());
 	let sampleID = '';
 
 	let availableWagons: Wagon[] = [];
@@ -116,7 +116,7 @@
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes');
+		goto('/richardsbay/processes/rail');
 	}
 
 </script>
@@ -126,7 +126,7 @@
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
-	cancelPath="/richardsbay/processes"
+	cancelPath="/richardsbay/processes/rail"
 	bind:this={processLayout}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
@@ -140,7 +140,7 @@
 	
 
 		<div class="form">
-			<label for="wagonId" class="block font-medium text-gray text-sm">Wagon ID *</label>
+			<label for="wagonId" class="block font-medium text-gray text-sm mb-1">Wagon ID *</label>
 			<input
 				id="wagonId"
 				type="text"
@@ -174,9 +174,9 @@
 			{#if selectedWagon}
 				<div style="margin-top: 1.2rem;">
 					<FormField
-						id="arrivalTimestamp"
-						label="Arrival Timestamp:"
-						bind:value={arrivalTimestamp}
+						id="samplingDate"
+						label="Sampling Date:"
+						bind:value={samplingDate}
 						placeholder="Enter wagon registration"
 					/>
 				</div>

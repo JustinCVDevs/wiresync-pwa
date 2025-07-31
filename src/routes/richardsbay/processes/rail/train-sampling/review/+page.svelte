@@ -43,7 +43,7 @@
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes');
+		goto('/richardsbay/processes/rail');
 	}
 
 	function handleSubmit() {
@@ -60,7 +60,7 @@
 	{steps}
 	{currentStep}
 	isSubmitting={isLoading}
-	cancelPath="/richardsbay/processes"
+	cancelPath="/richardsbay/processes/rail"
 	bind:this={processLayout}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}

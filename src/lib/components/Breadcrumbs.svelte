@@ -9,13 +9,12 @@
         return str.length > max ? str.slice(0, max - 1) + '…' : str;
     }
 
-    const MAX_TOTAL_LENGTH = 40;
-
     const crumbs = derived(page, ($page) => {
         const segments = $page.url.pathname.split('/').filter(Boolean);
+
         const excludeCrumbs = ['sampling', 'verification', 'fel operations', 'locations', 'wagons', 'wagon linkage', 'wagon id linking', 'register'];
 
-        const idPattern = /^[a-zA-Z0-9]{10,}$/;
+        const idPattern = /^[a-zA-Z0-9]{15,}$/;
 
         // Do not show breadcrumbs if "complete" is in the URL
         if (segments.some(seg => decodeURIComponent(seg).toLowerCase() === 'complete')) {
@@ -65,7 +64,6 @@
                     return { name: format(raw), href };
                 });
         }
-
         return [...list];
     });
 

@@ -130,7 +130,7 @@
 				location: loadingLocation,
 				created: new Date(),
 				updated: new Date().toISOString(),
-				linkedWagonIds: [foundWagon?.serverId || ''],
+				linkedWagonIds: [foundWagon?.serverId || foundWagon?.id || ''],
 				syncStatus: 'pending',
 				process: 'West Loadout',
 				siteLocation: 'PMC',
