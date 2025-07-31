@@ -8,9 +8,10 @@
 	import { page } from '$app/stores';
 
 	// Form state
+	let trainRefNr = $page.url.searchParams.get('trainRefNr') || '';
 	let wagonID = '';
 	let isSubmitting = false;
-	let currentStep = 1;
+	let currentStep = 2;
 	let arrivalTimestamp = formatTimestamp(new Date());
 	let sampleID = '';
 
@@ -21,7 +22,7 @@
 	let selectedWagon: Wagon | null = null;
 
 	// Process steps
-	const processSteps = ['Wagon', 'Verification'];
+	const processSteps = ['Arrival Train', 'Wagon', 'Verification'];
 
 	// Reference to the ProcessLayout component
 	let processLayout: ProcessLayout;
@@ -30,8 +31,18 @@
 	$: existingIdsArray = ($page.url.searchParams.get('wagonIds') || '').split(',').filter(Boolean);
 
 	onMount(async () => {
-		availableWagons = (await indexedDBService.getAllRecords('wagons')).filter(
-			wagon => !wagon.dispatchTimestamp
+		let trainArrival = (await indexedDBService.getAllRecords('trainArrivals')).filter(
+			train => train.trainRefNr === trainRefNr
+		)[0];
+		
+		const linkedWagons = trainArrival.linkedWagonIds || [];
+
+		let allwagons = (await indexedDBService.getAllRecords('wagons')).filter(
+			wagon => wagon.dispatchTimestamp === ''
+		);
+
+		availableWagons = allwagons.filter(
+			wagon => linkedWagons.some(linkedWagon => linkedWagon === wagon.id)
 		);
 	});
 
@@ -101,12 +112,12 @@
 			await indexedDBService.updateRecord('wagons', wagonToUse.id, {
 				...wagonToUse,
 				syncStatus: 'pending',
-				dispatchTimestamp: new Date(),
+				dispatchTimestamp: new Date().toISOString(),
 			});
 
 			// Add the new wagon's id to the list and pass as a query param
 			const dispatchedIds = [...(existingIdsArray), wagonToUse.id];
-			goto(`/richardsbay/processes/rail/train-staging/review?wagonIds=${dispatchedIds.join(',')}`);
+			goto(`/richardsbay/processes/rail/train-staging/wagons/review?wagonIds=${dispatchedIds.join(',')}&trainRefNr=${trainRefNr}`);
 		} catch (error) {
 			console.error('Failed to submit wagon arrival:', error);
 			processLayout.setError('Failed to submit wagon arrival. Please try again.');
@@ -116,7 +127,7 @@
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes/rail');
+		goto('/richardsbay/processes/rail/train-staging');
 	}
 
 </script>
@@ -126,7 +137,7 @@
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
-	cancelPath="/richardsbay/processes/rail"
+	cancelPath="/richardsbay/processes/rail/train-staging"
 	bind:this={processLayout}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
@@ -162,7 +173,6 @@
 									wagonID = suggestion.wagonId ?? '';
 									showWagonSuggestions = false;
 									selectedWagon = suggestion;
-									sampleID = suggestion.sampleId ?? '';
 								}}
 							>
 								{suggestion.wagonId}
@@ -170,17 +180,6 @@
 						</li>
 					{/each}
 				</ul>
-			{/if}
-			{#if selectedWagon}
-				<div style="margin-top: 1.2rem;">
-					<FormField
-						id="arrivalTimestamp"
-						label="Arrival Timestamp:"
-						bind:value={arrivalTimestamp}
-						placeholder="Enter wagon registration"
-						disabled={true}
-					/>
-				</div>
 			{/if}
 		</div>
 	</div>
