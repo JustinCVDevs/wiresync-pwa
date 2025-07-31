@@ -325,7 +325,7 @@
 					/>
 					
 					<div class="form-field">
-						<label for="loadingTime" class="block font-medium text-gray text-sm">Loading Time (hh:mm) *</label>
+						<label for="loadingTime" class="block font-medium text-gray text-sm mb-1">Loading Time (hh:mm) *</label>
 						<input
 							id="loadingTime"
 							type="text"

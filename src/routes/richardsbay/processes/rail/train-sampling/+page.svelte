@@ -11,7 +11,7 @@
 	let wagonID = '';
 	let isSubmitting = false;
 	let currentStep = 1;
-	let arrivalTimestamp = formatTimestamp(new Date());
+	let samplingDate = formatTimestamp(new Date());
 	let sampleID = '';
 
 	let availableWagons: Wagon[] = [];
@@ -174,9 +174,9 @@
 			{#if selectedWagon}
 				<div style="margin-top: 1.2rem;">
 					<FormField
-						id="arrivalTimestamp"
-						label="Arrival Timestamp:"
-						bind:value={arrivalTimestamp}
+						id="samplingDate"
+						label="Sampling Date:"
+						bind:value={samplingDate}
 						placeholder="Enter wagon registration"
 					/>
 				</div>
