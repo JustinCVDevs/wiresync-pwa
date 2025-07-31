@@ -5,66 +5,95 @@
 	import FormField from '$lib/components/FormField.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Train } from '$lib/types/train';
-	import type { TrainArrival } from '$lib/types/trainArrival';
 
 	// Form state
-	let trainRefNr = '';
 	let isSubmitting = false;
+	let submit = false;
 	let currentStep = 1;
+	let arrivalTimestamp = formatTimestamp(new Date());
+	let showSearch = false;
+	let matchFound = false;
+
 	let availableTrains: Train[] = [];
+	let filteredTrains: any[] = [];
+	let selectedTrain: any = '';
 
 	// Process steps
-	const processSteps = ['Train Arrival', 'Verification'];
+	const processSteps = ['Registration', 'Verification'];
 
 	// Reference to the ProcessLayout component
 	let processLayout: ProcessLayout;
 
 	onMount(async () => {
-		// Load available trains from IndexedDB
-		try {
-			availableTrains = await indexedDBService.getTrains();
-		} catch (error) {
-			processLayout.setError('Failed to load trains. Please try again.');
-		}
+		// Fetch all train arrivals
+		const trainArrivals = (await indexedDBService.getAllRecords('trainArrivals')).filter(
+			arrival => arrival.portRailArrivalTimestamp === ''
+		);
+
+		// Fetch all trains
+		const allTrains = (await indexedDBService.getAllRecords('trains'));
+
+		// Filter trains that match the train arrivals' port_arrival_sample_id
+		availableTrains = allTrains.filter(train =>
+			trainArrivals.some(arrival => arrival.trainId === train.serverId)
+		);
 	});
+
+	$: {
+		if (selectedTrain) {
+			if (filteredTrains.length > 0) {
+				matchFound = filteredTrains.some(train => train.refNr?.toLowerCase() === selectedTrain?.toLowerCase());
+				if (matchFound) {
+					currentStep = 2;
+				}
+			}
+		}
+	}
+
+	$: {
+		filteredTrains = availableTrains.filter(train =>
+			train.refNr?.toLowerCase().includes(selectedTrain?.toLowerCase() ?? '')
+		);
+	}
+
+	function formatTimestamp(date: Date) {
+		const yyyy = date.getFullYear();
+		const mm = String(date.getMonth() + 1).padStart(2, '0');
+		const dd = String(date.getDate()).padStart(2, '0');
+		const hh = String(date.getHours()).padStart(2, '0');
+		const min = String(date.getMinutes()).padStart(2, '0');
+		return `${yyyy}/${mm}/${dd} ${hh}:${min}`;
+	}
 
 	async function handleSubmit() {
 		try {
 			isSubmitting = true;
+			submit = true;
 			processLayout.setError('');
 
-			// Validate form
-			if (!isFormValid()) {
-				processLayout.setError('Please fill in all required fields and capture a photo.');
-				return;
-			}
+			// Check if train exists in Pocketbase DB
+			const trains = (await indexedDBService.getAllRecords('trains')).filter(
+				train => train.refNr.toLowerCase() === selectedTrain.toLowerCase()
+			)[0];
 
-			// Find the selected train
-			const selectedTrain = availableTrains.find(train => train.refNr === trainRefNr);
-			if (!selectedTrain) {
-				processLayout.setError('Selected train not found. Please try again.');
-				return;
-			}
-
-			// Create train arrival record
-			const trainArrival: TrainArrival = {
-				id: crypto.randomUUID(),
-				trainId: selectedTrain?.serverId,
-				trainRefNr: selectedTrain.refNr,
-				trainRfidNr: selectedTrain.rfidNr,
-				portRailArrivalTimestamp: new Date().toISOString(),
-				status: 'pending',
-				created: new Date(),
-				updated: new Date().toISOString(),
-				syncStatus: 'pending',
-				siteLocation: 'Richards Bay'
-			};
+			// Update Train Arrival data
+			const trainArrival = (await indexedDBService.getAllRecords('trainArrivals')).filter(
+				arrival => arrival.trainId === trains.serverId
+			)[0];
 
 			// Save to IndexedDB using the generic saveRecord method
-			await indexedDBService.saveRecord('trainArrivals', trainArrival);
+			await indexedDBService.updateRecord('trainArrivals', trainArrival.id, {
+					...trainArrival,
+					syncStatus: 'pending',
+					portRailArrivalTimestamp: new Date().toISOString(),
+					status: 'received',
+				});
 
-			// Navigate to verification page
-			goto(`/richardsbay/processes/rail/train-arrival/verification?trainRefNr=${encodeURIComponent(trainRefNr)}`);
+			processLayout.setSuccess('Train Successfully Received!');
+
+			setTimeout(() => {
+				location.reload();
+			}, 1000);
 		} catch (error) {
 			console.error('Failed to submit train arrival:', error);
 			processLayout.setError('Failed to submit train arrival. Please try again.');
@@ -77,13 +106,10 @@
 		goto('/richardsbay/processes/rail');
 	}
 
-	function isFormValid() {
-		return trainRefNr;
-	}
 </script>
 
 <ProcessLayout
-	title="Train Arrival"
+	title="PMC Train Arrival"
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
@@ -92,24 +118,45 @@
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
 >
+	<div slot="header">
+		<h5 class="text-xl font-bold text-gray">Train Arrival</h5>
+	</div>
+
 	<div class="space-y-6">
-		<FormField
-			label="Train Reference Number"
-			id="trainRefNr"
-			bind:value={trainRefNr}
-			placeholder="Select a Train Reference Number"
-			required={true}
-			isSelect={true}
-			options={availableTrains.map(train => ({
-				value: train.refNr,
-				label: train.refNr
-			}))}
-		/>
+		<div class="form">
+			<FormField
+				id="trainRegistration"
+				label="Train Registration"
+				search={true}
+				options={filteredTrains.map(train => ({ value: train.refNr, label: train.refNr }))}
+				bind:value={selectedTrain}
+				placeholder="Select Train Registration"
+				required
+				on:focus={() => showSearch = true}
+				on:blur={() => setTimeout(() => (showSearch = false), 200)}
+			/>
+
+			{#if matchFound}
+				<div style="margin-top: 1.2rem;">
+					<FormField
+						id="arrivalTimestamp"
+						label="Arrival Timestamp:"
+						bind:value={arrivalTimestamp}
+						placeholder="Enter train registration"
+						disabled={true}
+					/>
+				</div>
+				{#if !submit}
+					<div style="margin-top: 1.5rem;" class="text-green-500 mt-1 font-bold text-center">Train Successfully Received</div>
+				{/if}
+			{/if}
+		</div>
 	</div>
 </ProcessLayout>
 
 <style>
-	.space-y-6 {
-		margin-top: 1.5rem;
+	.form {
+		margin-top: 1rem;
+		position: relative;
 	}
 </style>

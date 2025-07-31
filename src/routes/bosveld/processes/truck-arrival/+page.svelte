@@ -103,11 +103,7 @@
 			isSubmitting = false;
 		}
 	}
-
-	async function handleNewTruck() {
-		goto(`/bosveld/processes/truck-arrival/register?truckRegistration=${encodeURIComponent(selectedTruck)}`);
-	}
-
+	
 	function handleCancel() {
 		goto('/bosveld/processes');
 	}
