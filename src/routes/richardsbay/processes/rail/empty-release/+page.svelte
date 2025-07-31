@@ -1,49 +1,107 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { indexedDBService } from '$lib/services/indexedDBService';
+	import { onMount } from 'svelte';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
-	import type { Wagon } from '$lib/types/wagon';
-	import { Container, Search, CheckCircle, AlertCircle, Package } from 'lucide-svelte';
 	import FormField from '$lib/components/FormField.svelte';
+	import { indexedDBService } from '$lib/services/indexedDBService';
+	import type { Wagon } from '$lib/types/wagon';
+	import { page } from '$app/stores';
 
-
-	let selectedWagon: any = '';
-	let availableWagons: Wagon[] = [];
-	let error = '';
-	let success = '';
+	// Form state
+	let wagonID = '';
 	let isSubmitting = false;
-	let showDropdown = false;
-
-	const steps = [
-		'Select Wagon',
-		'Review & Release'
-	];
 	let currentStep = 1;
 
-	async function loadAvailableWagons() {
-		try {
-			const allWagons = await indexedDBService.getAllRecords('wagons');
-			// Filter wagons that don't have verification dates set
-			availableWagons = allWagons.filter(wagon => 
-				!wagon.releaseTimestamp && wagon.dispatchTimestamp
-			);
-		} catch (e) {
-			console.error('Error loading wagons:', e);
-			error = 'Failed to load available wagons';
+	let availableWagons: Wagon[] = [];
+	let filteredWagonSuggestions: Wagon[] = [];
+	let showWagonSuggestions = false;
+	let showWagonNotFound = false;
+	let selectedWagon: Wagon | null = null;
+
+	// Process steps
+	const processSteps = ['Wagon', 'Verification'];
+
+	// Reference to the ProcessLayout component
+	let processLayout: ProcessLayout;
+
+	let existingIdsArray: string[] = [];
+	$: existingIdsArray = ($page.url.searchParams.get('wagonIds') || '').split(',').filter(Boolean);
+
+	onMount(async () => {
+
+		availableWagons = (await indexedDBService.getAllRecords('wagons')).filter(
+			wagon => !wagon.releaseTimestamp && wagon.dispatchTimestamp
+		);
+	});
+
+	function handleWagonInput() {
+		const value = wagonID.trim();
+		selectedWagon = null;
+		showWagonNotFound = false;
+
+		if (value.length === 0) {
+			showWagonSuggestions = false;
+			filteredWagonSuggestions = [];
+			return;
+		}
+
+		filteredWagonSuggestions = availableWagons.filter(wagon =>
+			wagon.wagonId?.toLowerCase().includes(value.toLowerCase())
+		).slice(0, 6);
+
+		const exactMatch = availableWagons.find(wagon =>
+			wagon.wagonId?.toLowerCase() === value.toLowerCase()
+		);
+
+		if (exactMatch) {
+			selectedWagon = exactMatch;
+			wagonID = exactMatch.wagonId ?? '';
+			showWagonSuggestions = false;
+		} else if (value.length >= 2) {
+			showWagonSuggestions = filteredWagonSuggestions.length > 0;
+			if (value.length >= 3 && filteredWagonSuggestions.length === 0) {
+				showWagonNotFound = true;
+			}
 		}
 	}
 
-	onMount(() => {
-		loadAvailableWagons();
-		console.log('Available Wagons:', availableWagons);
-	});
+	function showAllWagonSuggestions() {
+		if (availableWagons.length > 0) {
+			filteredWagonSuggestions = availableWagons.slice(0, 6);
+			showWagonSuggestions = true;
+		}
+	}
 
-	$: if (showDropdown) {
-		const searchInput = document.querySelector('#truckRegistartion-search') as HTMLInputElement;
-		console.log('Search input:', searchInput);
-		if (searchInput) {
-			searchInput.focus(); 
+	async function handleSubmit() {
+		try {
+			isSubmitting = true;
+			processLayout.setError('');
+
+			// Check if wagon exists in Pocketbase DB
+			const pbWagons = await indexedDBService.getAllRecords('wagons');
+			const wagonToUse = pbWagons.find(wagon => wagon.wagonId === wagonID);
+
+			if (!wagonToUse) {
+				processLayout.setError('Wagon Not in Pre-Registration List');
+				isSubmitting = false;
+				return;
+			}
+
+			// Update wagon
+			await indexedDBService.updateRecord('wagons', wagonToUse.id, {
+				...wagonToUse,
+				syncStatus: 'pending',
+				releaseTimestamp: new Date(),
+			});
+
+			// Add the new wagon's id to the list and pass as a query param
+			const dispatchedIds = [...(existingIdsArray), wagonToUse.id];
+			goto(`/richardsbay/processes/rail/empty-release/review?wagonIds=${dispatchedIds.join(',')}`);
+		} catch (error) {
+			console.error('Failed to submit wagon arrival:', error);
+			processLayout.setError('Failed to submit wagon arrival. Please try again.');
+		} finally {
+			isSubmitting = false;
 		}
 	}
 
@@ -51,69 +109,106 @@
 		goto('/richardsbay/processes/rail');
 	}
 
-	async function handleSubmit() {
-		if (!selectedWagon) {
-			error = 'Please select a valid wagon';
-			return;
-		}
-
-		isSubmitting = true;
-		error = '';
-
-		try {
-			console.log('Selected Wagon:', selectedWagon);
-			const wagon = (await indexedDBService.getAllRecords('wagons')).filter(
-				(w) => w.wagonId === selectedWagon
-			)[0];
-
-			// Update wagon with verification date
-			await indexedDBService.updateRecord('wagons', wagon.id, {
-				...wagon,
-				dispatchTimestamp: undefined,
-				releaseTimestamp: new Date(),
-				updated: new Date().toISOString()
-			});
-
-			success = 'Wagon selected successfully';
-			// Navigate to review page with wagon ID
-			setTimeout(() => {
-				goto(`/richardsbay/processes/rail/empty-release/review?wagonId=${selectedWagon}`);
-			}, 1000);
-
-		} catch (e) {
-			console.error('Error processing wagon:', e);
-			error = 'Failed to process wagon. Please try again.';
-		} finally {
-			isSubmitting = false;
-		}
-	}
 </script>
 
 <ProcessLayout
-	title="Empty Wagon Release"
-	steps={steps}
-	currentStep={currentStep}
+	title="Wagon Details"
+	steps={processSteps}
+	{currentStep}
+	{isSubmitting}
 	cancelPath="/richardsbay/processes/rail"
+	bind:this={processLayout}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
 >
-	
-	<div class='form-field'>
-		<FormField
-			id="wagonId"
-			label="Select the Wagon ID"
-			search={true}
-			options={availableWagons.map((wagon) => ({ value: wagon.wagonId ?? '', label: wagon.wagonId ?? '' }))} 
-			bind:value={selectedWagon}
-			placeholder="Select Wagon ID"
-			required
-		/>
+	<div slot="header">
+		<h5 class="text-xl font-bold text-gray">Wagon Details</h5>
+		<div>
+			<p class="text-gray-500">Scan/Enter the Wagon ID.</p>
+		<div class="space-y-6">
+	</div>
+		<div class="form">
+			<label for="wagonId" class="block font-medium text-gray text-sm mb-1">Wagon ID *</label>
+			<input
+				id="wagonId"
+				type="text"
+				bind:value={wagonID}
+				placeholder="Scan/Enter Wagon ID"
+				on:input={handleWagonInput}
+				on:focus={showAllWagonSuggestions}
+				on:blur={() => setTimeout(() => showWagonSuggestions = false, 100)}
+				required
+				class="w-full rounded-lg text-sm border px-3 py-2 text-gray border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none"
+			/>
+			{#if showWagonSuggestions}
+				<ul class="suggestions-list">
+					{#each filteredWagonSuggestions as suggestion, i}
+						<li>
+							<button
+								type="button"
+								on:click={() => {
+									wagonID = suggestion.wagonId ?? '';
+									showWagonSuggestions = false;
+									selectedWagon = suggestion;
+								}}
+							>
+								{suggestion.wagonId}
+							</button>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</div>
 	</div>
 </ProcessLayout>
 
 <style>
-	.form-field {
+	.form {
 		margin-top: 1rem;
 		position: relative;
+	}
+	.form #wagonId {
+		min-height: 40px;
+	}
+
+	.suggestions-list {
+		border: 1px solid #ccc;
+		background: #fff;
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		max-height: 150px;
+		overflow-y: auto;
+		position: absolute;
+		z-index: 10;
+		width: 100%;
+	}
+
+	.suggestions-list li:nth-child(even) {
+		background: #f6f8fa;
+	}
+	.suggestions-list li:nth-child(odd) {
+		background: #fff;
+	}
+
+	.suggestions-list button {
+		width: 100%;
+		text-align: left;
+		padding: 0.5rem;
+		background: transparent;
+		border: none;
+		cursor: pointer;
+		color: #222;
+		transition: background 0.2s;
+	}
+
+	.suggestions-list button:hover {
+		background: #2563eb;
+		color: #fff;
+	}
+
+	.suggestions-list li {
+		padding: 0;
+		margin: 0;
 	}
 </style>
