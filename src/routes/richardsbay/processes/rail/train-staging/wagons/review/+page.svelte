@@ -10,6 +10,7 @@
 	let wagonIds: string[] = [];
 	$: wagonIds = ($page.url.searchParams.get('wagonIds') || '').split(',').filter(Boolean);
 
+	let trainRefNr = $page.url.searchParams.get('trainRefNr') || '';
 	let wagons: Wagon[] = [];
 	let filteredWagons: Wagon[] = [];
 	let error = '';
@@ -17,8 +18,8 @@
 	let isLoading = true;
 	let processLayout: ProcessLayout;
 
-	const steps = ['Wagon', 'Verification'];
-	let currentStep = 2;
+	const steps = ['Arrival Train', 'Wagon', 'Verification'];
+	let currentStep = 3;
 
 	async function loadWagons() {
 		isLoading = true;
@@ -39,18 +40,27 @@
 	});
 
 	function handleNewWagon() {
-		goto(`/richardsbay/processes/rail/train-staging?wagonIds=${wagonIds.join(',')}`);
+		goto(`/richardsbay/processes/rail/train-staging/wagons/?wagonIds=${wagonIds.join(',')}&trainRefNr=${trainRefNr}`);
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes/rail');
+		goto('/richardsbay/processes/rail/train-staging');
 	}
 
-	function handleSubmit() {
-		processLayout.setSuccess('Wagon Successfully Received!');
+	async function handleSubmit() {
+		let trainArrival = (await indexedDBService.getAllRecords('trainArrivals')).filter(
+			arrival => arrival.trainRefNr === trainRefNr
+		)[0];
+
+		await indexedDBService.updateRecord('trainArrivals', trainArrival.id, {
+			portStagingTimestamp: new Date().toISOString(),
+			syncStatus: 'pending'
+		})
+
+		processLayout.setSuccess('Wagons Successfully Received!');
 
 		setTimeout(() => {
-			goto('/richardsbay/processes/rail');
+			goto('/richardsbay/processes/rail/train-staging');
 		}, 1000);
 	}
 </script>
@@ -60,7 +70,7 @@
 	{steps}
 	{currentStep}
 	isSubmitting={isLoading}
-	cancelPath="/richardsbay/processes/rail"
+	cancelPath="/richardsbay/processes/rail/train-staging"
 	bind:this={processLayout}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}

@@ -8,9 +8,12 @@
 	import { page } from '$app/stores';
 
 	// Form state
+	let trainRefNr = $page.url.searchParams.get('trainRefNr') || '';
 	let wagonID = '';
 	let isSubmitting = false;
-	let currentStep = 1;
+	let currentStep = 2;
+	let arrivalTimestamp = formatTimestamp(new Date());
+	let sampleID = '';
 
 	let availableWagons: Wagon[] = [];
 	let filteredWagonSuggestions: Wagon[] = [];
@@ -19,7 +22,7 @@
 	let selectedWagon: Wagon | null = null;
 
 	// Process steps
-	const processSteps = ['Wagon', 'Verification'];
+	const processSteps = ['Arrival Train', 'Wagon', 'Verification'];
 
 	// Reference to the ProcessLayout component
 	let processLayout: ProcessLayout;
@@ -28,9 +31,18 @@
 	$: existingIdsArray = ($page.url.searchParams.get('wagonIds') || '').split(',').filter(Boolean);
 
 	onMount(async () => {
+		let trainArrival = (await indexedDBService.getAllRecords('trainArrivals')).filter(
+			train => train.trainRefNr === trainRefNr
+		)[0];
+		
+		const linkedWagons = trainArrival.linkedWagonIds || [];
 
-		availableWagons = (await indexedDBService.getAllRecords('wagons')).filter(
-			wagon => !wagon.releaseTimestamp && wagon.dispatchTimestamp
+		let allwagons = (await indexedDBService.getAllRecords('wagons')).filter(
+			wagon => wagon.dispatchTimestamp === ''
+		);
+
+		availableWagons = allwagons.filter(
+			wagon => linkedWagons.some(linkedWagon => linkedWagon === wagon.id)
 		);
 	});
 
@@ -72,6 +84,15 @@
 		}
 	}
 
+	function formatTimestamp(date: Date) {
+		const yyyy = date.getFullYear();
+		const mm = String(date.getMonth() + 1).padStart(2, '0');
+		const dd = String(date.getDate()).padStart(2, '0');
+		const hh = String(date.getHours()).padStart(2, '0');
+		const min = String(date.getMinutes()).padStart(2, '0');
+		return `${yyyy}/${mm}/${dd} ${hh}:${min}`;
+	}
+
 	async function handleSubmit() {
 		try {
 			isSubmitting = true;
@@ -91,12 +112,12 @@
 			await indexedDBService.updateRecord('wagons', wagonToUse.id, {
 				...wagonToUse,
 				syncStatus: 'pending',
-				releaseTimestamp: new Date(),
+				dispatchTimestamp: new Date().toISOString(),
 			});
 
 			// Add the new wagon's id to the list and pass as a query param
 			const dispatchedIds = [...(existingIdsArray), wagonToUse.id];
-			goto(`/richardsbay/processes/rail/empty-release/review?wagonIds=${dispatchedIds.join(',')}`);
+			goto(`/richardsbay/processes/rail/train-staging/wagons/review?wagonIds=${dispatchedIds.join(',')}&trainRefNr=${trainRefNr}`);
 		} catch (error) {
 			console.error('Failed to submit wagon arrival:', error);
 			processLayout.setError('Failed to submit wagon arrival. Please try again.');
@@ -106,7 +127,7 @@
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes/rail');
+		goto('/richardsbay/processes/rail/train-staging');
 	}
 
 </script>
@@ -116,7 +137,7 @@
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
-	cancelPath="/richardsbay/processes/rail"
+	cancelPath="/richardsbay/processes/rail/train-staging"
 	bind:this={processLayout}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
@@ -124,9 +145,11 @@
 	<div slot="header">
 		<h5 class="text-xl font-bold text-gray">Wagon Details</h5>
 		<div>
-			<p class="text-gray-500">Scan/Enter the Wagon ID.</p>
+			<p class="text-gray-500">Scan/Enter the Wagon ID and Sample ID.</p>
 		<div class="space-y-6">
 	</div>
+	
+
 		<div class="form">
 			<label for="wagonId" class="block font-medium text-gray text-sm mb-1">Wagon ID *</label>
 			<input

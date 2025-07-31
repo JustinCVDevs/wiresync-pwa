@@ -10,6 +10,7 @@
 	let wagonIds: string[] = [];
 	$: wagonIds = ($page.url.searchParams.get('wagonIds') || '').split(',').filter(Boolean);
 
+	let trainRefNr = $page.url.searchParams.get('trainRefNr') || '';
 	let wagons: Wagon[] = [];
 	let filteredWagons: Wagon[] = [];
 	let error = '';
@@ -17,8 +18,8 @@
 	let isLoading = true;
 	let processLayout: ProcessLayout;
 
-	const steps = ['Wagon', 'Verification'];
-	let currentStep = 2;
+	const steps = ['Arrival Train', 'Wagon Sampling', 'Verification'];
+	let currentStep = 3;
 
 	async function loadWagons() {
 		isLoading = true;
@@ -39,18 +40,18 @@
 	});
 
 	function handleNewWagon() {
-		goto(`/richardsbay/processes/rail/train-sampling?wagonIds=${wagonIds.join(',')}`);
+		goto(`/richardsbay/processes/rail/train-sampling/wagons/?wagonIds=${wagonIds.join(',')}&trainRefNr=${trainRefNr}`);
 	}
 
 	function handleCancel() {
-		goto('/richardsbay/processes/rail');
+		goto('/richardsbay/processes/rail/train-sampling');
 	}
 
-	function handleSubmit() {
-		processLayout.setSuccess('Wagon Successfully Received!');
+	async function handleSubmit() {
+		processLayout.setSuccess('Wagons Successfully Received!');
 
 		setTimeout(() => {
-			goto('/richardsbay/processes/rail');
+			goto('/richardsbay/processes/rail/train-sampling');
 		}, 1000);
 	}
 </script>
@@ -60,7 +61,7 @@
 	{steps}
 	{currentStep}
 	isSubmitting={isLoading}
-	cancelPath="/richardsbay/processes/rail"
+	cancelPath="/richardsbay/processes/rail/train-sampling"
 	bind:this={processLayout}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
@@ -90,7 +91,7 @@
 		<!-- Linked Wagons -->
 		<div class="mb-6">
 			<div class="mb-4 flex items-center justify-between">
-				<p class="text-sm text-gray">Verified Wagons: <span class="font-bold">{filteredWagons.length}</span></p>
+				<p class="text-sm text-gray">Sampled Wagons: <span class="font-bold">{filteredWagons.length}</span></p>
 				<button
 					type="button"
 					class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition hover:bg-blue-700"
@@ -109,9 +110,9 @@
 								</div>
 								<div class="font-medium text-gray">
 									<span class="text-sm font-light">
-										Verification Date: </span> 
-										{wagon.dispatchTimestamp 
-										? new Date(wagon.dispatchTimestamp).toLocaleDateString('en-GB')
+										Sample ID: </span> 
+										{wagon.sampleId 
+										? wagon.sampleId
 										: 'Not set'}
 								</div>
 							</div>
