@@ -16,7 +16,6 @@
 
 	let availableTrucks: Truck[] = [];
 	let filteredTrucks: any[] = [];
-	let showTruckNotFound = false;
 	let selectedTruck: any = '';
 
 	// Process steps
@@ -49,8 +48,6 @@
 		if (selectedTruck) {
 			if (filteredTrucks.length > 0) {
 				matchFound = filteredTrucks.some(truck => truck.registration.toLowerCase() === selectedTruck.toLowerCase());
-			} else {
-				showTruckNotFound = true;
 			}
 		}
 	}
@@ -122,7 +119,6 @@
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
-	showSubmit={!showTruckNotFound}
 	cancelPath="/bosveld/processes"
 	bind:this={processLayout}
 	on:cancel={handleCancel}
@@ -146,7 +142,7 @@
 				on:blur={() => setTimeout(() => (showSearch = false), 200)}
 			/>
 
-			{#if matchFound && !showTruckNotFound}
+			{#if matchFound}
 				<div style="margin-top: 1.2rem;">
 					<FormField
 						id="arrivalTimestamp"
@@ -157,15 +153,6 @@
 					/>
 				</div>
 			{/if}
-			{#if showTruckNotFound}
-				{ @html `<script>showSubmit = false;</script>` }
-				<div class="text-red-500 mt-1 font-bold text-center">Truck Not in Pre-Registration List. Please register the truck</div>
-				<div>
-					<button class='register' on:click={() => handleNewTruck()} type="button">
-						Register Truck
-					</button>
-				</div>
-			{/if}
 		</div>
 	</div>
 </ProcessLayout>
@@ -174,21 +161,5 @@
 	.form {
 		margin-top: 1rem;
 		position: relative;
-	}
-
-	.text-red-500.mt-1.font-bold.text-center {
-		margin-top: 1.5rem;
-	}
-
-	.register {
-		width: 100%;
-		color: white;
-		padding: 0.5rem;
-		border: none;
-		border-radius: 0.375rem;
-		cursor: pointer;
-		font-weight: bold;
-		text-align: center;
-		margin-top: 1.2rem;
 	}
 </style>

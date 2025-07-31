@@ -157,11 +157,11 @@
 	<div class="form">
 		<FormField
 			id="wagonId"
-			label="Please enter Wagon ID"
+			label="Please select Wagon ID"
 			search={true}
 			options={availableWagons.map(wagon => ({value: wagon.sampleId, label: wagon.wagonId}))}
 			bind:value={selectedWagon}
-			placeholder="Enter Wagon ID"
+			placeholder="Select Wagon ID"
 			required
 		/>
 	</div>
