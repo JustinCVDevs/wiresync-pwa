@@ -85,7 +85,7 @@
 			await indexedDBService.updateRecord('trainArrivals', trainArrival.id, {
 					...trainArrival,
 					syncStatus: 'pending',
-					portRailArrivalTimestamp: new Date().toISOString(),
+					portRailArrivalTimestamp: arrivalTimestamp,
 					status: 'sampling',
 				});
 
@@ -109,7 +109,7 @@
 </script>
 
 <ProcessLayout
-	title="PMC Train Arrival"
+	title="Train Arrival"
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}

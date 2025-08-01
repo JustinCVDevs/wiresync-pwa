@@ -63,7 +63,7 @@
 	on:submit={handleSubmit}
 >
 	<div slot="header">
-		<h5 class="text-xl font-bold text-gray">Train Arrival</h5>
+		<h5 class="text-xl font-bold text-gray">Staging Arrival Trains</h5>
 	</div>
 
 	<div class="space-y-6">
