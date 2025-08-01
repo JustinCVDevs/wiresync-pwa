@@ -916,14 +916,8 @@ export const syncService = {
 
 			let created;
 
-			// Prepare a payload for PocketBase with Blob if needed
+			// Prepare a payload for PocketBase
 			let apiPayload: any = { ...payload };
-			// Convert base64 to Blob for PocketBase file upload
-			if (payload.truck_photo && typeof payload.truck_photo === 'string' && payload.truck_photo.startsWith('data:')) {
-				const [meta] = payload.truck_photo.split(',');
-				const mime = meta.match(/data:(.*);base64/)?.[1] || 'image/webp';
-				apiPayload.truck_photo = base64ToBlob(payload.truck_photo, mime);
-			}
 
 			if(truckArrival.serverId) {
 				// Check for linked truck
@@ -989,14 +983,13 @@ export const syncService = {
 
 	async syncTruckArrivalList() {
 		try {
-			const allTruckArrivals = await pocketbaseService.list('truckArrivals');
+			const allTruckArrivals = await fetchAllFromPocketBase('truckArrivals');
 			const allIndexedTruckArrivals = await indexedDBService.getRecords('truckArrivals');
 
-			for (const arrival of allTruckArrivals.items) {
+			for (const arrival of allTruckArrivals) {
 				const existingTruckArrival = allIndexedTruckArrivals.find(
 					(t) => t.serverId === arrival.id || t.id === arrival.id
 				);
-
 				if (existingTruckArrival) {
 					// Update the existing record
 					await indexedDBService.updateRecord('truckArrivals', existingTruckArrival.id, {
