@@ -48,11 +48,27 @@
 	}
 
 	async function handleSubmit() {
-		processLayout.setSuccess('Wagons Successfully Received!');
+		// Show confirmation prompt
+		const confirmSubmit = window.confirm('Are you sure you are done sampling?');
+		if (!confirmSubmit) {
+			return;
+		} else {
+			let trainArrival = (await indexedDBService.getAllRecords('trainArrivals')).filter(
+				train => train.trainRefNr === trainRefNr
+			)[0];
 
-		setTimeout(() => {
-			goto('/richardsbay/processes/rail/train-sampling');
-		}, 1000);
+			await indexedDBService.updateRecord('trainArrivals', trainArrival.id, {
+				finishSamplingTimestamp: new Date().toISOString(),
+				status: 'released',
+				syncStatus: 'pending'
+			});
+
+			processLayout.setSuccess('Wagons Successfully Received!');
+
+			setTimeout(() => {
+				goto('/richardsbay/processes/rail/train-sampling');
+			}, 1000);
+		}	
 	}
 </script>
 

@@ -22,7 +22,7 @@
 	onMount(async () => {
 		// Fetch all train arrivals
 		const trainArrivals = (await indexedDBService.getAllRecords('trainArrivals')).filter(
-			arrival => arrival.portRailArrivalTimestamp !== '' && arrival.portStagingTimestamp !== ''
+			arrival => arrival.portRailArrivalTimestamp !== '' && arrival.portStagingTimestamp !== '' && arrival.finishSamplingTimestamp === ''
 		);
 
 		// Fetch all trains
