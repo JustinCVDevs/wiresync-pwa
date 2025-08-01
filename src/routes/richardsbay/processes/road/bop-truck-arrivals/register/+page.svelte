@@ -160,7 +160,8 @@
 				created: new Date(),
 				updated: new Date().toISOString(),
 				syncStatus: 'pending',
-				siteLocation: 'Richards Bay'
+				siteLocation: 'Richards Bay',
+				port_truck_arrival_timestamp: ''
 			};
 
 			// Save truck arrival record
