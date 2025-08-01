@@ -48,8 +48,12 @@
 	}
 
 	async function handleSubmit() {
+		let linkedTrain = (await indexedDBService.getAllRecords('trains')).filter(
+			train => train.refNr === trainRefNr
+		)[0];
+
 		let trainArrival = (await indexedDBService.getAllRecords('trainArrivals')).filter(
-			arrival => arrival.trainRefNr === trainRefNr
+			train => train.trainId === linkedTrain.id
 		)[0];
 
 		await indexedDBService.updateRecord('trainArrivals', trainArrival.id, {
