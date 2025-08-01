@@ -12,8 +12,6 @@
 	let wagonID = '';
 	let isSubmitting = false;
 	let currentStep = 2;
-	let arrivalTimestamp = formatTimestamp(new Date());
-	let sampleID = '';
 
 	let availableWagons: Wagon[] = [];
 	let filteredWagonSuggestions: Wagon[] = [];
@@ -31,10 +29,14 @@
 	$: existingIdsArray = ($page.url.searchParams.get('wagonIds') || '').split(',').filter(Boolean);
 
 	onMount(async () => {
-		let trainArrival = (await indexedDBService.getAllRecords('trainArrivals')).filter(
-			train => train.trainRefNr === trainRefNr
+		let linkedTrain = (await indexedDBService.getAllRecords('trains')).filter(
+			train => train.refNr === trainRefNr
 		)[0];
-		
+
+		let trainArrival = (await indexedDBService.getAllRecords('trainArrivals')).filter(
+			train => train.trainId === linkedTrain.id
+		)[0];
+
 		const linkedWagons = trainArrival.linkedWagonIds || [];
 
 		let allwagons = (await indexedDBService.getAllRecords('wagons')).filter(

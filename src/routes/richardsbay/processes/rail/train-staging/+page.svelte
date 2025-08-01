@@ -25,8 +25,12 @@
 			arrival => arrival.portRailArrivalTimestamp !== '' && arrival.portStagingTimestamp === ''
 		);
 
+		let linkedTrains = trainArrivals.map(arrival => arrival.trainId);
+
 		// Fetch all trains
-		const allTrains = (await indexedDBService.getAllRecords('trains'));
+		const allTrains = (await indexedDBService.getAllRecords('trains')).filter(train =>
+			linkedTrains.includes(train.serverId)
+		);
 
 		// Filter trains that match the train arrivals' port_arrival_sample_id
 		availableTrains = allTrains.filter(train =>
