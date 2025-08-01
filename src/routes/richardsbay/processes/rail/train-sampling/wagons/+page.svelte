@@ -30,11 +30,13 @@
 	$: existingIdsArray = ($page.url.searchParams.get('wagonIds') || '').split(',').filter(Boolean);
 
 	onMount(async () => {
-		let trainArrival = (await indexedDBService.getAllRecords('trainArrivals')).filter(
-			train => train.trainRefNr === trainRefNr
-		)[0];
-		
-		const linkedWagons = trainArrival.linkedWagonIds || [];
+		let train = (await indexedDBService.getAllRecords('trains')).find(t => t.refNr === trainRefNr);
+
+		let trainArrival = (await indexedDBService.getAllRecords('trainArrivals')).find(
+			arrival => arrival.trainId === train?.serverId
+		);
+
+		const linkedWagons = trainArrival?.linkedWagonIds || [];
 
 		let allwagons = (await indexedDBService.getAllRecords('wagons')).filter(
 			wagon => wagon.dispatchTimestamp !== '' && wagon.sampleTimestamp === ''

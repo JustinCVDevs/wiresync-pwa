@@ -112,7 +112,7 @@
 	<div class="mb-4">
 		<h5 class="text-xl font-bold text-gray">Review & Complete</h5>
 		<p class="text-sm text-gray">
-			Review the entered data and complete the train staging
+			Review the entered data and complete the train sampling
 		</p>
 	</div>
 

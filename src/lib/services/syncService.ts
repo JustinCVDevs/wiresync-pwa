@@ -9,6 +9,7 @@ import type { ShuntingTrain } from '$lib/types/shuntingTrain';
 import type { TruckArrival } from '$lib/types/truckArrival';
 import type { Fleet, Truck } from '$lib/types';
 import type { TrainArrival } from '$lib/types/trainArrival';
+import type { DedicatedFleetTruck } from '$lib/types/dedicatedFleetTruck';
 
 function base64ToBlob(base64: string, mime: string) {
     const byteString = atob(base64.split(',')[1]);
@@ -57,6 +58,7 @@ export const syncService = {
 						linkedTruckIds: assay.linkedTruckIds,
 						linkedTruckLoadIds: assay.linkedTruckLoadIds,
 						linkedFleetIds: assay.linkedFleetIds,
+						linkedDedicatedFleetTruckIds: assay.linkedDedicatedFleetTruckIds,
 						sampleSize: assay.sampleSize,
 						commodity: assay.commodity,
 						productType: assay.productType,
@@ -80,6 +82,7 @@ export const syncService = {
 						linkedTruckIds: assay.linkedTruckIds,
 						linkedTruckLoadIds: assay.linkedTruckLoadIds,
 						linkedFleetIds: assay.linkedFleetIds,
+						linkedDedicatedFleetTruckIds: assay.linkedDedicatedFleetTruckIds,
 						sampleSize: assay.sampleSize,
 						commodity: assay.commodity,
 						productType: assay.productType,
@@ -1269,7 +1272,83 @@ export const syncService = {
 			await this.syncFleet(fleet);
 		}
 	},
-	
+
+	async syncDedicatedFleetTrucks(dedicatedFleetTruck: DedicatedFleetTruck) {
+		const { id, syncStatus, ...payload } = dedicatedFleetTruck;
+		try {
+			let created;
+			if (dedicatedFleetTruck.serverId) {
+				created = await pocketbaseService.update('dedicatedFleetTrucks', dedicatedFleetTruck.serverId, payload);
+			} else {
+				created = await pocketbaseService.create('dedicatedFleetTrucks', payload);
+			}
+
+			if (dedicatedFleetTruck.id) {
+				await indexedDBService.updateRecord('dedicatedFleetTrucks', dedicatedFleetTruck.id, {
+					...dedicatedFleetTruck,
+					syncStatus: 'synced',
+					serverId: created.id
+				});
+			}
+			return true;
+		} catch (err) {
+			console.warn('Failed to sync dedicated fleet truck with PocketBase:', err);
+			return false;
+		}
+	},
+
+	async syncPendingDedicatedFleetTrucks() {
+		const pending = await indexedDBService.getRecords(
+			'dedicatedFleetTrucks',
+			(rec: { syncStatus: string }) => rec.syncStatus === 'pending'
+		);
+
+		for (const dedicatedFleetTruck of pending) {
+			await this.syncDedicatedFleetTrucks(dedicatedFleetTruck);
+		}
+	},
+
+	async syncDedicatedFleetTrucksList() {
+		try {
+			const allDedicatedFleetTrucks = await fetchAllFromPocketBase('dedicatedFleetTrucks');
+			const allIndexedDedicatedFleetTrucks = await indexedDBService.getRecords('dedicatedFleetTrucks');
+
+			for (const dedicatedFleetTruck of allDedicatedFleetTrucks) {
+				// Match on either serverId or local id
+				const existingDedicatedFleetTruck = allIndexedDedicatedFleetTrucks.find(
+					(t) => t.serverId === dedicatedFleetTruck.id || t.id === dedicatedFleetTruck.id
+				);
+
+				if (existingDedicatedFleetTruck) {
+					// Update the existing record
+					await indexedDBService.updateRecord('dedicatedFleetTrucks', existingDedicatedFleetTruck.id, {
+						...existingDedicatedFleetTruck,
+						loadingLocation: dedicatedFleetTruck.loadingLocation,
+						syncStatus: 'synced',
+						serverId: dedicatedFleetTruck.id,
+						created: dedicatedFleetTruck.created,
+						updated: dedicatedFleetTruck.updated,
+					});
+				} else {
+					// Create a new record only if no matching record exists
+					await indexedDBService.saveRecord('dedicatedFleetTrucks', {
+						id: dedicatedFleetTruck.id,
+						registration: dedicatedFleetTruck.registration,
+						loadingLocation: dedicatedFleetTruck.loadingLocation,
+						syncStatus: 'synced',
+						serverId: dedicatedFleetTruck.id,
+						created: dedicatedFleetTruck.created,
+						updated: dedicatedFleetTruck.updated,
+					});
+				}
+			}
+			return true;
+		} catch (err) {
+			console.warn('Failed to sync dedicated fleet truck list:', err);
+			return false;
+		}
+	},
+
 	// Update syncAllPending to include train dispatches
 	async syncAllPending() {
 		await Promise.all([
@@ -1284,6 +1363,7 @@ export const syncService = {
 			this.syncPendingTruckArrivals(),
 			this.syncPendingTruckLoads(),
 			this.syncPendingTrucks(),
+			this.syncPendingDedicatedFleetTrucks(),
 			this.syncPendingWagons(),
 		]);
 
@@ -1299,6 +1379,7 @@ export const syncService = {
 		await this.syncTruckLoadList();
 		await this.syncTruckList();
 		await this.syncWagonList();
+		await this.syncDedicatedFleetTrucksList();
 		
 		// Delete records that no longer exist on the server
 		await this.syncDeletedRecords('assays');

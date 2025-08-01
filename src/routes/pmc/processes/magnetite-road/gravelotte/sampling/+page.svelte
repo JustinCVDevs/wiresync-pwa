@@ -7,6 +7,7 @@
 	import FormField from '$lib/components/FormField.svelte';
 	import { syncService } from '$lib/services/syncService';
 	import { onMount } from 'svelte';
+	import type { DedicatedFleetTruck } from '$lib';
 
 	let dedicatedFleet = '';
 	let isDedicatedFleet = false;
@@ -23,6 +24,7 @@
 
 	let sampleNumberGravelotte = 1;
 	let trucks: Truck[] = [];
+	let dedicatedFleetTrucks: DedicatedFleetTruck[] = [];
 	let productTypes = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite 62%', 'Magnetite 65%'];
 
 	// Function to get or reset the sample number for the day
@@ -46,12 +48,23 @@
 	// Call the function to initialize the sample number
 	getSampleNumber();
 
+	async function getTrucks() {
+		trucks = await indexedDBService.getAllRecords('trucks');
+
+        trucks.sort((a, b) => a.registration.localeCompare(b.registration));
+	}
+
+	async function getDedicatedFleetTruck() {
+		dedicatedFleetTrucks = await indexedDBService.getAllRecords('dedicatedFleetTrucks');
+
+		dedicatedFleetTrucks.sort((a, b) => a.registration.localeCompare(b.registration));
+	}
+
 	// Fetch truck records from IndexedDB on component mount
 	onMount(async () => {
 		try {
-			trucks = await indexedDBService.getAllRecords('trucks');
-			// Sort trucks alphabetically by registration
-            trucks.sort((a, b) => a.registration.localeCompare(b.registration));
+			getTrucks();
+			getDedicatedFleetTruck();
 		} catch (err) {
 			console.error('Failed to load trucks from IndexedDB:', err);
 			error = 'Failed to load truck records';
@@ -124,8 +137,8 @@
 					(fleet: Fleet) => fleet.sampleId === sampleId
 				)[0];
 
-				let linkedTruck = (await indexedDBService.getAllRecords('trucks')).filter(
-					(truck: Truck) => truck.registration === truckRegistration
+				let linkedTruck = (await indexedDBService.getAllRecords('dedicatedFleetTrucks')).filter(
+					(truck: DedicatedFleetTruck) => truck.registration === truckRegistration
 				)[0];
 
 				const assay: Assay = {
@@ -133,7 +146,7 @@
 					name: sampleId,
 					productType: productType,
 					dedicatedFleet: isDedicatedFleet,
-					linkedTruckIds: [linkedTruck?.serverId || ''],
+					linkedDedicatedFleetTruckIds: [linkedTruck?.serverId || ''],
 					linkedFleetIds: [newFleet?.serverId || ''],
 					syncStatus: 'pending',
 					location: loadingLocation,
@@ -284,7 +297,7 @@
 							id="truckRegistration"
 							label="Select the Truck Registration"
 							search={true}
-							options={trucks.map((truck) => ({ value: truck.registration, label: truck.registration }))}
+							options={dedicatedFleetTrucks.map((truck) => ({ value: truck.registration, label: truck.registration }))}
 							bind:value={truckRegistration}
 							placeholder="Select Truck Registration"
 							required

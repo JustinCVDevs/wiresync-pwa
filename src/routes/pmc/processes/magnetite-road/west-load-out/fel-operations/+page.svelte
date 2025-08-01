@@ -32,16 +32,15 @@
 
 	async function getTrucks() {
 		try {
-			const allTrucks = (await indexedDBService.getAllRecords('trucks'));
-			
 			let filteredTrucks: any[] = [];
 
 			if (dedicatedFleet === 'Yes') {
+				const allDedicatedFleetTrucks = (await indexedDBService.getAllRecords('dedicatedFleetTrucks'));
 				// Filter trucks where dedicatedFleet is true and loadingLocation is "West Load Out"
 				const fleet = (await indexedDBService.getAllRecords('fleet')).filter(
 					(f) => f.felMassKg === 0 && f.loadingLocation === loadingLocation
 				);
-				console.log('Filtered Fleet:', fleet);
+
 				// Map fleet to get linkedFleetIds
 				const linkedFleetIds = fleet.map(f => f.serverId);
 
@@ -51,12 +50,13 @@
 				);
 
 				// Map truck to get linkedTruckIds
-				const linkedTruckIds = matchingAssays.flatMap(assay => assay.linkedTruckIds ?? []);
+				const linkedDedicatedFleetTruckIds = matchingAssays.flatMap(assay => assay.linkedDedicatedFleetTruckIds ?? []);
 
-				filteredTrucks = allTrucks.filter(trucks =>
-					linkedTruckIds.some(truck => truck === trucks.serverId)
+				filteredTrucks = allDedicatedFleetTrucks.filter(trucks =>
+					linkedDedicatedFleetTruckIds.some(truck => truck === trucks.serverId)
 				);
 			} else {
+				const allTrucks = (await indexedDBService.getAllRecords('trucks'));
 				// Filter assays where dedicatedFleet is false and location is "West Load Out"
 				const filteredAssays = (await indexedDBService.getAllRecords('assays')).filter(
 					assay => assay.dedicatedFleet === false && assay.location === loadingLocation

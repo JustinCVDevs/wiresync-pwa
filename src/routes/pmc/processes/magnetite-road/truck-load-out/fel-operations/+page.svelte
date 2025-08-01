@@ -26,12 +26,11 @@
 
 	async function getTrucks() {
 		try {
-			const allTrucks = await indexedDBService.getAllRecords('trucks');
-			
 			let filteredTrucks: any[] = [];
 
 			if (dedicatedFleet === 'Yes') {
-				// Filter trucks where dedicatedFleet is true and loadingLocation is "Truck Load Out"
+				const allDedicatedFleetTrucks = (await indexedDBService.getAllRecords('dedicatedFleetTrucks'));
+				// Filter trucks where dedicatedFleet is true and loadingLocation is "West Load Out"
 				const fleet = (await indexedDBService.getAllRecords('fleet')).filter(
 					(f) => f.felMassKg === 0 && f.loadingLocation === loadingLocation
 				);
@@ -45,13 +44,14 @@
 				);
 
 				// Map truck to get linkedTruckIds
-				const linkedTruckIds = matchingAssays.flatMap(assay => assay.linkedTruckIds ?? []);
+				const linkedDedicatedFleetTruckIds = matchingAssays.flatMap(assay => assay.linkedDedicatedFleetTruckIds ?? []);
 
-				filteredTrucks = allTrucks.filter(trucks =>
-					linkedTruckIds.some(truck => truck === trucks.serverId)
+				filteredTrucks = allDedicatedFleetTrucks.filter(trucks =>
+					linkedDedicatedFleetTruckIds.some(truck => truck === trucks.serverId)
 				);
 			} else {
-				// Filter assays where dedicatedFleet is false and location is "Truck Load Out"
+				const allTrucks = (await indexedDBService.getAllRecords('trucks'));
+				// Filter assays where dedicatedFleet is false and location is "West Load Out"
 				const filteredAssays = (await indexedDBService.getAllRecords('assays')).filter(
 					assay => assay.dedicatedFleet === false && assay.location === loadingLocation
 				);
@@ -61,7 +61,7 @@
 
 				// Filter truckLoads where truckLoadId matches any linkedTruckId
 				const matchingTruckLoads = await indexedDBService.getAllRecords('truckLoads').then(loads =>
-					loads.filter(truckLoad => truckLoad.felWeight === '' && truckLoad.loadingLocation === loadingLocation && linkedTruckIds.includes(truckLoad.truckId ?? ''))
+					loads.filter(truckLoad => (truckLoad.felWeight === '') && (truckLoad.loadingLocation === loadingLocation) && (linkedTruckIds.includes(truckLoad.truckId ?? '')))
 				);
 
 				filteredTrucks = allTrucks.filter(truck =>

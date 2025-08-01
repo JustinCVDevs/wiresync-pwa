@@ -12,7 +12,8 @@ import type {
 	ShuntingTrain, 
 	TruckArrival,
 	TrainArrival,
-	Fleet
+	Fleet,
+	DedicatedFleetTruck
 } from '$lib';
 
 // concretely list your stores so TS sees them as literals
@@ -30,7 +31,8 @@ const STORE_NAMES = [
 	'shuntingTrains',
 	'truckArrivals',
 	'trainArrivals',
-	'fleet'
+	'fleet',
+	'dedicatedFleetTrucks'
 ] as const;
 type StoreName = (typeof STORE_NAMES)[number];
 
@@ -49,6 +51,7 @@ interface AppDB extends DBSchema {
 	truckArrivals: { key: string; value: TruckArrival };
 	trainArrivals: { key: string; value: TrainArrival };
 	fleet: { key: string; value: Fleet };
+	dedicatedFleetTrucks: { key: string; value: DedicatedFleetTruck };
 }
 interface Tag extends BaseRecord {
 	id: string;
@@ -56,7 +59,7 @@ interface Tag extends BaseRecord {
 }
 class IndexedDBService {
 	private dbName = 'wiresync-db';
-	private version = 11; // Increment version to trigger upgrade
+	private version = 12; // Increment version to trigger upgrade
 	private db: IDBPDatabase<AppDB> | null = null;
 
 	private async initDB(): Promise<void> {

@@ -85,7 +85,7 @@
 			await indexedDBService.updateRecord('trainArrivals', trainArrival.id, {
 					...trainArrival,
 					syncStatus: 'pending',
-					portRailArrivalTimestamp: new Date().toISOString(),
+					portRailArrivalTimestamp: arrivalTimestamp,
 					status: 'sampling',
 				});
 
@@ -109,7 +109,7 @@
 </script>
 
 <ProcessLayout
-	title="PMC Train Arrival"
+	title="Train Arrival"
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
@@ -126,11 +126,11 @@
 		<div class="form">
 			<FormField
 				id="trainRegistration"
-				label="Train Registration"
+				label="Train Reference number"
 				search={true}
 				options={filteredTrains.map(train => ({ value: train.refNr, label: train.refNr }))}
 				bind:value={selectedTrain}
-				placeholder="Select Train Registration"
+				placeholder="Select Train Reference Number"
 				required
 				on:focus={() => showSearch = true}
 				on:blur={() => setTimeout(() => (showSearch = false), 200)}

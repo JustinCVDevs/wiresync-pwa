@@ -21,6 +21,15 @@
 	const steps = ['Arrival Train', 'Wagon', 'Verification'];
 	let currentStep = 3;
 
+	function formatTimestamp(date: Date) {
+		const yyyy = date.getFullYear();
+		const mm = String(date.getMonth() + 1).padStart(2, '0');
+		const dd = String(date.getDate()).padStart(2, '0');
+		const hh = String(date.getHours()).padStart(2, '0');
+		const min = String(date.getMinutes()).padStart(2, '0');
+		return `${yyyy}/${mm}/${dd} ${hh}:${min}`;
+	}
+	
 	async function loadWagons() {
 		isLoading = true;
 		try {
@@ -57,7 +66,7 @@
 		)[0];
 
 		await indexedDBService.updateRecord('trainArrivals', trainArrival.id, {
-			portStagingTimestamp: new Date().toISOString(),
+			portStagingTimestamp: formatTimestamp(new Date()),
 			status: 'sampling',
 			syncStatus: 'pending'
 		})
@@ -105,7 +114,7 @@
 		<!-- Linked Wagons -->
 		<div class="mb-6">
 			<div class="mb-4 flex items-center justify-between">
-				<p class="text-sm text-gray">Verified Wagons: <span class="font-bold">{filteredWagons.length}</span></p>
+				<p class="text-sm text-gray">Staged Wagons: <span class="font-bold">{filteredWagons.length}</span></p>
 				<button
 					type="button"
 					class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition hover:bg-blue-700"
@@ -124,7 +133,7 @@
 								</div>
 								<div class="font-medium text-gray">
 									<span class="text-sm font-light">
-										Verification Date: </span> 
+										Staging Date: </span> 
 										{wagon.dispatchTimestamp 
 										? new Date(wagon.dispatchTimestamp).toLocaleDateString('en-GB')
 										: 'Not set'}
