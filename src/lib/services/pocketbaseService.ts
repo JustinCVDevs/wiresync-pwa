@@ -4,7 +4,7 @@ import PocketBase, {
 	type RecordSubscription
 } from 'pocketbase';
 import { indexedDBService } from './indexedDBService';
-import type { Train, Wagon, Sample, Assay, Consignment, TrainDispatch, TruckLoad, ShuntingTrain, TruckArrival, TrainArrival, Fleet } from '$lib';
+import type { Train, Wagon, Sample, Assay, Consignment, TrainDispatch, TruckLoad, ShuntingTrain, TruckArrival, TrainArrival, Fleet, DedicatedFleetTruck } from '$lib';
 
 const POCKETBASE_URL = "https://pb.claervolker.com";
 // make sure you have VITE_POCKETBASE_URL set in your .env
@@ -20,7 +20,8 @@ export type PBCollection =
 	| 'shuntingTrains'
 	| 'truckArrivals'
 	| 'trainArrivals'
-	| 'fleet';
+	| 'fleet'
+	| 'dedicatedFleetTrucks';
 // add others here...
 
 type PBModelMap = {
@@ -29,12 +30,12 @@ type PBModelMap = {
 	samples: Sample;
 	assays: Assay;
 	trucks: {
-	loadingLocation: string | undefined;
-	loadingHour: number | undefined;
-	dedicatedFleet: boolean | undefined;
-	linkedFleetId: string | undefined;
-	felWeight: number | undefined; id: string; registration: string 
-};
+		loadingLocation: string | undefined;
+		loadingHour: number | undefined;
+		dedicatedFleet: boolean | undefined;
+		linkedFleetId: string | undefined;
+		felWeight: number | undefined; id: string; registration: string 
+	};
 	consignments: Consignment;
 	trainDispatches: TrainDispatch;
 	truckLoads: TruckLoad;
@@ -42,6 +43,13 @@ type PBModelMap = {
 	truckArrivals: TruckArrival;
 	trainArrivals: TrainArrival;
 	fleet: Fleet;
+	dedicatedFleetTrucks: {
+		loadingLocation: string | undefined;
+		loadingHour: number | undefined;
+		dedicatedFleet: boolean | undefined;
+		linkedFleetId: string | undefined;
+		felWeight: number | undefined; id: string; registration: string 
+	};
 };
 
 /**

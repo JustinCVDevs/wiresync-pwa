@@ -70,11 +70,11 @@
 		<div class="form">
 			<FormField
 				id="trainArrival"
-				label="Train Arrival ID"
+				label="Train Reference Number"
 				isSelect={true}
 				options={availableTrains.map(train => ({ value: train.refNr, label: train.refNr }))}
 				bind:value={selectedTrain}
-				placeholder="Select Train Arrival ID"
+				placeholder="Select Train Reference Number"
 				required
 			/>
 		</div>
