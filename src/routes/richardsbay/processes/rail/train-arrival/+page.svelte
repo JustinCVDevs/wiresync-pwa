@@ -86,7 +86,7 @@
 					...trainArrival,
 					syncStatus: 'pending',
 					portRailArrivalTimestamp: new Date().toISOString(),
-					status: 'received',
+					status: 'sampling',
 				});
 
 			processLayout.setSuccess('Train Successfully Received!');

@@ -54,6 +54,7 @@
 
 		await indexedDBService.updateRecord('trainArrivals', trainArrival.id, {
 			portStagingTimestamp: new Date().toISOString(),
+			status: 'sampling',
 			syncStatus: 'pending'
 		})
 

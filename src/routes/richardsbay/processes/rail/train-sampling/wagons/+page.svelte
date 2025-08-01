@@ -12,7 +12,6 @@
 	let wagonID = '';
 	let isSubmitting = false;
 	let currentStep = 2;
-	let arrivalTimestamp = formatTimestamp(new Date());
 	let sampleId = '';
 
 	let availableWagons: Wagon[] = [];

@@ -7,8 +7,9 @@ export interface TrainArrival extends BaseRecord {
 	trainRfidNr?: string; // TRAIN_RFID_NR
 	portRailArrivalTimestamp?: string; // PORT_RAIL_ARRIVAL_TIMESTAMP
 	portStagingTimestamp?: string; // PORT_STAGING_TIMESTAMP
+	finishSamplingTimestamp?: string; // FINISH_SAMPLING_TIMESTAMP
 	trainPhotoUrl?: string;
-	status: 'pending' | 'received' | 'processed';
+	status: 'pending' | 'received' | 'staging' | 'sampling' | 'released';
 	serverId?: string;
 	syncStatus: 'pending' | 'synced';
 	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"
