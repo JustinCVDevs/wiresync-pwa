@@ -25,24 +25,43 @@
 	// Reference to the ProcessLayout component
 	let processLayout: ProcessLayout;
 
-	onMount(async () => {
+	// Function to load truck data
+	async function loadTruckData() {
 		// Fetch all truck arrivals
 		const truckArrivals = (await indexedDBService.getAllRecords('truckArrivals')).filter(
 			arrival => arrival.port_truck_arrival_timestamp === ''
 		);
-
-		// Get linked trucks from truck arrivals
-		const linkedTrucks = truckArrivals.map(arrival => arrival.truckId);
 
 		// Fetch all trucks
 		const allTrucks = (await indexedDBService.getAllRecords('trucks')).filter(
 			truck => truck.loadingLocation === 'BOP'
 		);
 
-		// Filter trucks that match the truck arrivals' port_arrival_sample_id
+		// Filter trucks that match the truck arrivals' truckId
+		// Check both local id and serverId to handle synced and unsynced trucks
 		availableTrucks = allTrucks.filter(truck =>
-			truckArrivals.some(arrival => arrival.truckId=== truck.serverId)
+			truckArrivals.some(arrival => 
+				arrival.truckId === truck.id || arrival.truckId === truck.serverId
+			)
 		);
+	}
+
+	onMount(() => {
+		loadTruckData();
+		
+		// Refresh data when page becomes visible (user returns from registration)
+		const handleVisibilityChange = () => {
+			if (!document.hidden) {
+				loadTruckData();
+			}
+		};
+		
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+		
+		// Cleanup
+		return () => {
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
+		};
 	});
 
 	$: {
@@ -76,14 +95,15 @@
 			submit = true;
 			processLayout.setError('');
 
-			// Check if truck exists in Pocketbase DB
+			// Check if truck exists in IndexedDB
 			const trucks = (await indexedDBService.getAllRecords('trucks')).filter(
 				truck => truck.registration.toLowerCase() === selectedTruck.toLowerCase()
 			)[0];
 
 			// Update Truck Arrival data
+			// Check both serverId and local id to handle synced and unsynced trucks
 			const truckArrival = (await indexedDBService.getAllRecords('truckArrivals')).filter(
-				arrival => arrival.truckId === trucks.serverId
+				arrival => arrival.truckId === trucks.serverId || arrival.truckId === trucks.id
 			)[0];
 
 			// Save to IndexedDB using the generic saveRecord method
