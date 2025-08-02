@@ -50,7 +50,7 @@
 
 	async function handleSubmit() {
 		if (!selectedTrain) {
-			processLayout.setError('Please select a train arrival ID.');
+			processLayout.setError('Please select a train reference number.');
 			return;
 		}
 		let train = (await indexedDBService.getAllRecords('trains')).filter(
@@ -122,11 +122,11 @@
 		<div class="form">
 			<FormField
 				id="trainArrival"
-				label="Train Arrival ID"
+				label="Train Reference Number"
 				isSelect={true}
 				options={availableTrains.map(train => ({ value: train.refNr, label: train.refNr }))}
 				bind:value={selectedTrain}
-				placeholder="Select Train Arrival ID"
+				placeholder="Select Train Reference Number"
 				required
 			/>
 		</div>
