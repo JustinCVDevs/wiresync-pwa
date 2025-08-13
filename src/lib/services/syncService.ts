@@ -922,6 +922,13 @@ export const syncService = {
 			// Prepare a payload for PocketBase
 			let apiPayload: any = { ...payload };
 
+			// Convert base64 to Blob for PocketBase file upload
+			if (payload.truck_photo && typeof payload.truck_photo === 'string' && payload.truck_photo.startsWith('data:')) {
+				const [meta] = payload.truck_photo.split(',');
+				const mime = meta.match(/data:(.*);base64/)?.[1] || 'image/webp';
+				apiPayload.truck_photo = base64ToBlob(payload.truck_photo, mime);
+			}
+
 			if(truckArrival.serverId) {
 				// Check for linked truck
 				if (truckArrival.truckId) {
@@ -1060,8 +1067,6 @@ export const syncService = {
 					// Update the existing record
 					await indexedDBService.updateRecord('trainArrivals', existingTrainArrival.id, {
 						...existingTrainArrival,
-						trainRefNr: trainArrival.trainRefNr,
-						trainRfidNr: trainArrival.trainRfidNr,
 						portRailArrivalTimestamp: trainArrival.portRailArrivalTimestamp,
 						portStagingTimestamp: trainArrival.portStagingTimestamp,
 						finishSamplingTimestamp: trainArrival.finishSamplingTimestamp,
@@ -1079,8 +1084,6 @@ export const syncService = {
 					// Create a new record
 					await indexedDBService.saveRecord('trainArrivals', {
 						id: trainArrival.id,
-						trainRefNr: trainArrival.trainRefNr,
-						trainRfidNr: trainArrival.trainRfidNr,
 						portRailArrivalTimestamp: trainArrival.portRailArrivalTimestamp,
 						portStagingTimestamp: trainArrival.portStagingTimestamp,
 						finishSamplingTimestamp: trainArrival.finishSamplingTimestamp,
