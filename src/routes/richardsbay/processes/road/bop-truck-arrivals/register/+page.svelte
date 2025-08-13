@@ -11,12 +11,12 @@
 	let truckRegistration = $page.url.searchParams.get('truckRegistration') || '';
 	let date = '';
 	let haulier = '';
-	let product = '';
 	let grossMass = '';
 	let grossTimestamp = '';
 	let tareMass = '';
 	let tareTimestamp = '';
 	let sender = '';
+	let product = '';
 	let isSubmitting = false;
 	let currentStep = 2;
 
@@ -46,9 +46,26 @@
 		{ value: 'BOP', label: 'BOP' }
 	];
 
+	const productOptions = [
+		{ value: 'IOX', label: 'Iron Oxide' },
+		{ value: 'Mag62', label: 'Magnetite 62%' },
+		{ value: 'Mag65', label: 'Magnetite 65%' }
+	];
+
+	function formatTimestamp(date: Date) {
+		const yyyy = date.getFullYear();
+		const mm = String(date.getMonth() + 1).padStart(2, '0');
+		const dd = String(date.getDate()).padStart(2, '0');
+		const hh = String(date.getHours()).padStart(2, '0');
+		const min = String(date.getMinutes()).padStart(2, '0');
+		return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+	}
+
 	onMount(async () => {
 		// Set current date as default
-		date = new Date().toISOString().split('T')[0];
+		date = formatTimestamp(new Date());
+		grossTimestamp = formatTimestamp(new Date());
+		tareTimestamp = formatTimestamp(new Date());
 	});
 
 	function validateForm() {
@@ -204,9 +221,9 @@
 			<div class="space-y-4">
 				<FormField
 					id="date"
-					label="Date:"
+					label="Arrival Date:"
 					bind:value={date}
-					type="date"
+					type="datetime-local"
 					required={true}
 					error={formErrors.date}
 				/>
@@ -233,6 +250,8 @@
 				<FormField
 					id="product"
 					label="Product:"
+					isSelect={true}
+					options={productOptions}
 					bind:value={product}
 					placeholder="Enter product"
 					required={true}
@@ -251,7 +270,7 @@
 
 				<FormField
 					id="grossTimestamp"
-					label="Gross time:"
+					label="Gross Timestamp:"
 					bind:value={grossTimestamp}
 					type="datetime-local"
 					required={true}
@@ -270,7 +289,7 @@
 
 				<FormField
 					id="tareTimestamp"
-					label="Tare time:"
+					label="Tare Timestamp:"
 					bind:value={tareTimestamp}
 					type="datetime-local"
 					required={true}

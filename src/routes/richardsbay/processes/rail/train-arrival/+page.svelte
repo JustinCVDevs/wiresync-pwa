@@ -5,7 +5,6 @@
 	import FormField from '$lib/components/FormField.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Train } from '$lib/types/train';
-	import type { Consignment } from '$lib/types/consignment';
 
 	// Form state
 	let isSubmitting = false;
