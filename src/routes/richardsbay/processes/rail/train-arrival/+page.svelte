@@ -5,6 +5,7 @@
 	import FormField from '$lib/components/FormField.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Train } from '$lib/types/train';
+	import type { Consignment } from '$lib/types/consignment';
 
 	// Form state
 	let isSubmitting = false;
@@ -13,6 +14,7 @@
 	let arrivalTimestamp = formatTimestamp(new Date());
 	let showSearch = false;
 	let matchFound = false;
+	let consignment = '';
 
 	let availableTrains: Train[] = [];
 	let filteredTrains: any[] = [];
@@ -39,12 +41,23 @@
 		);
 	});
 
+	async function getConsignment() {
+		const linkedTrain = (await indexedDBService.getAllRecords('trains')).find(train => train.refNr === selectedTrain);
+		if (linkedTrain) {
+			const linkedConsignment = (await indexedDBService.getAllRecords('consignments')).find(consignment => consignment.linkedTrainId === linkedTrain.id);
+			if (linkedConsignment) {
+				consignment = linkedConsignment.name;
+			}
+		}
+	}
+
 	$: {
 		if (selectedTrain) {
 			if (filteredTrains.length > 0) {
 				matchFound = filteredTrains.some(train => train.refNr?.toLowerCase() === selectedTrain?.toLowerCase());
 				if (matchFound) {
 					currentStep = 2;
+					getConsignment();
 				}
 			}
 		}
@@ -137,6 +150,15 @@
 			/>
 
 			{#if matchFound}
+				<div style="margin-top: 1.2rem;">
+					<FormField
+						id="consignment"
+						label="Consignment Number:"
+						bind:value={consignment}
+						disabled={true}
+					/>
+				</div>
+
 				<div style="margin-top: 1.2rem;">
 					<FormField
 						id="arrivalTimestamp"
