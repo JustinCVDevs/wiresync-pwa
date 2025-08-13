@@ -17,12 +17,6 @@
 
 	const processes = [
 		{
-			name: 'Copper Concentrate',
-			icon: ArrowRightCircle,
-			color: 'text-green-500',
-			href: '/pmc/processes/concentrator-&-smelter/copper-concentrate'
-		},
-		{
 			name: 'Unrefined Copper',
 			icon: ArrowRightCircle,
 			color: 'text-green-500',

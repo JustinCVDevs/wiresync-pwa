@@ -17,22 +17,16 @@
 
 	const processes = [
 		{
-			name: 'HG Concentrate',
+			name: 'Sampling',
 			icon: ArrowRightCircle,
 			color: 'text-green-500',
-			href: '/pmc/processes/concentrator-&-smelter/unrefined-copper/hg-concentrate'
+			href: '/pmc/processes/concentrator-&-smelter/unrefined-copper/lg-concentrate/sampling'
 		},
 		{
-			name: 'LG Concentrate',
+			name: 'FEL Operations',
 			icon: ArrowRightCircle,
 			color: 'text-green-500',
-			href: '/pmc/processes/concentrator-&-smelter/unrefined-copper/lg-concentrate'
-		},
-		{
-			name: 'Reverts',
-			icon: ArrowRightCircle,
-			color: 'text-green-500',
-			href: '/pmc/processes/concentrator-&-smelter/unrefined-copper/reverts'
+			href: '/pmc/processes/concentrator-&-smelter/unrefined-copper/lg-concentrate/fel-operations'
 		}
 	] as const;
 
@@ -41,7 +35,7 @@
 <section class="space-y-4 px-4">
 	<!-- Back to Locations Button -->
 	<button
-		on:click={() => goto('/pmc/processes/concentrator-&-smelter')}
+		on:click={() => goto('/pmc/processes/concentrator-&-smelter/unrefined-copper')}
 		class="flex items-center gap-2 mb-4 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
 	>
 		<ArrowLeft size={20} />

@@ -8,7 +8,7 @@
 	import { page } from '$app/stores';
 
 	// Form state
-	let trainRefNr = $page.url.searchParams.get('trainRefNr') || '';
+	let trainRefNr = $page.url.searchParams.get('trainRefNr');
 	let wagonID = '';
 	let isSubmitting = false;
 	let currentStep = 2;

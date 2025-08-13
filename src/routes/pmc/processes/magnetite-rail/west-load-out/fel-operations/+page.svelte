@@ -75,7 +75,6 @@
 			isValid = false;
 		}
 
-
 		return isValid;
 	}
 
