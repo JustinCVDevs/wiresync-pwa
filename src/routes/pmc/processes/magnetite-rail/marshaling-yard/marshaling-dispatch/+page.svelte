@@ -10,9 +10,7 @@
 	let trains: Train[] = [];
 	let consignments: Consignment[] = [];
 	let selectedTrainRef = '';
-	let selectedConsignment: string | undefined = '';
-	let manualConsignment = '';
-	let manualRfid = '';
+	let selectedConsignment = '';
 	let error = '';
 	let success = '';
 	let isLoading = true;
@@ -33,8 +31,6 @@
 				const foundTrain = trains.find((t) => t.refNr === selectedTrainRef);
 				if (foundTrain) {
 					train = foundTrain;
-					manualConsignment = '';
-					manualRfid = '';
 					error = '';
 					if (train) {
 						consignments = await indexedDBService.getRecords(
@@ -44,6 +40,14 @@
 					}
 				}
 			}
+
+			const consignmentRecords = await indexedDBService.getRecords(
+				'consignments',
+				(rec) => rec.syncStatus === 'synced'
+			);
+			consignments = consignmentRecords.filter(
+				(c) => !c.linkedTrainId || c.linkedTrainId === train?.serverId
+			);
 		} catch (e) {
 			console.error(e);
 			error = 'Failed to load data';
@@ -61,57 +65,40 @@
 			error = 'Please select a train reference number';
 			return;
 		}
-		if (!selectedConsignment && !manualConsignment) {
-			error = 'Please select or enter a consignment number';
+		if (!selectedConsignment) {
+			error = 'Please select a consignment number';
 			return;
 		}
 		if (!train?.serverId) return;
 
 		const dispatchId = crypto.randomUUID();
 		
-		function genId(len = 15) {
-			const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-			const bytes = crypto.getRandomValues(new Uint8Array(len));
-			return Array.from(bytes, (b) => chars[b % chars.length]).join('');
-		}
 		try {
-			if (manualConsignment) {
-				await indexedDBService.saveRecord('consignments', {
-					id: genId(),
-					name: manualConsignment,
-					linkedTrainId: train.serverId,
-					syncStatus: 'pending',
-					created: new Date(),
-					updated: new Date().toISOString(),
-					siteLocation: 'PMC'
-				});
+			const linkedConsignment = consignments.find((c) => c.name === selectedConsignment);
+			if (!linkedConsignment) {
+				error = 'Selected consignment not found';
+				return;
 			}
-			if (manualRfid) {
-				await indexedDBService.updateRecord('trains', train.serverId, {
-					...train,
-					rfidNr: manualRfid,
-					syncStatus: 'pending',
-					updated: new Date().toISOString()
-				});
-			}
-			const consignments = await indexedDBService.getAllRecords('consignments');
-			const linkedConsignment = consignments.find(c => {
-				if (!c.created) return false;
-				return c.name === manualConsignment &&
-					Math.abs(new Date(c.created).getTime() - Date.now()) < 5000;
+			await indexedDBService.updateRecord('consignments', linkedConsignment.id, {
+				linkedTrainId: train.serverId,
+				siteLocation: 'PMC',
+				syncStatus: 'pending',
+				updated: new Date().toISOString()
 			});
-		
+
 			const trainDispatch: TrainDispatch = {
-			id: dispatchId,
-			linkedTrainId: train.serverId,
-			linkedConsignmentId: linkedConsignment?.id,
-			process: 'MarshalingDispatch',
-			syncStatus: 'pending',
-			created: new Date(),
-			updated: new Date().toISOString(),
-			siteLocation: 'PMC',
-		};
+				id: dispatchId,
+				linkedTrainId: train.serverId,
+				linkedConsignmentId: linkedConsignment?.serverId || linkedConsignment?.id,
+				process: 'MarshalingDispatch',
+				syncStatus: 'pending',
+				created: new Date(),
+				updated: new Date().toISOString(),
+				siteLocation: 'PMC',
+			};
+
 			await indexedDBService.saveRecord('trainDispatches', trainDispatch);
+
 			success = 'Dispatch initialized';
 			goto(`/pmc/processes/magnetite-rail/marshaling-yard/marshaling-dispatch/wagon-linkage?dispatchId=${dispatchId}`);
 		} catch (e: any) {
@@ -149,28 +136,21 @@
 	{#if isLoading}
 		<div>Loading…</div>
 	{:else}
-	<FormField
-		label="Train Reference"
-		id="trainRef"
-		isSelect={true}
-		placeholder="Select Train Reference"
-		bind:value={selectedTrainRef}
-		options={trains.map((t) => ({ value: t.refNr, label: t.refNr }))}
+		<FormField
+			label="Train Reference"
+			id="trainRef"
+			isSelect={true}
+			placeholder="Select Train Reference"
+			bind:value={selectedTrainRef}
+			options={trains.map((t) => ({ value: t.refNr, label: t.refNr }))}
 		/>
 		<FormField	
 			label="Consignment Number"
 			id="consignmentNumber"
-			isSelect={false}
-			placeholder="Enter Consignment Number"
-			bind:value={manualConsignment}
-		/>
-		<FormField
-			label="Train RFID Number"
-			id="trainRfid"
-			isSelect={false}
-			placeholder="Enter Train RFID Number"
-			bind:value={manualRfid}
+			isSelect={true}
+			placeholder="Select Consignment Number"
+			bind:value={selectedConsignment}
+			options={consignments.map((c) => ({ value: c.name, label: c.name }))}
 		/>
 		{/if}
-		<!-- <Camera onPhotoSelected={handleCapture} on:close={handleCameraClose} /> -->	
 </ProcessLayout>

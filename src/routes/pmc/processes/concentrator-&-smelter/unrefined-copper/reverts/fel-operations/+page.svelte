@@ -127,6 +127,7 @@
 					id="felWeight"
 					label="FEL Weight (Tons)"
 					type="number"
+					step="0.01"
 					bind:value={felWeight}
 					placeholder="Enter FEL Weight"
 					required
