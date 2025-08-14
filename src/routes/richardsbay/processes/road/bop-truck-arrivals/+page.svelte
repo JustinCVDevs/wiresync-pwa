@@ -92,7 +92,7 @@
 
 	function handlePhotoSelected(file: File) {
 		if (!file) return;
-		// Example: read as base64 or save to DB
+
 		const reader = new FileReader();
 		reader.onload = () => {
 			photoData = reader.result as string;
@@ -126,7 +126,7 @@
 			await indexedDBService.updateRecord('truckArrivals', truckArrival.id, {
 					...truckArrival,
 					syncStatus: 'pending',
-					port_truck_arrival_timestamp: new Date().toISOString(),
+					port_truck_arrival_timestamp: formatTimestamp(new Date()),
 					status: 'received',
 					truck_photo: photoData
 				});

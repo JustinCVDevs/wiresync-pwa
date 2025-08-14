@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Camera from '$lib/components/Camera.svelte';
 	import { goto } from '$app/navigation';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Train, Consignment } from '$lib/types';
@@ -11,12 +10,7 @@
 	let trains: Train[] = [];
 	let consignments: Consignment[] = [];
 	let selectedTrainRef = '';
-	let selectedConsignment: string | undefined = '';
-	let manualConsignment = '';
-	let selectedRfid = '';
-	let manualRfid = '';
-	let capturedImage: string | null = null;
-	let showCamera = true;
+	let selectedConsignment = '';
 	let error = '';
 	let success = '';
 	let isLoading = true;
@@ -37,12 +31,6 @@
 				const foundTrain = trains.find((t) => t.refNr === selectedTrainRef);
 				if (foundTrain) {
 					train = foundTrain;
-					manualConsignment = '';
-					selectedConsignment = '';
-					selectedRfid = '';
-					manualRfid = '';
-					capturedImage = null;
-					showCamera = true;
 					error = '';
 					if (train) {
 						consignments = await indexedDBService.getRecords(
@@ -52,6 +40,14 @@
 					}
 				}
 			}
+
+			const consignmentRecords = await indexedDBService.getRecords(
+				'consignments',
+				(rec) => rec.syncStatus === 'synced'
+			);
+			consignments = consignmentRecords.filter(
+				(c) => !c.linkedTrainId && c.siteLocation === 'Bosveld'
+			);
 		} catch (e) {
 			console.error(e);
 			error = 'Failed to load data';
@@ -69,54 +65,40 @@
 			error = 'Please select a train reference number';
 			return;
 		}
-		if (!selectedConsignment && !manualConsignment) {
-			error = 'Please select or enter a consignment number';
+		if (!selectedConsignment) {
+			error = 'Please select a consignment number';
 			return;
 		}
 		if (!train?.serverId) return;
 
 		const dispatchId = crypto.randomUUID();
 		
-		function genId(len = 15) {
-			const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-			const bytes = crypto.getRandomValues(new Uint8Array(len));
-			return Array.from(bytes, (b) => chars[b % chars.length]).join('');
-		}
 		try {
-			if (manualConsignment) {
-				await indexedDBService.saveRecord('consignments', {
-					id: genId(),
-					name: manualConsignment,
-					linkedTrainId: train.serverId,
-					syncStatus: 'pending',
-					created: new Date(),
-					updated: new Date().toISOString(),
-					siteLocation: 'Bosveld'
-				});
+			const linkedConsignment = consignments.find((c) => c.name === selectedConsignment);
+			if (!linkedConsignment) {
+				error = 'Selected consignment not found';
+				return;
 			}
-			if (manualRfid) {
-				await indexedDBService.updateRecord('trains', train.serverId, {
-					...train,
-					rfidNr: manualRfid,
-					syncStatus: 'pending',
-					updated: new Date().toISOString()
-				});
-			}
-			const newConsignments = (await indexedDBService.getAllRecords('consignments')).find(
-				(c) => c.name === manualConsignment
-			);
+			await indexedDBService.updateRecord('consignments', linkedConsignment.id, {
+				linkedTrainId: train.serverId,
+				siteLocation: 'Bosveld',
+				syncStatus: 'pending',
+				updated: new Date().toISOString()
+			});
 
 			const trainDispatch: TrainDispatch = {
-			id: dispatchId,
-			linkedTrainId: train.serverId,
-			linkedConsignmentId: newConsignments?.serverId,
-			process: 'MarshalingDispatch',
-			syncStatus: 'pending',
-			created: new Date(),
-			updated: new Date().toISOString(),
-			siteLocation: 'Bosveld'
-		};
+				id: dispatchId,
+				linkedTrainId: train.serverId,
+				linkedConsignmentId: linkedConsignment?.serverId || linkedConsignment?.id,
+				process: 'MarshalingDispatch',
+				syncStatus: 'pending',
+				created: new Date(),
+				updated: new Date().toISOString(),
+				siteLocation: 'Bosveld',
+			};
+
 			await indexedDBService.saveRecord('trainDispatches', trainDispatch);
+
 			success = 'Dispatch initialized';
 			goto(`/bosveld/processes/marshaling-yard/marshaling-dispatch/wagon-linkage?dispatchId=${dispatchId}`);
 		} catch (e: any) {
@@ -154,35 +136,21 @@
 	{#if isLoading}
 		<div>Loading…</div>
 	{:else}
-
-	<FormField
-		label="Train Reference"
-		id="trainRef"
-		placeholder="Select Train Reference"
-		isSelect={true}
-		bind:value={selectedTrainRef}
-		options={trains.map((t) => ({ value: t.refNr, label: t.refNr }))}
-		/>
-	
-		<FormField	
-			label="Manual Consignment Number"
-			id="manualConsignmentNumber"
-			placeholder="Enter Consignment Number"
-			bind:value={manualConsignment}
-		/>
-
 		<FormField
-			label="Manual Train RFID Number"
-			id="manualTrainRfid"
-			placeholder="Enter Train RFID Number"
-			bind:value={manualRfid}
+			label="Train Reference"
+			id="trainRef"
+			isSelect={true}
+			placeholder="Select Train Reference"
+			bind:value={selectedTrainRef}
+			options={trains.map((t) => ({ value: t.refNr, label: t.refNr }))}
 		/>
-		<!-- 
-		{#if showCamera}
-			<Camera onPhotoSelected={handleCapture} on:close={handleCameraClose} />
+		<FormField	
+			label="Consignment Number"
+			id="consignmentNumber"
+			isSelect={true}
+			placeholder="Select Consignment Number"
+			bind:value={selectedConsignment}
+			options={consignments.map((c) => ({ value: c.name, label: c.name }))}
+		/>
 		{/if}
-		{#if capturedImage}
-			<img src={capturedImage} alt="Captured photo" class="mt-4 rounded shadow max-w-xs" />
-		{/if} -->
-	{/if}
 </ProcessLayout>

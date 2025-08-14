@@ -14,6 +14,7 @@
 	let success = '';
 	let isLoading = true;
 	let isSubmitting = false;
+	let wagonValue = false;
 	let trainId: string;
 	let wagonId: string;
 	let wagonPosition: number = 1;
@@ -24,6 +25,10 @@
 
 	const steps = ['Select Shunting Train', 'Wagon ID/RFID Editing'];
 	let currentStep = 2;
+
+	$: if(editableWagonId) {
+		wagonValue = true;
+	}
 
 	// Wrap reactive statements in try-catch to prevent exceptions
 	$: {
@@ -284,10 +289,12 @@
 					<!-- Temporary RFID (Editable) -->
 					<FormField
 						label="Temporary RFID:"
+						style="background-color: {wagonValue ? '#d1d5db' : 'transparent'}; cursor: {wagonValue ? 'not-allowed' : 'text'};"
 						id="temporaryRfid"
 						bind:value={editableTemporaryRfid}
 						placeholder="Scan or enter Temporary RFID"
 						required
+						disabled={wagonValue}
 					/>
 				</div>
 			</div>
