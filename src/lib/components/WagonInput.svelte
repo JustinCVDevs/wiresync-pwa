@@ -22,7 +22,7 @@
 
 	onMount(async () => {
 		const allWagons = (await indexedDBService.getAllRecords('wagons')).filter(
-			w => w.dispatchTimestamp === ''
+			w => !w.dispatchTimestamp
 		);
 		availableWagons = allWagons.map((w) => ({ value: w.wagonId, label: w.wagonId }));
 	});

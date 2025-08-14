@@ -12,7 +12,7 @@
 
 	let availableTrains: Train[] = [];
 	let selectedTrain: any = '';
-	let comment = '';
+	let comment: string | undefined = '';
 	// Process steps
 	const processSteps = ['Arrival Train', 'Wagon', 'Verification'];
 
@@ -38,7 +38,7 @@
 		);
 	});
 
-	async function fetchTrainDetails(comment: string | undefined) {
+	async function fetchTrainDetails() {
 		if (!selectedTrain) return;
 
 		const train = (await indexedDBService.getAllRecords('trains')).find(
@@ -57,7 +57,7 @@
 	}
 
 	$: if(selectedTrain) {
-		fetchTrainDetails(comment);
+		fetchTrainDetails();
 	}
 
 	async function handleSubmit() {

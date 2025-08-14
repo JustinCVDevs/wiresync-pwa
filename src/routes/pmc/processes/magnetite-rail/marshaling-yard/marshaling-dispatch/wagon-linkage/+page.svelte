@@ -71,7 +71,7 @@
 			await indexedDBService.updateRecord('wagons', wagon.id, {
 				...wagon,
 				syncStatus: 'pending',
-				dispatchTimestamp: new Date().toISOString(),
+				dispatchTimestamp: new Date(),
 				updated: new Date().toISOString()
 			});
 
