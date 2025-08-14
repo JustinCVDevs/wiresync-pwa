@@ -5,6 +5,7 @@
 	import FormField from '$lib/components/FormField.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Train } from '$lib/types/train';
+	import Camera from '$lib/components/Camera.svelte';
 
 	// Form state
 	let isSubmitting = false;
@@ -14,7 +15,7 @@
 	let showSearch = false;
 	let matchFound = false;
 	let consignment = '';
-
+	let photoData = '';
 	let availableTrains: Train[] = [];
 	let filteredTrains: any[] = [];
 	let selectedTrain: any = '';
@@ -77,6 +78,16 @@
 		return `${yyyy}/${mm}/${dd} ${hh}:${min}`;
 	}
 
+	function handlePhotoSelected(file: File) {
+		if (!file) return;
+		// Example: read as base64 or save to DB
+		const reader = new FileReader();
+		reader.onload = () => {
+			photoData = reader.result as string;
+		};
+		reader.readAsDataURL(file);
+	}
+
 	async function handleSubmit() {
 		try {
 			isSubmitting = true;
@@ -98,6 +109,7 @@
 					...trainArrival,
 					syncStatus: 'pending',
 					portRailArrivalTimestamp: arrivalTimestamp,
+					trainPhotoUrl: photoData,
 					status: 'sampling',
 				});
 
@@ -166,6 +178,10 @@
 						placeholder="Enter train registration"
 						disabled={true}
 					/>
+				</div>
+
+				<div style="margin-top: 1.2rem;">
+					<Camera onPhotoSelected={handlePhotoSelected} />
 				</div>
 				{#if !submit}
 					<div style="margin-top: 1.5rem;" class="text-green-500 mt-1 font-bold text-center">Train Successfully Received</div>

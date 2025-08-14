@@ -12,4 +12,5 @@ export interface TrainArrival extends BaseRecord {
 	syncStatus: 'pending' | 'synced';
 	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"
 	linkedWagonIds?: ID[];
+	comment?: string;
 }
