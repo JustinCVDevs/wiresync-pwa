@@ -8,6 +8,7 @@
     export let required: boolean = false;
     export let error: string = '';
     export let disabled: boolean = false;
+    export let style: string = '';
 
     // For select inputs
     export let options: { value: string; label: string }[] = [];
@@ -118,6 +119,7 @@
 		<input
 			{id}
 			{type}
+            {style}
             {step}
 			bind:value
 			{placeholder}

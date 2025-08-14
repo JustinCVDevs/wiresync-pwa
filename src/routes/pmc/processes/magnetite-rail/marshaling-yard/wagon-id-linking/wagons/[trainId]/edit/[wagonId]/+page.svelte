@@ -19,6 +19,7 @@
 
 	// Editable fields
 	let editableWagonId = '';
+	let wagonValue = false;
 	let editableTemporaryRfid = '';
 
 	const steps = ['Select Shunting Train', 'Wagon ID/RFID Editing'];
@@ -53,6 +54,10 @@
 			console.error('Error getting position:', e);
 			wagonPosition = 1;
 		}
+	}
+
+	$: if(editableWagonId) {
+		wagonValue = true;
 	}
 
 	async function loadWagonAndTrain() {
@@ -277,10 +282,12 @@
 					<!-- Temporary RFID (Editable) -->
 					<FormField
 						label="Temporary RFID:"
+						style="background-color: {wagonValue ? '#d1d5db' : 'transparent'}; cursor: {wagonValue ? 'not-allowed' : 'text'};"
 						id="temporaryRfid"
 						bind:value={editableTemporaryRfid}
 						placeholder="Scan or enter Temporary RFID"
 						required
+						disabled={wagonValue}
 					/>
 				</div>
 			</div>
