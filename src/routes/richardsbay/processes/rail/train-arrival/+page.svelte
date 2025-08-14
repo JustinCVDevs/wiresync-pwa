@@ -5,6 +5,7 @@
 	import FormField from '$lib/components/FormField.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Train } from '$lib/types/train';
+	import Camera from '$lib/components/Camera.svelte';
 
 	// Form state
 	let isSubmitting = false;
@@ -13,7 +14,8 @@
 	let arrivalTimestamp = formatTimestamp(new Date());
 	let showSearch = false;
 	let matchFound = false;
-
+	let consignment = '';
+	let photoData = '';
 	let availableTrains: Train[] = [];
 	let filteredTrains: any[] = [];
 	let selectedTrain: any = '';
@@ -39,12 +41,23 @@
 		);
 	});
 
+	async function getConsignment() {
+		const linkedTrain = (await indexedDBService.getAllRecords('trains')).find(train => train.refNr === selectedTrain);
+		if (linkedTrain) {
+			const linkedConsignment = (await indexedDBService.getAllRecords('consignments')).find(consignment => consignment.linkedTrainId === linkedTrain.id);
+			if (linkedConsignment) {
+				consignment = linkedConsignment.name;
+			}
+		}
+	}
+
 	$: {
 		if (selectedTrain) {
 			if (filteredTrains.length > 0) {
 				matchFound = filteredTrains.some(train => train.refNr?.toLowerCase() === selectedTrain?.toLowerCase());
 				if (matchFound) {
 					currentStep = 2;
+					getConsignment();
 				}
 			}
 		}
@@ -63,6 +76,16 @@
 		const hh = String(date.getHours()).padStart(2, '0');
 		const min = String(date.getMinutes()).padStart(2, '0');
 		return `${yyyy}/${mm}/${dd} ${hh}:${min}`;
+	}
+
+	function handlePhotoSelected(file: File) {
+		if (!file) return;
+		// Example: read as base64 or save to DB
+		const reader = new FileReader();
+		reader.onload = () => {
+			photoData = reader.result as string;
+		};
+		reader.readAsDataURL(file);
 	}
 
 	async function handleSubmit() {
@@ -86,6 +109,7 @@
 					...trainArrival,
 					syncStatus: 'pending',
 					portRailArrivalTimestamp: arrivalTimestamp,
+					trainPhotoUrl: photoData,
 					status: 'sampling',
 				});
 
@@ -139,12 +163,25 @@
 			{#if matchFound}
 				<div style="margin-top: 1.2rem;">
 					<FormField
+						id="consignment"
+						label="Consignment Number:"
+						bind:value={consignment}
+						disabled={true}
+					/>
+				</div>
+
+				<div style="margin-top: 1.2rem;">
+					<FormField
 						id="arrivalTimestamp"
 						label="Arrival Timestamp:"
 						bind:value={arrivalTimestamp}
 						placeholder="Enter train registration"
 						disabled={true}
 					/>
+				</div>
+
+				<div style="margin-top: 1.2rem;">
+					<Camera onPhotoSelected={handlePhotoSelected} />
 				</div>
 				{#if !submit}
 					<div style="margin-top: 1.5rem;" class="text-green-500 mt-1 font-bold text-center">Train Successfully Received</div>

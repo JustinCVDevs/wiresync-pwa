@@ -32,44 +32,57 @@
 		pocketbaseService.logout();
 		goto('/');
 	}
+
+	// Add this prop to receive the location
+	export let location: string;
 </script>
 
 <header class="flex items-center justify-between rounded-t-lg bg-gray p-4 mb-4">
-	<div class="flex items-center">
-		<div class="mr-2 rounded bg-white p-1">
-			<img src="/icons/logo-512.png" alt="Wire Sync Logo" class=" inline-block h-16 w-16" />
-		</div>
-	</div>
-	<div class="flex flex-1 justify-between">
-		<div class="mr-2 text-sm text-white">
-			<span>User: {pocketbaseService.currentUser?.name}</span>
-			<div class="flex items-center">
-				<span
-					class="mr-1 inline-block h-2 w-2 rounded-full sync-indicator {online ? "Online": "Offline"}"
-				></span>
-				<span class="text-xs">{online ? 'Online' : 'Offline'}</span>
-			</div>
-			{#if syncTimeDisplay !== 'false'}
-			<div class="text-xs">Synced: {syncTimeDisplay}</div>
-			{/if}
-		</div>
-		<button
-			class="rounded  px-2 py-1 text-xs text-white transition duration-200 hover:bg-gray-600"
-			on:click={handleLogout}
-		>
-			Log Out
-		</button>
-	</div>
+    <div class="flex items-center">
+        <div class="mr-2 rounded bg-white p-1">
+            <img src="/icons/logo-512.png" alt="Wire Sync Logo" class=" inline-block h-16 w-16" />
+        </div>
+    </div>
+    <div class="flex flex-1 justify-between">
+        <div class="mr-2 text-sm text-white">
+            <span>User: {pocketbaseService.currentUser?.name}</span>
+            <div class="flex items-center">
+                <span
+                    class="mr-1 inline-block h-2 w-2 rounded-full sync-indicator {online ? "Online": "Offline"}"
+                ></span>
+                <span class="text-xs">{online ? 'Online' : 'Offline'}</span>
+            </div>
+            {#if syncTimeDisplay !== 'false'}
+            <div class="text-xs">Synced: {syncTimeDisplay}</div>
+            {/if}
+        </div>
+        <div class="flex flex-col items-end">
+            {#if location === 'PMC'}
+                <img 
+                    src="/HBIS_PMC_logo_full_colour.jpg" 
+                    alt="PMC Logo" 
+                    class="mb-2 h-10 w-auto object-contain"
+                    style="max-width:100px;"
+                />
+            {/if}
+            <button
+                class="rounded  px-2 py-1 text-xs text-white transition duration-200 hover:bg-gray-600"
+                on:click={handleLogout}
+            >
+                Log Out
+            </button>
+        </div>
+    </div>
 </header>
 
 <style lang="postcss">
-	@reference "tailwindcss";
-	.sync-indicator {
-		font-size: 0.625rem;
-		background: var(--red);
-	}
+    @reference "tailwindcss";
+    .sync-indicator {
+        font-size: 0.625rem;
+        background: var(--red);
+    }
 
-	.sync-indicator.Online {
-		background:  var(--green);
-	}
+    .sync-indicator.Online {
+        background:  var(--green);
+    }
 </style>

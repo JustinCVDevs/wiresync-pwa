@@ -37,7 +37,7 @@
 	});
 </script>
 
-<Header {lastSyncTime} />
+<Header {lastSyncTime} location="Richards Bay"/>
 <Breadcrumbs />
 
 {#if message != null}

@@ -43,6 +43,24 @@
 		}));
 	});
 
+	function generateSampleId(): string {
+		const now = new Date();
+		const yyyy = now.getFullYear();
+		const mm = String(now.getMonth() + 1).padStart(2, '0');
+		const dd = String(now.getDate()).padStart(2, '0');
+		return `${yyyy}${mm}${dd}_`;
+	}
+
+	onMount(() => {
+		// Set initial sample ID
+		sampleId = generateSampleId();
+	});
+
+	// Update sampleId whenever truckRegistration changes
+	$: if (truckRegistration) {
+		sampleId = generateSampleId() + truckRegistration;
+	}
+
 	async function handleSubmit() {
 		try {
 			processLayout.setError('');

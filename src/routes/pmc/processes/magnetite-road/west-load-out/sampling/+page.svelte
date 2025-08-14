@@ -107,6 +107,21 @@
             : ['Iron Oxide', 'Magnetite 62%', 'Magnetite 65%'];
 	}
 
+	$: if (truckRegistration && dedicatedFleet === 'No') {
+		updateProductTypeFromTruckLoad();
+	}
+
+	async function updateProductTypeFromTruckLoad() {
+		if (truckRegistration) {
+			const truck = trucks.find(t => t.registration === truckRegistration);
+			const truckLoads = await indexedDBService.getAllRecords('truckLoads');
+			const truckLoad = truckLoads.find(
+				(load: TruckLoad) => load.truckId === truck?.serverId
+			);
+			productType = truckLoad?.materialType || '';
+		}
+	}
+
 	async function handleSubmit() {
 		try {
 			processLayout.setError('');

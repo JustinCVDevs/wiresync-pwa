@@ -12,7 +12,7 @@
 
 	let availableTrains: Train[] = [];
 	let selectedTrain: any = '';
-
+	let comment: string | undefined = '';
 	// Process steps
 	const processSteps = ['Arrival Train', 'Wagon', 'Verification'];
 
@@ -38,11 +38,51 @@
 		);
 	});
 
+	async function fetchTrainDetails() {
+		if (!selectedTrain) return;
+
+		const train = (await indexedDBService.getAllRecords('trains')).find(
+			t => t.refNr === selectedTrain
+		);
+
+		const trainArrival = (await indexedDBService.getAllRecords('trainArrivals')).find(
+			arrival => arrival.trainId === train?.serverId
+		);
+		if (!trainArrival) {
+			processLayout.setError('Train arrival not found.');
+			return;
+		}
+
+		comment = trainArrival.comment;
+	}
+
+	$: if(selectedTrain) {
+		fetchTrainDetails();
+	}
+
 	async function handleSubmit() {
 		if (!selectedTrain) {
 			processLayout.setError('Please select a train arrival ID.');
 			return;
 		}
+
+		const train = (await indexedDBService.getAllRecords('trains')).find(
+			t => t.refNr === selectedTrain
+		);
+
+		const trainArrival = (await indexedDBService.getAllRecords('trainArrivals')).find(
+			arrival => arrival.trainId === train?.serverId
+		);
+		if (!trainArrival) {
+			processLayout.setError('Train arrival not found.');
+			return;
+		}
+
+		await indexedDBService.updateRecord('trainArrivals', trainArrival.id, {
+			comment: comment,
+			syncStatus: 'pending'
+		});
+
 		goto(`/richardsbay/processes/rail/train-staging/wagons?trainRefNr=${selectedTrain}`);
 	}
 
@@ -78,6 +118,15 @@
 				required
 			/>
 		</div>
+		{#if selectedTrain}
+			<FormField
+				id="comment"
+				label="Comment"
+				isSelect={false}
+				bind:value={comment}
+				placeholder="Enter your comment"
+			/>
+		{/if}
 	</div>
 </ProcessLayout>
 

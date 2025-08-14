@@ -44,7 +44,7 @@
 						return null;
 					}
 				});
-				
+
 				const wagonResults = await Promise.all(wagonPromises);
 				// Filter out null results and ensure we have valid wagon objects
 				linkedWagons = wagonResults.filter(wagon => wagon !== null && wagon !== undefined) as Wagon[];
@@ -73,6 +73,16 @@
 				
 				// Save the updated shunting train with verification timestamp
 				await indexedDBService.saveRecord('shuntingTrains', updatedShuntingTrain);
+				
+				// Update each linked wagon's dispatch timestamp and set sync status to pending
+				for (const wagon of linkedWagons) {
+					const updatedWagon = {
+						...wagon,
+						dispatchTimestamp: new Date(),
+						syncStatus: 'pending' as const
+					};
+					await indexedDBService.saveRecord('wagons', updatedWagon);
+				}
 				
 				// Show success message
 				success = 'Process Complete';

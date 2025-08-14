@@ -4,9 +4,11 @@
     export let value: string = '';
     export let placeholder: string = '';
     export let type: string = 'text';
+    export let step: string | undefined = undefined;
     export let required: boolean = false;
     export let error: string = '';
     export let disabled: boolean = false;
+    export let style: string = '';
 
     // For select inputs
     export let options: { value: string; label: string }[] = [];
@@ -117,6 +119,8 @@
 		<input
 			{id}
 			{type}
+            {style}
+            {step}
 			bind:value
 			{placeholder}
 			class="w-full rounded-lg text-sm border px-3 py-2 text-gray border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none {error

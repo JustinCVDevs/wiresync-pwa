@@ -11,6 +11,12 @@
 
 	const processes = [
 		{
+			name: 'Truck Arrival',
+			icon: Train,
+			color: 'text-yellow-500',
+			href: '/bosveld/processes/truck-arrival'
+		},
+		{
 			name: 'Marshaling Yard',
 			icon: ReceiptText,
 			color: 'text-blue-500',
@@ -21,12 +27,6 @@
 			icon: ArrowRightCircle,
 			color: 'text-green-500',
 			href: '/bosveld/processes/loading-station'
-		},
-		{
-			name: 'Truck Arrival',
-			icon: Train,
-			color: 'text-yellow-500',
-			href: '/bosveld/processes/truck-arrival'
 		}
 	] as const;
 

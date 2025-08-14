@@ -5,6 +5,7 @@
 	import FormField from '$lib/components/FormField.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Truck } from '$lib/types/truck';
+	import Camera from '$lib/components/Camera.svelte';
 
 	// Form state
 	let isSubmitting = false;
@@ -13,7 +14,7 @@
 	let arrivalTimestamp = formatTimestamp(new Date());
 	let showSearch = false;
 	let matchFound = false;
-
+	let photoData = '';
 	let availableTrucks: Truck[] = [];
 	let filteredTrucks: any[] = [];
 	let selectedTruck: any = '';
@@ -67,11 +68,26 @@
 		return `${yyyy}/${mm}/${dd} ${hh}:${min}`;
 	}
 
+	function handlePhotoSelected(file: File) {
+		if (!file) return;
+		// Example: read as base64 or save to DB
+		const reader = new FileReader();
+		reader.onload = () => {
+			photoData = reader.result as string;
+		};
+		reader.readAsDataURL(file);
+	}
+
 	async function handleSubmit() {
 		try {
 			isSubmitting = true;
 			submit = true;
 			processLayout.setError('');
+
+			if (!photoData) {
+				processLayout.setError('Please take a photo of the truck.');
+				return;
+			}
 
 			// Check if truck exists in Pocketbase DB
 			const trucks = (await indexedDBService.getAllRecords('trucks')).filter(
@@ -89,6 +105,7 @@
 					syncStatus: 'pending',
 					port_truck_arrival_timestamp: new Date().toISOString(),
 					status: 'received',
+					truck_photo: photoData
 				});
 
 			processLayout.setSuccess('Truck Successfully Received!');
@@ -147,6 +164,10 @@
 						placeholder="Enter vehicle registration"
 						disabled={true}
 					/>
+				</div>
+
+				<div style="margin-top: 1.2rem;">
+					<Camera onPhotoSelected={handlePhotoSelected} />
 				</div>
 				{#if !submit}
 					<div style="margin-top: 1.5rem;" class="text-green-500 mt-1 font-bold text-center">Truck Successfully Received</div>

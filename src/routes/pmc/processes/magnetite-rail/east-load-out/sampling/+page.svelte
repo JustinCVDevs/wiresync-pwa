@@ -1,249 +1,217 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import FormField from '$lib/components/FormField.svelte';
+	import { onMount } from 'svelte';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
+	import FormField from '$lib/components/FormField.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
-	import { formPersistenceService } from '$lib/services/formPersistenceService';
-	import type { Assay } from '$lib/types/assay';
-	import type { Wagon } from '$lib/types/wagon';
-	import { syncService } from '$lib/services/syncService';
+	import type { ShuntingTrain } from '$lib';
 
-	let sampleId = '';
-	let wagonId = '';
-	let trainNumber = '';
-	let productGrade = localStorage.getItem('productGrade') || '';
-	let loadingLocation = 'East Load Out';
+	// Form state
 	let isSubmitting = false;
 	let currentStep = 1;
 
+	let availableTrains: any[] = [];
+	let selectedTrain: any = '';
+	let showPopup = false;
+
 	// Process steps
-	const processSteps = ['Sample Details', 'Complete'];
+	const processSteps = ['Shunting Train', 'Wagon Sampling', 'Verification'];
 
 	// Reference to the ProcessLayout component
 	let processLayout: ProcessLayout;
 
-	function handleCancel() {
-		goto('/pmc/processes/magnetite-rail/east-load-out');
-	}
-	// Form errors
-	let formErrors = {
-		sampleId: '',
-		productGrade: '',
-		wagonId: '',
-		trainNumber: ''
-	};
+	onMount(async () => {
+		// Fetch all shunting trains
+		const shuntingTrains = (await indexedDBService.getAllRecords('shuntingTrains')).filter(
+			shunting => shunting.finishSamplingTimestamp === '' && shunting.verificationTimestamp !== ''
+		);
 
-	$: {
-		const currentDate = new Date();
-		const YYMMDD = `${currentDate.getFullYear().toString().slice(-2)}${String(currentDate.getMonth() + 1).padStart(2, '0')}${String(currentDate.getDate()).padStart(2, '0')}`;
-
-		const productCode = {
-			'Iron Oxide': 'IOX',
-			'Magnetite-DMS': 'DMS',
-			'Magnetite 62%': 'MAG62',
-			'Magnetite 65%': 'MAG65'
-		}[productGrade];
-
-		sampleId = `${YYMMDD}${wagonId ? `_${wagonId}` : ''}${trainNumber ? `_${trainNumber}` : ''}${productCode ? `_${productCode}` : ''}`;
-	}
-
-	const productGrades = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite 62%', 'Magnetite 65%'];
-
-	const loadingLocations = ['East Load Out', 'West Load Out', 'Bosveld'];
-
-	// Save form data when component is unmounted
-	onMount(() => {
-		return () => {
-			if (sampleId || productGrade) {
-				formPersistenceService.saveForm('east_loadout', {
-					productGrade,
-					loadingLocation
-				});
-			}
-		};
+		availableTrains = shuntingTrains.map(shunting => ({
+			value: shunting.verificationTimestamp,
+			label: shunting.verificationTimestamp
+		}));
 	});
 
-	function validateForm() {
-		let isValid = true;
-		formErrors = {
-			sampleId: '',
-			productGrade: '',
-			wagonId: '',
-			trainNumber: ''
-		};
-
-		if (!sampleId) {
-			formErrors.sampleId = 'Sample ID is required';
-			isValid = false;
-		}
-
-		if (!productGrade) {
-			formErrors.productGrade = 'Product grade is required';
-			isValid = false;
-		}
-
-		if (!wagonId) {
-			formErrors.wagonId = 'Wagon ID is required';
-			isValid = false;
-		}
-
-		if (!trainNumber) {
-			formErrors.trainNumber = 'Train number is required';
-			isValid = false;
-		}
-
-		return isValid;
-	}
-
 	async function handleSubmit() {
-		if (!validateForm()) {
+		if (!selectedTrain) {
+			processLayout.setError('Please select a train reference number.');
 			return;
 		}
-		try {
-			isSubmitting = true;
-			processLayout.setError('');
-			processLayout.setSuccess('');
+		let shuntingTrain = (await indexedDBService.getAllRecords('shuntingTrains')).find(
+			train => train.verificationTimestamp === selectedTrain
+		);
 
-			//Create the wagon object
-			const wagon: Wagon = {
-				id: crypto.randomUUID(),
-				wagonId: wagonId,
-				trainNumber: trainNumber,
-				loadingLocation: loadingLocation,
-				productType: productGrade,
-				created: new Date(),
-				sampleId: sampleId,
-				syncStatus: 'pending',
+		if (!shuntingTrain) {
+			processLayout.setError(`No shunting train found.`);
+			return;
+		}
+
+		let linkedWagonIds = shuntingTrain.linkedWagons || [];
+
+		for (let wagonId of linkedWagonIds) {
+			let wagon = (await indexedDBService.getAllRecords('wagons')).find(
+				wagon => wagon.serverId === wagonId
+			);
+
+			if (wagon?.sampleTimestamp !== '') {
+				goto(`/pmc/processes/magnetite-rail/east-load-out/sampling/wagons/review?shuntingTrainVerificationDate=${selectedTrain}`);
+				return;
+			}
+		}
+		goto(`/pmc/processes/magnetite-rail/east-load-out/sampling/wagons?shuntingTrainVerificationDate=${selectedTrain}`);
+	}
+
+	async function confirmFinishSampling(confirm: boolean) {
+		if (confirm) {
+			let shuntingTrains = (await indexedDBService.getAllRecords('shuntingTrains')).find(
+				train => train.verificationTimestamp === selectedTrain
+			);
+
+			if (!shuntingTrains) {
+				processLayout.setError(`No shunting train found.`);
+				return;
 			}
 
-			// Save the wagon to IndexedDB
-			await indexedDBService.saveRecord('wagons', wagon);
+			await indexedDBService.updateRecord('shuntingTrains', shuntingTrains.id, {
+				finishSamplingTimestamp: new Date(),
+				syncStatus: 'pending'
+			});
 
-			// Try to sync the wagon
-			await syncService.syncWagon(wagon);
-
-			let allWagons = await indexedDBService.getAllRecords('wagons');
-			const foundWagon = allWagons.find((w) => w.transcoreTag === wagonId);
-
-			// Create the assay object according to the Assay interface
-			const assay: Assay = {
-				id: crypto.randomUUID(),
-				name: sampleId,
-				sampleId: sampleId,
-				productType: productGrade,
-				location: loadingLocation,
-				created: new Date(),
-				updated: new Date().toISOString(),
-				linkedWagonIds: [foundWagon?.serverId || ''],
-				syncStatus: 'pending',
-				siteLocation: 'PMC',
-			};
-
-			// Save to IndexedDB
-			await indexedDBService.saveRecord('assays', assay);
-
-			// Try to sync using the sync service
-			await syncService.syncAssay(assay);
-
-			
-
-			// Clear persisted form data
-			formPersistenceService.clearForm('east_loadout');
-
-			processLayout.setSuccess('Data saved successfully');
+			processLayout.setSuccess(`Train sampling finished successfully.`);
 			setTimeout(() => {
-				goto(
-					`/pmc/processes/magnetite-rail/east-load-out/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&wagonId=${encodeURIComponent(wagonId)}`
-				);
+				location.reload();
 			}, 1000);
-		} catch (err) {
-			processLayout.setError('Failed to save assay data');
-			console.error(err);
-		} finally {
-			isSubmitting = false;
 		}
+		showPopup = false;
+	}
+
+	function handleCancel() {
+		goto('/pmc/processes/magnetite-rail/east-load-out');
 	}
 </script>
 
 <ProcessLayout
-	title="Sample Details"
+	title="Train Shunting"
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
-	bind:this={processLayout}
 	cancelPath="/pmc/processes/magnetite-rail/east-load-out"
-	on:submit={handleSubmit}
+	bind:this={processLayout}
 	on:cancel={handleCancel}
+	on:submit={handleSubmit}
 >
 	<div slot="header">
-		<h5 class="text-xl font-bold ">Sample Details Capturing</h5>
-		<p class="text-sm text-gay">Please enter the sample and product details</p>
+		<h5 class="text-xl font-bold text-gray">Sampling Arrived Trains</h5>
 	</div>
 
-<div class="container">
-	<div class="form">
-		<FormField 
-			id="wagonId"
-			label="Please scan tag/enter Wagon ID"
-			bind:value={wagonId}
-			placeholder="Enter Wagon ID"
-			required={true}
-			error={formErrors.wagonId}
-		/>
-	</div>	
-	<div class="form">
-		<FormField
-			id="productGrade"
-			label="Product Selection"
-			bind:value={productGrade}
-			placeholder="Select Product Grade"
-			isSelect={true}
-			options={productGrades.map((grade) => ({ value: grade, label: grade }))}
-			required={true}
-			error={formErrors.productGrade}
-		/>
-	</div>	
-	<div class="form">	
-		<FormField 
-			id="trainNumber"
-			label="Train Number"
-			bind:value={trainNumber}
-			required={true}
-			placeholder="Enter Train Number"
-			error={formErrors.trainNumber}
-		/>
-	</div>		
-	<div class="form">	
-		<FormField
-			id="loadingLocation"
-			label="Loading Location"
-			bind:value={loadingLocation}
-			placeholder="Select Loading Location"
-			isSelect={true}
-			options={loadingLocations.map((location) => ({ value: location, label: location }))}
-			required={true}
-		/>
-	</div>	
-	<div class="form">	
-		<FormField
-			id="sampleId"
-			label="Sample ID"
-			bind:value={sampleId}
-			placeholder="Enter Sample ID"
-			required={true}
-			error={formErrors.sampleId}
-		/>
+	<div class="space-y-6">
+		<div class="form">
+			<FormField
+				id="trainArrival"
+				label="Train Reference Number"
+				isSelect={true}
+				options={availableTrains}
+				bind:value={selectedTrain}
+				placeholder="Select Train Reference Number"
+				required
+			/>
+		</div>
 	</div>
-</div>
 </ProcessLayout>
+{#if selectedTrain}
+	<div class="flex space-x-4 button-group">
+		<button
+			type="button"
+			class="submit-button flex-1 items-center justify-center rounded-lg py-3 text-white transition hover:bg-green-700 active:bg-green-800 disabled:opacity-50"
+			on:click={() => showPopup = true}
+		>
+			Finish Train Sampling
+		</button>
+	</div>
+{/if}
+<!-- Custom Popup -->
+{#if showPopup}
+	<div class="popup-overlay">
+		<div class="popup-content">
+			<p class="popup-message">Are you sure you are done sampling train {selectedTrain}?</p>
+			<div class="popup-buttons">
+				<button
+					type="button"
+					class="popup-button confirm-button"
+					on:click={() => confirmFinishSampling(true)}
+				>
+					Yes
+				</button>
+				<button
+					type="button"
+					class="popup-button cancel-button"
+					on:click={() => confirmFinishSampling(false)}
+				>
+					No
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <style>
-	.container {
-		max-width: 600px;
-		margin: 0 auto;
-	}
 	.form {
+		margin-top: 1rem;
+		position: relative;
+	}
+
+	.flex.space-x-4.button-group {
+		margin-left: 1rem;
+		margin-right: 1rem;
+	}
+
+	.popup-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background: rgba(0, 0, 0, 0.5);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		z-index: 1000;
+	}
+
+	.popup-content {
+		background: white;
+		padding: 2rem;
+		border-radius: 8px;
+		text-align: center;
+		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	}
+
+	.popup-message {
+		font-size: 1.2rem;
 		margin-bottom: 1rem;
+	}
+
+	.popup-buttons {
+		display: flex;
+		justify-content: center;
+		gap: 1rem;
+	}
+
+	.popup-button {
+		padding: 0.5rem 1rem;
+		border: none;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 1rem;
+	}
+
+	.confirm-button {
+		background: #4caf50;
+		color: white;
+	}
+
+	.cancel-button {
+		background: #f44336;
+		color: white;
 	}
 </style>

@@ -17,16 +17,22 @@
 
 	const processes = [
 		{
-			name: 'Sampling',
+			name: 'HG Concentrate',
 			icon: ArrowRightCircle,
 			color: 'text-green-500',
-			href: '/pmc/processes/concentrator-&-smelter/unrefined-copper/sampling'
+			href: '/pmc/processes/concentrator-&-smelter/unrefined-copper/hg-concentrate'
 		},
 		{
-			name: 'FEL Operations',
+			name: 'LG Concentrate',
 			icon: ArrowRightCircle,
 			color: 'text-green-500',
-			href: '/pmc/processes/concentrator-&-smelter/unrefined-copper/fel-operations'
+			href: '/pmc/processes/concentrator-&-smelter/unrefined-copper/lg-concentrate'
+		},
+		{
+			name: 'Reverts',
+			icon: ArrowRightCircle,
+			color: 'text-green-500',
+			href: '/pmc/processes/concentrator-&-smelter/unrefined-copper/reverts'
 		}
 	] as const;
 

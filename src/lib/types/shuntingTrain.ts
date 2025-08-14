@@ -8,5 +8,6 @@ export interface ShuntingTrain extends BaseRecord {
 	serverId?: string;
 	syncStatus: 'pending' | 'synced';// many-to-many with TruckLoad.id
 	verificationTimestamp?: Date | string; 
+	finishSamplingTimestamp?: Date | string;
 	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"
 }

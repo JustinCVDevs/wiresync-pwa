@@ -111,6 +111,10 @@
 				(truck: Truck) => truck.registration === truckRegistration
 			)[0];
 
+			if (!samplingStatus) {
+				sampleId = ''
+			}
+
 			const truckLoad: TruckLoad = {
 				id: crypto.randomUUID(),
 				truckId: linkTruck?.serverId || '',
@@ -220,6 +224,9 @@
 		/>
 
 		<div class="form-field">
+			<label for="sampleIdCheckbox" class="text-xs font-medium text-gray-700 flex justify-end">
+                Check box if truck was sampled
+            </label>
 			<div class="relative">
 				<FormField
 					id="sampleId"
@@ -235,7 +242,6 @@
 						class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
 						bind:checked={samplingStatus}
 					/>
-					<label for="sampleIdCheckbox" class="ml-2 text-sm font-medium text-gray-700"></label>
 				</div>
 			</div>
 		</div>
@@ -251,5 +257,9 @@
 
 	.form-field {
 		position: relative;
+	}
+	.form-field label {
+		transform: translateY(120%);
+		margin-top: -1rem;
 	}
 </style>

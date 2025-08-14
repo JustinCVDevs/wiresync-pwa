@@ -1,44 +1,42 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
-	import Camera from './Camera.svelte';
-	import RfidReader from './RFIDReader.svelte';
+	import { createEventDispatcher, onMount } from 'svelte';
+	import FormField from './FormField.svelte';
+	import { indexedDBService } from '$lib/services/indexedDBService';
 
 	export let wagonId = '';
-	export let rfidTag = '';
 
-	let showCamera = false;
-	let capturedImage: File | null = null;
+	let availableWagons: any[] = [];
 
 	const dispatch = createEventDispatcher<{
-		submit: { wagonId: string; rfidTag: string; image: File | null };
+		submit: { wagonId: string; };
 		cancel: void;
 	}>();
 
 	function handleSubmit() {
-		dispatch('submit', { wagonId, rfidTag, image: capturedImage });
+		dispatch('submit', { wagonId });
 	}
 
 	function handleCancel() {
 		dispatch('cancel');
 	}
 
-	function handleCapture(event: CustomEvent<File>) {
-		capturedImage = event.detail;
-	}
+	onMount(async () => {
+		const allWagons = (await indexedDBService.getAllRecords('wagons')).filter(
+			w => !w.dispatchTimestamp
+		);
+		availableWagons = allWagons.map((w) => ({ value: w.wagonId, label: w.wagonId }));
+	});
 </script>
 
 <div class="">
-
-	<RfidReader label="Please Scan or Enter Wagon ID:" onScan={(tagId)=>{ rfidTag = tagId}} targetFieldId="rfidTag" defaultValue={rfidTag}/>
-	
-
-	{#if capturedImage}
-		<div class="image-preview">
-			<img src={capturedImage.arrayBuffer} alt="Captured wagon" />
-			<button class="camera-button" on:click={() => (showCamera = true)}> Retake Photo </button>
-		</div>
-
-	{/if}
+	<FormField
+		label="Wagon ID"
+		id="wagonId"
+		isSelect={true}
+		placeholder="Select Wagon ID"
+		bind:value={wagonId}
+		options={availableWagons}
+	/>
 
 	<div class="flex justify-between items-center pt-8">
 		<button class=" w-36 text-sm rounded-lg bg-red py-3 text-white transition hover:bg-red-700 active:bg-red-800 disabled:opacity-50 px-2" on:click={handleCancel}>Cancel</button>
