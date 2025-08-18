@@ -2,7 +2,6 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
-	import FormField from '$lib/components/FormField.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Wagon } from '$lib/types/wagon';
 	import { page } from '$app/stores';
@@ -40,7 +39,7 @@
 		const linkedWagons = trainArrival.linkedWagonIds || [];
 
 		let allwagons = (await indexedDBService.getAllRecords('wagons')).filter(
-			wagon => wagon.dispatchTimestamp === ''
+			wagon => !wagon.dispatchTimestamp
 		);
 
 		availableWagons = allwagons.filter(
@@ -114,7 +113,7 @@
 			await indexedDBService.updateRecord('wagons', wagonToUse.id, {
 				...wagonToUse,
 				syncStatus: 'pending',
-				dispatchTimestamp: new Date().toISOString(),
+				dispatchTimestamp: new Date(),
 			});
 
 			// Add the new wagon's id to the list and pass as a query param

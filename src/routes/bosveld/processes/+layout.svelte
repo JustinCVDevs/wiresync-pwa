@@ -40,7 +40,7 @@
 	});
 </script>
 
-<Header {lastSyncTime} location="Bosveld"/>
+<Header {lastSyncTime} />
 <Breadcrumbs />
 
 {#if message != null}

@@ -33,8 +33,6 @@
 		goto('/');
 	}
 
-	// Add this prop to receive the location
-	export let location: string;
 </script>
 
 <header class="flex items-center justify-between rounded-t-lg bg-gray p-4 mb-4">
@@ -57,14 +55,12 @@
             {/if}
         </div>
         <div class="flex flex-col items-end">
-            {#if location === 'PMC'}
-                <img 
-                    src="/HBIS_PMC_logo_full_colour.jpg" 
-                    alt="PMC Logo" 
-                    class="mb-2 h-10 w-auto object-contain"
-                    style="max-width:100px;"
-                />
-            {/if}
+            <img 
+                src="/HBIS_PMC_logo_full_colour.jpg" 
+                alt="PMC Logo" 
+                class="mb-2 h-10 w-auto object-contain"
+                style="max-width:100px;"
+            />
             <button
                 class="rounded  px-2 py-1 text-xs text-white transition duration-200 hover:bg-gray-600"
                 on:click={handleLogout}
