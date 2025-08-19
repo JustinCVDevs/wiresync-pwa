@@ -86,10 +86,7 @@
                         }
 					}}
 					on:blur={() => {
-
-                        setTimeout(() => {
-                            showDropdown = false;
-                        }, 100);
+                        showDropdown = false;
 					}}
 				/>
 				<!-- Dropdown arrow inside the search box -->
@@ -103,7 +100,7 @@
 							<li>
 								<button
                                     type="button"
-									on:click={() => {
+									on:mousedown={() => {
 										selectOption(option.value);
 									}}
 									class="{value === option.value ? 'selected' : ''}"

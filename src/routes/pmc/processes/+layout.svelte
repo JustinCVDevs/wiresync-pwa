@@ -40,7 +40,7 @@
 	});
 </script>
 
-<Header {lastSyncTime}  location="PMC"/>
+<Header {lastSyncTime} />
 <Breadcrumbs />
 
 {#if message != null}

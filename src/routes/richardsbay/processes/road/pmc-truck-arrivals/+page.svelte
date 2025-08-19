@@ -169,9 +169,6 @@
 				<div style="margin-top: 1.2rem;">
 					<Camera onPhotoSelected={handlePhotoSelected} />
 				</div>
-				{#if !submit}
-					<div style="margin-top: 1.5rem;" class="text-green-500 mt-1 font-bold text-center">Truck Successfully Received</div>
-				{/if}
 			{/if}
 		</div>
 	</div>

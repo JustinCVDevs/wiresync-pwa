@@ -21,4 +21,5 @@ export interface Wagon extends BaseRecord {
 	releaseTimestamp?: Date;
 	loadingLocation?: string; // Location where the wagon is loaded
 	trainNumber?: string; // Train number associated with the wagon
+	tarpedStatus?: boolean; // Whether the wagon is tarped
 }

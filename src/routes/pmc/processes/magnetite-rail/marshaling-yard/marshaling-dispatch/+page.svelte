@@ -14,6 +14,9 @@
 	let error = '';
 	let success = '';
 	let isLoading = true;
+	let foundTrainDispatch = false;
+	let showPopup = false;
+	let processLayout: ProcessLayout;
 
 	const steps = ['Train & Consignment Details', 'Wagon Linkage'];
 	let currentStep = 1;
@@ -57,7 +60,64 @@
 	}
 
 	onMount(loadTrainsAndConsignments);
-	$: if (selectedTrainRef) loadTrainsAndConsignments();
+
+	async function checkTrainDispatches() {
+		const trains = (await indexedDBService.getAllRecords('trains')).find(
+			(t) => t.refNr === selectedTrainRef
+		);
+
+		const trainDispatches = (await indexedDBService.getAllRecords('trainDispatches')).find(
+			(d) => !d.dispatchTimestamp && d.linkedTrainId === trains?.serverId
+		);
+		
+		if (trainDispatches) {
+			// Find the consignment by id
+			const consignment = (await indexedDBService.getAllRecords('consignments')).find(
+				(c) => c.serverId === trainDispatches.linkedConsignmentId || c.id === trainDispatches.linkedConsignmentId
+			);
+			if (consignment) {
+				consignments = [...consignments, consignment];
+				selectedConsignment = consignment.name;
+				foundTrainDispatch = true;
+			}
+		}
+		
+	}
+
+	$: if (selectedTrainRef) {
+		checkTrainDispatches();
+	};
+
+	async function confirmFinishDispatch(confirm: boolean) {
+		if (confirm) {
+			let train = (await indexedDBService.getAllRecords('trains')).filter(
+				train => train.refNr === selectedTrainRef
+			)[0];
+
+			const trainDispatches = (await indexedDBService.getAllRecords('trainDispatches')).find(
+				(d) => !d.dispatchTimestamp && d.linkedTrainId === train?.serverId
+			);
+
+			if (!trainDispatches) {
+				error = 'Train dispatch not found';
+				return;
+			}
+
+			await indexedDBService.updateRecord('trainDispatches', trainDispatches.id, {
+				...trainDispatches,
+				syncStatus: 'pending',
+				dispatchTimestamp: new Date(),
+				updated: new Date().toISOString()
+			});
+		}
+		showPopup = false;
+
+		processLayout.setSuccess('Wagon linkage completed');
+
+		setTimeout(() => {
+			location.reload();
+		}, 1000);
+	}
 
 	async function handleSubmit() {
 		error = '';
@@ -69,38 +129,58 @@
 			error = 'Please select a consignment number';
 			return;
 		}
-		if (!train?.serverId) return;
 
 		const dispatchId = crypto.randomUUID();
 		
 		try {
-			const linkedConsignment = consignments.find((c) => c.name === selectedConsignment);
-			if (!linkedConsignment) {
-				error = 'Selected consignment not found';
-				return;
+			if (foundTrainDispatch) {
+				const trains = (await indexedDBService.getAllRecords('trains')).find(
+					(t) => t.refNr === selectedTrainRef
+				);
+
+				const trainDispatches = (await indexedDBService.getAllRecords('trainDispatches')).find(
+					(d) => !d.dispatchTimestamp && d.linkedTrainId === trains?.serverId
+				);
+				
+				goto(`/pmc/processes/magnetite-rail/marshaling-yard/marshaling-dispatch/wagon-linkage?dispatchId=${trainDispatches?.serverId}`);
+			} else {
+				const linkedConsignment = consignments.find((c) => c.name === selectedConsignment);
+				if (!linkedConsignment) {
+					error = 'Selected consignment not found';
+					return;
+				}
+				await indexedDBService.updateRecord('consignments', linkedConsignment.id, {
+					linkedTrainId: train.serverId,
+					siteLocation: 'PMC',
+					syncStatus: 'pending',
+					updated: new Date().toISOString()
+				});
+
+				const linkedTrainId = (await indexedDBService.getAllRecords('trains')).find(
+					(t) => t.refNr === selectedTrainRef
+				);
+
+				if (!linkedTrainId) {
+					error = 'Selected train not found';
+					return;
+				}
+
+				const trainDispatch: TrainDispatch = {
+					id: dispatchId,
+					linkedTrainId: linkedTrainId?.serverId || linkedTrainId?.id,
+					linkedConsignmentId: linkedConsignment?.serverId || linkedConsignment?.id,
+					process: 'MarshalingDispatch',
+					syncStatus: 'pending',
+					created: new Date(),
+					updated: new Date().toISOString(),
+					siteLocation: 'PMC',
+				};
+
+				await indexedDBService.saveRecord('trainDispatches', trainDispatch);
+
+				success = 'Dispatch initialized';
+				goto(`/pmc/processes/magnetite-rail/marshaling-yard/marshaling-dispatch/wagon-linkage?dispatchId=${dispatchId}`);
 			}
-			await indexedDBService.updateRecord('consignments', linkedConsignment.id, {
-				linkedTrainId: train.serverId,
-				siteLocation: 'PMC',
-				syncStatus: 'pending',
-				updated: new Date().toISOString()
-			});
-
-			const trainDispatch: TrainDispatch = {
-				id: dispatchId,
-				linkedTrainId: train.serverId,
-				linkedConsignmentId: linkedConsignment?.serverId || linkedConsignment?.id,
-				process: 'MarshalingDispatch',
-				syncStatus: 'pending',
-				created: new Date(),
-				updated: new Date().toISOString(),
-				siteLocation: 'PMC',
-			};
-
-			await indexedDBService.saveRecord('trainDispatches', trainDispatch);
-
-			success = 'Dispatch initialized';
-			goto(`/pmc/processes/magnetite-rail/marshaling-yard/marshaling-dispatch/wagon-linkage?dispatchId=${dispatchId}`);
 		} catch (e: any) {
 			console.error(e);
 			error = 'Failed to initialize dispatch' + e?.data?.toJson();
@@ -116,6 +196,7 @@
 	cancelPath="/pmc/processes/magnetite-rail/marshaling-yard"
 	on:cancel={() => goto('/pmc/processes/magnetite-rail/marshaling-yard')}
 	on:submit={handleSubmit}
+	bind:this={processLayout}
 	on:error={({ detail }) => (error = detail)}
 	on:success={({ detail }) => (success = detail)}
 >
@@ -154,3 +235,95 @@
 		/>
 		{/if}
 </ProcessLayout>
+{#if selectedTrainRef && foundTrainDispatch}
+	<div class="flex space-x-4 button-group">
+		<button
+			type="button"
+			class="submit-button flex-1 items-center justify-center rounded-lg py-3 text-white transition hover:bg-green-700 active:bg-green-800 disabled:opacity-50"
+			on:click={() => showPopup = true}
+		>
+			Finish Train Sampling
+		</button>
+	</div>
+	<!-- Custom Popup -->
+	{#if showPopup}
+		<div class="popup-overlay">
+			<div class="popup-content">
+				<p class="popup-message">Are you sure you are done sampling train {selectedTrainRef}?</p>
+				<div class="popup-buttons">
+					<button
+						type="button"
+						class="popup-button confirm-button"
+						on:click={() => confirmFinishDispatch(true)}
+					>
+						Yes
+					</button>
+					<button
+						type="button"
+						class="popup-button cancel-button"
+						on:click={() => confirmFinishDispatch(false)}
+					>
+						No
+					</button>
+				</div>
+			</div>
+		</div>
+	{/if}
+{/if}
+
+<style>
+	.flex.space-x-4.button-group {
+		margin-left: 1rem;
+		margin-right: 1rem;
+	}
+
+	.popup-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background: rgba(0, 0, 0, 0.5);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		z-index: 1000;
+	}
+
+	.popup-content {
+		background: white;
+		padding: 2rem;
+		border-radius: 8px;
+		text-align: center;
+		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	}
+
+	.popup-message {
+		font-size: 1.2rem;
+		margin-bottom: 1rem;
+	}
+
+	.popup-buttons {
+		display: flex;
+		justify-content: center;
+		gap: 1rem;
+	}
+
+	.popup-button {
+		padding: 0.5rem 1rem;
+		border: none;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 1rem;
+	}
+
+	.confirm-button {
+		background: #4caf50;
+		color: white;
+	}
+
+	.cancel-button {
+		background: #f44336;
+		color: white;
+	}
+</style>
