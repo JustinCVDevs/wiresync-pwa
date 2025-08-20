@@ -28,7 +28,7 @@
 	onMount(async () => {
 		// Fetch all truck arrivals
 		const truckArrivals = (await indexedDBService.getAllRecords('truckArrivals')).filter(
-			arrival => arrival.port_truck_arrival_timestamp === ''
+			arrival => !arrival.port_truck_arrival_timestamp
 		);
 
 		// Get linked trucks from truck arrivals
@@ -103,16 +103,12 @@
 			await indexedDBService.updateRecord('truckArrivals', truckArrival.id, {
 					...truckArrival,
 					syncStatus: 'pending',
-					port_truck_arrival_timestamp: new Date().toISOString(),
+					port_truck_arrival_timestamp: new Date(),
 					status: 'received',
 					truck_photo: photoData
 				});
 
-			processLayout.setSuccess('Truck Successfully Received!');
-
-			setTimeout(() => {
-				location.reload();
-			}, 1000);
+			goto('/richardsbay/processes/road/pmc-truck-arrivals/verification?truckArrivalId=' + truckArrival.id);
 		} catch (error) {
 			console.error('Failed to submit truck arrival:', error);
 			processLayout.setError('Failed to submit truck arrival. Please try again.');
