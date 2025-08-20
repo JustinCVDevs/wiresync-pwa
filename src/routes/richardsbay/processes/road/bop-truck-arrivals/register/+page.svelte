@@ -178,7 +178,6 @@
 				updated: new Date().toISOString(),
 				syncStatus: 'pending',
 				siteLocation: 'Richards Bay',
-				port_truck_arrival_timestamp: ''
 			};
 
 			// Save truck arrival record

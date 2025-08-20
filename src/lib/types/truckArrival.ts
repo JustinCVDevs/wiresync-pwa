@@ -8,7 +8,7 @@ export interface TruckArrival extends BaseRecord{
 	truckId?: string;                // relation ID or plate number
 	port_arrival_sample_id?: string;
 	truck_photo?: string;                     // filenames as returned by PocketBase
-	port_truck_arrival_timestamp?: string;      // ISO datetime
+	port_truck_arrival_timestamp?: Date;      // ISO datetime
 	status?: 'received' | 'registered';
   
 	/** Populated only when registering a new truck */
