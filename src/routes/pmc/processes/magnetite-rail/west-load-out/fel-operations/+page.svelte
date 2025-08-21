@@ -1,203 +1,99 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import FormField from '$lib/components/FormField.svelte';
+	import { onMount } from 'svelte';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
+	import FormField from '$lib/components/FormField.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
-	import { formPersistenceService } from '$lib/services/formPersistenceService';
 
-	let availableWagons: any[] = [];
-	let selectedWagon = '';
-
-	let felWeight = '';
-	let loadingLocation = 'West Load Out';
+	// Form state
 	let isSubmitting = false;
 	let currentStep = 1;
 
+	let availableTrains: any[] = [];
+	let selectedTrain: any = '';
+
 	// Process steps
-	const processSteps = ['FEL Weight Capturing', 'Complete'];
+	const processSteps = ['Shunting Train', 'Wagon FEL Operations', 'Verification'];
 
 	// Reference to the ProcessLayout component
 	let processLayout: ProcessLayout;
 
-	function handleCancel() {
-		goto('/pmc/processes/magnetite-rail/west-load-out');
-	}
-	// Form errors
-	let formErrors = {
-		selectedWagon: '',
-		felWeight: '',
-	};
-
-	const loadingLocations = ['East Load Out', 'West Load Out', 'Bosveld'];
-
 	onMount(async () => {
-		availableWagons = await getWagons();
+		// Fetch all shunting trains
+		const shuntingTrains = (await indexedDBService.getAllRecords('shuntingTrains')).filter(
+			shunting => !shunting.finishFELOperationTimestamp && shunting.verificationTimestamp && shunting.siteLocation === 'PMC'
+		);
 
-		loadPersistedData();
+		availableTrains = shuntingTrains.map(shunting => ({
+			value: shunting.verificationTimestamp,
+			label: shunting.verificationTimestamp
+		}));
 	});
-
-	// Save form data when component is unmounted
-	onMount(() => {
-		return () => {
-			if (loadingLocation) {
-				formPersistenceService.saveForm('west_loadout', {
-					loadingLocation
-				});
-			}
-		};
-	});
-
-	function loadPersistedData() {
-		const savedData = formPersistenceService.loadForm<{
-			loadingLocation: string;
-		}>('west_loadout');
-
-		if (savedData) {
-			loadingLocation = savedData.loadingLocation || 'West Load Out';
-		}
-	}
-
-	function validateForm() {
-		let isValid = true;
-		formErrors = {
-			selectedWagon: '',
-			felWeight: '',
-		};
-
-		if (!selectedWagon) {
-			formErrors.selectedWagon = 'Wagon ID is required';
-			isValid = false;
-		}
-
-		if (!felWeight || isNaN(Number(felWeight)) || Number(felWeight) <= 0) {
-			formErrors.felWeight = 'FEL Weight is required';
-			isValid = false;
-		}
-
-		return isValid;
-	}
-
-	// Fetch all wagons from IndexedDB that just got scanned in from sampling
-	async function getWagons() {
-		try {
-			const wagons = (await indexedDBService.getAllRecords('wagons')).filter((w) => {
-				return (
-					w.loadingLocation === 'West Load Out' && w.felWeight === 0
-				);
-			});
-
-			return wagons;
-		} catch (error) {
-			console.error('No wagons available', error);
-			return [];
-		}
-	}
 
 	async function handleSubmit() {
-		if (!validateForm()) {
+		if (!selectedTrain) {
+			processLayout.setError('Please select a train reference number.');
+			return;
+		}
+		let shuntingTrain = (await indexedDBService.getAllRecords('shuntingTrains')).find(
+			train => train.verificationTimestamp === selectedTrain
+		);
+
+		if (!shuntingTrain) {
+			processLayout.setError(`No shunting train found.`);
 			return;
 		}
 
-		try {
-			isSubmitting = true;
-			processLayout.setError('');
-			processLayout.setSuccess('');
+		let linkedWagonIds = shuntingTrain.linkedWagons || [];
 
-			if (selectedWagon) {
-				let wagon = (await indexedDBService.getAllRecords('wagons')).find(
-					(w) => w.sampleId === selectedWagon
-				);
+		for (let wagonId of linkedWagonIds) {
+			let wagon = (await indexedDBService.getAllRecords('wagons')).find(
+				wagon => wagon.serverId === wagonId
+			);
 
-				if (!wagon) {
-					processLayout.setError('Wagon not found');
-					return;
-				}
-
-				wagon.loadingLocation = loadingLocation;
-				wagon.felWeight = Number(felWeight);
-				wagon.syncStatus = 'pending';
-				wagon.updated = new Date().toISOString();
-
-				await indexedDBService.updateRecord('wagons', wagon.id, wagon);
-
-				processLayout.setSuccess('Data saved successfully');
-				setTimeout(() => {
-					// Navigate to verification page
-					goto(`/pmc/processes/magnetite-rail/west-load-out/fel-operations/verification?wagonId=${encodeURIComponent(wagon.wagonId || '')}`);
-				}, 1000);
+			if (wagon?.felTimestamp) {
+				goto(`/pmc/processes/magnetite-rail/west-load-out/fel-operations/wagons/review?shuntingTrainVerificationDate=${selectedTrain}`);
+				return;
 			}
-			// Clear persisted form data
-			formPersistenceService.clearForm('west_loadout');
-		} catch (err) {
-			processLayout.setError('Failed to save assay data');
-			console.error(err);
-		} finally {
-			isSubmitting = false;
 		}
+		goto(`/pmc/processes/magnetite-rail/west-load-out/fel-operations/wagons?shuntingTrainVerificationDate=${selectedTrain}`);
+	}
+
+	function handleCancel() {
+		goto('/pmc/processes/magnetite-rail/west-load-out');
 	}
 </script>
 
 <ProcessLayout
-	title="Wagon Details"
+	title="Train FEL Operations"
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
-	bind:this={processLayout}
 	cancelPath="/pmc/processes/magnetite-rail/west-load-out"
-	on:submit={handleSubmit}
+	bind:this={processLayout}
 	on:cancel={handleCancel}
+	on:submit={handleSubmit}
 >
 	<div slot="header">
-		<h5 class="text-xl font-bold ">Wagon Details Capturing</h5>
-		<p class="text-sm text-gay">Please enter the wagon details</p>
+		<h5 class="text-xl font-bold text-gray">FEL capturing Shunting Trains</h5>
 	</div>
 
-<div class="container">
-	<div class="form">
-		<FormField
-			id="wagonId"
-			label="Wagon ID"
-			search={true}
-			options={availableWagons.map(wagon => ({value: wagon.sampleId, label: wagon.wagonId}))}
-			bind:value={selectedWagon}
-			placeholder="Select Wagon ID"
-			required
-		/>
+	<div class="space-y-6">
+		<div class="form">
+			<FormField
+				id="trainArrival"
+				label="Train Reference Number"
+				isSelect={true}
+				options={availableTrains}
+				bind:value={selectedTrain}
+				placeholder="Select Train Reference Number"
+				required
+			/>
+		</div>
 	</div>
-
-	<div class="form">
-		<FormField 
-			id="felWeight"
-			label="FEL Weight (Tons)"
-			type="number"
-			step="0.01"
-			bind:value={felWeight}
-			placeholder="Enter FEL Weight"
-			required={true}
-			error={formErrors.felWeight}
-		/>
-	</div>	
-
-	<div class="form">	
-		<FormField
-			id="loadingLocation"
-			label="Loading Location"
-			bind:value={loadingLocation}
-			placeholder="Select Loading Location"
-			isSelect={true}
-			options={loadingLocations.map((location) => ({ value: location, label: location }))}
-			required={true}
-		/>
-	</div>	
-</div>
 </ProcessLayout>
 
 <style>
-	.container {
-		max-width: 600px;
-		margin: 0 auto;
-	}
 	.form {
 		margin-top: 1rem;
 		position: relative;

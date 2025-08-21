@@ -8,7 +8,6 @@
 	import type { Assay } from '$lib/types/assay';
 	import { syncService } from '$lib/services/syncService';
 	import { page } from '$app/stores';
-	import type { Wagon } from '$lib';
 
 	let sampleId = '';
 	let trainNumber = '';

@@ -22,15 +22,6 @@
 	const steps = ['Arrival Train', 'Wagon Sampling', 'Verification'];
 	let currentStep = 3;
 
-	function formatTimestamp(date: Date) {
-		const yyyy = date.getFullYear();
-		const mm = String(date.getMonth() + 1).padStart(2, '0');
-		const dd = String(date.getDate()).padStart(2, '0');
-		const hh = String(date.getHours()).padStart(2, '0');
-		const min = String(date.getMinutes()).padStart(2, '0');
-		return `${yyyy}/${mm}/${dd} ${hh}:${min}`;
-	}
-
 	async function loadWagons() {
 		isLoading = true;
 		try {
@@ -39,7 +30,7 @@
 			let linkedWagonIds = shuntingTrain?.linkedWagons || [];
 
 			const allWagons = (await indexedDBService.getAllRecords('wagons')).filter(
-				wagon => wagon.sampleTimestamp !== ''
+				wagon => wagon.felTimestamp
 			);
 
 			filteredWagons = allWagons.filter(w => linkedWagonIds.includes(w.id));
@@ -56,36 +47,35 @@
 	});
 
 	function handleNewWagon() {
-		goto(`/bosveld/processes/loading-station/sampling/wagons/?wagonIds=${wagonIds.join(',')}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`);
+		goto(`/pmc/processes/magnetite-rail/west-load-out/fel-operations/wagons/?wagonIds=${wagonIds.join(',')}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`);
 	}
 
 	function handleCancel() {
-		goto('/bosveld/processes/loading-station/sampling');
+		goto('/pmc/processes/magnetite-rail/west-load-out/fel-operations');
 	}
 
 	async function handleSubmit() {
-		processLayout.setSuccess('Wagons Successfully Sampled!');
+		processLayout.setSuccess('Wagons Successfully weighed!');
 
 		setTimeout(() => {
-			goto('/bosveld/processes/loading-station/sampling');
+			goto('/pmc/processes/magnetite-rail/west-load-out/fel-operations');
 		}, 1000);
 	}
 
 	async function confirmFinishSampling(confirm: boolean) {
 		if (confirm) {
-
 			let shuntingTrain = (await indexedDBService.getAllRecords('shuntingTrains')).filter(
 				arrival => arrival.verificationTimestamp === shuntingTrainVerificationDate
 			)[0];
 
 			await indexedDBService.updateRecord('shuntingTrains', shuntingTrain.id, {
-				finishSamplingTimestamp: new Date(),
+				finishFELOperationTimestamp: new Date(),
 				syncStatus: 'pending'
 			});
 
-			processLayout.setSuccess(`Train sampling finished.`);
+			processLayout.setSuccess(`Train FEL operations finished.`);
 			setTimeout(() => {
-				goto('/bosveld/processes/loading-station/sampling');
+				goto('/pmc/processes/magnetite-rail/west-load-out/fel-operations');
 			}, 1000);
 		}
 		showPopup = false;
@@ -97,7 +87,7 @@
 	{steps}
 	{currentStep}
 	isSubmitting={isLoading}
-	cancelPath="/bosveld/processes/loading-station/sampling"
+	cancelPath="/pmc/processes/magnetite-rail/west-load-out/fel-operations"
 	bind:this={processLayout}
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
@@ -127,7 +117,7 @@
 		<!-- Linked Wagons -->
 		<div class="mb-6">
 			<div class="mb-4 flex items-center justify-between">
-				<p class="text-sm text-gray">Sampled Wagons: <span class="font-bold">{filteredWagons.length}</span></p>
+				<p class="text-sm text-gray">Weighed Wagons: <span class="font-bold">{filteredWagons.length}</span></p>
 				<button
 					type="button"
 					class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition hover:bg-blue-700"
@@ -144,12 +134,9 @@
 								<div class="font-medium text-gray">
 									<span class="text-sm font-light">Wagon ID:</span> {wagon.wagonId}
 								</div>
-								<div class="font-medium text-gray">
-									<span class="text-sm font-light">
-										Sample ID: </span> 
-										{wagon.sampleId 
-										? wagon.sampleId
-										: 'Not set'}
+
+								<div>
+									<span class="text-sm font-light">FEL Weight:</span> {wagon.felWeight}
 								</div>
 							</div>
 						</div>
