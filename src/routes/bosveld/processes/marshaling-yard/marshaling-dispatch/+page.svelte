@@ -144,11 +144,21 @@
 				
 				goto(`/bosveld/processes/marshaling-yard/marshaling-dispatch/wagon-linkage?dispatchId=${trainDispatches?.serverId}`);
 			} else {
+				const train = (await indexedDBService.getAllRecords('trains')).find(
+					(t) => t.refNr === selectedTrainRef
+				);
+
 				const linkedConsignment = consignments.find((c) => c.name === selectedConsignment);
+				console.log('linkedConsignment', linkedConsignment);
 				if (!linkedConsignment) {
 					error = 'Selected consignment not found';
 					return;
 				}
+				if (!train) {
+					error = 'Selected train not found';
+					return;
+				}
+
 				await indexedDBService.updateRecord('consignments', linkedConsignment.id, {
 					linkedTrainId: train.serverId,
 					siteLocation: 'Bosveld',
@@ -183,7 +193,7 @@
 			}
 		} catch (e: any) {
 			console.error(e);
-			error = 'Failed to initialize dispatch' + e?.data?.toJson();
+			error = 'Failed to initialize dispatch ' + e?.data?.toJson();
 		}
 	}
 </script>

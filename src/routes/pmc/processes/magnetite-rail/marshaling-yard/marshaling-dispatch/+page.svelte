@@ -144,11 +144,20 @@
 				
 				goto(`/pmc/processes/magnetite-rail/marshaling-yard/marshaling-dispatch/wagon-linkage?dispatchId=${trainDispatches?.serverId}`);
 			} else {
+				const train = (await indexedDBService.getAllRecords('trains')).find(
+					(t) => t.refNr === selectedTrainRef
+				);
+
 				const linkedConsignment = consignments.find((c) => c.name === selectedConsignment);
 				if (!linkedConsignment) {
 					error = 'Selected consignment not found';
 					return;
 				}
+				if (!train) {
+					error = 'Selected train not found';
+					return;
+				}
+				
 				await indexedDBService.updateRecord('consignments', linkedConsignment.id, {
 					linkedTrainId: train.serverId,
 					siteLocation: 'PMC',

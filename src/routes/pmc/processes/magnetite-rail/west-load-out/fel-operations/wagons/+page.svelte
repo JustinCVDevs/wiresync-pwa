@@ -92,7 +92,7 @@
 		const linkedWagons = shuntingTrain?.linkedWagons || [];
 
 		let allwagons = (await indexedDBService.getAllRecords('wagons')).filter(
-			wagon => wagon.dispatchTimestamp && !wagon.felTimestamp
+			wagon => !wagon.felTimestamp
 		);
 		
 		availableWagons = allwagons.filter(

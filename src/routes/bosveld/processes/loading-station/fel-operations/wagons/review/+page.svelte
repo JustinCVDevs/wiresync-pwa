@@ -169,7 +169,7 @@
 		class="submit-button flex-1 items-center justify-center rounded-lg py-3 text-white transition hover:bg-green-700 active:bg-green-800 disabled:opacity-50"
 		on:click={() => showPopup = true}
 	>
-		Finish Train Weighing
+		Finish Train FEL Operations
 	</button>
 </div>
 <!-- Custom Popup -->
