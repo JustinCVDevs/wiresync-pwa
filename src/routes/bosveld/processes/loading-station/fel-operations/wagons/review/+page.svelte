@@ -62,7 +62,7 @@
 		}, 1000);
 	}
 
-	async function confirmFinishSampling(confirm: boolean) {
+	async function confirmFinishWeighing(confirm: boolean) {
 		if (confirm) {
 			let shuntingTrain = (await indexedDBService.getAllRecords('shuntingTrains')).filter(
 				arrival => arrival.verificationTimestamp === shuntingTrainVerificationDate
@@ -154,26 +154,26 @@
 		class="submit-button flex-1 items-center justify-center rounded-lg py-3 text-white transition hover:bg-green-700 active:bg-green-800 disabled:opacity-50"
 		on:click={() => showPopup = true}
 	>
-		Finish Train Sampling
+		Finish Train Weighing
 	</button>
 </div>
 <!-- Custom Popup -->
 {#if showPopup}
 	<div class="popup-overlay">
 		<div class="popup-content">
-			<p class="popup-message">Are you sure you are done sampling train {shuntingTrainVerificationDate}?</p>
+			<p class="popup-message">Are you sure you are done Weighing train {shuntingTrainVerificationDate}?</p>
 			<div class="popup-buttons">
 				<button
 					type="button"
 					class="popup-button confirm-button"
-					on:click={() => confirmFinishSampling(true)}
+					on:click={() => confirmFinishWeighing(true)}
 				>
 					Yes
 				</button>
 				<button
 					type="button"
 					class="popup-button cancel-button"
-					on:click={() => confirmFinishSampling(false)}
+					on:click={() => confirmFinishWeighing(false)}
 				>
 					No
 				</button>
