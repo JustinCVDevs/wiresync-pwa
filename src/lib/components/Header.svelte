@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { pocketbaseService } from '$lib/services/pocketbaseService';
-	import LoginForm from './LoginForm.svelte';
 
 	import type { Writable } from 'svelte/store';
 	export let lastSyncTime: Writable<Date | null>;
