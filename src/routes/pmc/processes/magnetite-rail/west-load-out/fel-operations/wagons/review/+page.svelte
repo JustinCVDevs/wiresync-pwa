@@ -6,6 +6,7 @@
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Wagon } from '$lib/types';
 	import { Container } from 'lucide-svelte';
+	import NoMoreWagons from '$lib/components/NoMoreWagons.svelte';
 
 	let wagonIds: string[] = [];
 	$: wagonIds = ($page.url.searchParams.get('wagonIds') || '').split(',').filter(Boolean);
@@ -18,6 +19,7 @@
 	let isLoading = true;
 	let processLayout: ProcessLayout;
 	let showPopup = false;
+	let showNoMoreWagons = false;
 
 	const steps = ['Arrival Train', 'Wagon Sampling', 'Verification'];
 	let currentStep = 3;
@@ -46,8 +48,16 @@
 		loadWagons();
 	});
 
-	function handleNewWagon() {
-		goto(`/pmc/processes/magnetite-rail/west-load-out/fel-operations/wagons/?wagonIds=${wagonIds.join(',')}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`);
+	async function handleNewWagon() {
+		const unweighedWagons = filteredWagons.filter(
+			w => !w.felTimestamp
+		);
+
+		if (unweighedWagons.length === 0) {
+			showNoMoreWagons = true;
+		} else {
+			goto(`/pmc/processes/magnetite-rail/west-load-out/fel-operations/wagons/?wagonIds=${wagonIds.join(',')}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`);
+		}
 	}
 
 	function handleCancel() {
@@ -148,6 +158,11 @@
 		</div>
 	{/if}
 </ProcessLayout>
+
+{#if showNoMoreWagons}
+	<NoMoreWagons on:ok={() => (showNoMoreWagons = false)} />
+{/if}
+
 <div class="flex space-x-4 button-group">
 	<button
 		type="button"
