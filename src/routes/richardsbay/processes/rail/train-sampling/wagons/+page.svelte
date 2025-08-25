@@ -161,7 +161,7 @@
 				placeholder="Scan/Enter Wagon ID"
 				on:input={handleWagonInput}
 				on:focus={showAllWagonSuggestions}
-				on:blur={() => setTimeout(() => showWagonSuggestions = false, 100)}
+				on:blur={() => setTimeout(() => showWagonSuggestions = false, 200)}
 				required
 				class="w-full rounded-lg text-sm border px-3 py-2 text-gray border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none"
 			/>
@@ -171,14 +171,14 @@
 						<li>
 							<button
 								type="button"
-								on:click={() => {
-									wagonID = suggestion.wagonId ?? '';
+								on:mousedown|preventDefault={() => {
+									wagonID = suggestion.wagonId || '';
 									showWagonSuggestions = false;
 									selectedWagon = suggestion;
-									sampleId = suggestion.sampleId ?? '';
+									sampleId = suggestion.sampleId || '';
 								}}
 							>
-								{suggestion.wagonId}
+								{suggestion.wagonId || 'Unknown Wagon'}
 							</button>
 						</li>
 					{/each}
