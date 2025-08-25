@@ -21,7 +21,7 @@
 	let showPopup = false;
 	let showNoMoreWagons = false;
 
-	const steps = ['Arrival Train', 'Wagon Sampling', 'Verification'];
+	const processSteps = ['Shunting Train', 'Wagon FEL Operations', 'Verification'];
 	let currentStep = 3;
 
 	async function loadWagons() {
@@ -49,8 +49,13 @@
 	});
 
 	async function handleNewWagon() {
-		const unweighedWagons = filteredWagons.filter(
-			w => !w.felTimestamp
+		let shuntingTrain = (await indexedDBService.getAllRecords('shuntingTrains')).find(
+			t => t.verificationTimestamp === shuntingTrainVerificationDate
+		);
+		let linkedWagonIds = shuntingTrain?.linkedWagons || [];
+		const allWagons = await indexedDBService.getAllRecords('wagons');
+		const unweighedWagons = allWagons.filter(
+			w => linkedWagonIds.includes(w.id) && !w.felTimestamp
 		);
 
 		if (unweighedWagons.length === 0) {
@@ -94,7 +99,7 @@
 
 <ProcessLayout
 	title="Shunting Train - Review"
-	{steps}
+	steps={processSteps}
 	{currentStep}
 	isSubmitting={isLoading}
 	cancelPath="/pmc/processes/magnetite-rail/west-load-out/fel-operations"

@@ -49,8 +49,13 @@
 	});
 
 	async function handleNewWagon() {
-		const unweighedWagons = filteredWagons.filter(
-			w => !w.felTimestamp
+		let shuntingTrain = (await indexedDBService.getAllRecords('shuntingTrains')).find(
+			t => t.verificationTimestamp === shuntingTrainVerificationDate
+		);
+		let linkedWagonIds = shuntingTrain?.linkedWagons || [];
+		const allWagons = await indexedDBService.getAllRecords('wagons');
+		const unweighedWagons = allWagons.filter(
+			w => linkedWagonIds.includes(w.id) && !w.felTimestamp
 		);
 
 		if (unweighedWagons.length === 0) {
