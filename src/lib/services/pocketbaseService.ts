@@ -4,7 +4,7 @@ import PocketBase, {
 	type RecordSubscription
 } from 'pocketbase';
 import { indexedDBService } from './indexedDBService';
-import type { Train, Wagon, Sample, Assay, Consignment, TrainDispatch, TruckLoad, ShuntingTrain, TruckArrival, TrainArrival, Fleet, DedicatedFleetTruck } from '$lib';
+import type { Train, Wagon, Sample, Assay, Consignment, TrainDispatch, TruckLoad, ShuntingTrain, TruckArrival, TrainArrival, Fleet, DedicatedFleetTruck, User } from '$lib';
 
 const POCKETBASE_URL = "https://pb.claervolker.com";
 // make sure you have VITE_POCKETBASE_URL set in your .env
@@ -21,7 +21,8 @@ export type PBCollection =
 	| 'truckArrivals'
 	| 'trainArrivals'
 	| 'fleet'
-	| 'dedicatedFleetTrucks';
+	| 'dedicatedFleetTrucks'
+	| 'users';
 // add others here...
 
 type PBModelMap = {
@@ -50,6 +51,7 @@ type PBModelMap = {
 		linkedFleetId: string | undefined;
 		felWeight: number | undefined; id: string; registration: string 
 	};
+	users: User;
 };
 
 /**

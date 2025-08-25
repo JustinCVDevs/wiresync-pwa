@@ -79,7 +79,7 @@
 			)[0];
 
 			await indexedDBService.updateRecord('shuntingTrains', shuntingTrain.id, {
-				finishSamplingTimestamp: formatTimestamp(new Date()),
+				finishSamplingTimestamp: new Date(),
 				syncStatus: 'pending'
 			});
 

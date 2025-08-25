@@ -23,7 +23,7 @@
 	onMount(async () => {
 		// Fetch all shunting trains
 		const shuntingTrains = (await indexedDBService.getAllRecords('shuntingTrains')).filter(
-			shunting => shunting.finishSamplingTimestamp === '' && shunting.verificationTimestamp !== ''
+			shunting => !shunting.finishSamplingTimestamp && shunting.verificationTimestamp && shunting.siteLocation === 'PMC'
 		);
 
 		availableTrains = shuntingTrains.map(shunting => ({

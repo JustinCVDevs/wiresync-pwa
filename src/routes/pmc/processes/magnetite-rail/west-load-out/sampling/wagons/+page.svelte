@@ -8,7 +8,6 @@
 	import type { Assay } from '$lib/types/assay';
 	import { syncService } from '$lib/services/syncService';
 	import { page } from '$app/stores';
-	import type { Wagon } from '$lib';
 
 	let sampleId = '';
 	let trainNumber = '';
@@ -119,7 +118,7 @@
 		const linkedWagons = shuntingTrain?.linkedWagons || [];
 		
 		let allwagons = (await indexedDBService.getAllRecords('wagons')).filter(
-			wagon => wagon.dispatchTimestamp && wagon.sampleTimestamp === ''
+			wagon => wagon.sampleTimestamp === ''
 		);
 		
 		availableWagons = allwagons.filter(

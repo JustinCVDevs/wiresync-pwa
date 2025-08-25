@@ -18,6 +18,7 @@ export interface Wagon extends BaseRecord {
 	process?: string; // e.g. "Loading" / "Unloading" / "Transferring"
 	dispatchTimestamp?: Date;
 	sampleTimestamp?: string; // Timestamp when the wagon was sampled
+	felTimestamp?: Date;
 	releaseTimestamp?: Date;
 	loadingLocation?: string; // Location where the wagon is loaded
 	trainNumber?: string; // Train number associated with the wagon
