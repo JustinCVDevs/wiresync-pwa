@@ -30,11 +30,11 @@
 </script>
 
 <div class="flex items-end gap-4">
-	<div class="flex-1">
+	<div class="form">
 		<FormField
 			label="Wagon ID"
 			id="wagonId"
-			isSelect={true}
+			search={true}
 			placeholder="Select Wagon ID"
 			bind:value={wagonId}
 			options={availableWagons}
@@ -61,3 +61,10 @@
 			Submit Wagon</button>
 </div>
 
+<style>
+	.form {
+		margin-top: 1rem;
+		position: relative;
+		flex: 1;
+	}
+</style>

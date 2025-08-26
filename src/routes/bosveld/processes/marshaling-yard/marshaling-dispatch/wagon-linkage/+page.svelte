@@ -192,7 +192,9 @@
 						<li class="rounded bg-white shadow-sm px-3 py-2 flex items-center align-middle gap-3">
 							<Container size={16} class="inline text-xs"/>
 							<div>
-								<div class="text-gray font-medium "><span class="text-sm font-light">Wagon ID</span>: {wagons?.find((w)=> w.id == id)?.wagonId}</div>
+								<div class="text-gray font-medium ">
+									<span class="text-sm font-light">Wagon ID</span>: {wagons?.find((w)=> w.id == id)?.wagonId}
+								</div>
 								<div class="text-xs text-gray-400 text-left">
 									Date linked: {wagons?.find((w) => w.id == id)?.created
 									? new Date(wagons.find((w) => w.id == id)?.created!).toLocaleString("en-GB", {
@@ -205,32 +207,32 @@
 									})
 									: "–"}
 								</div>
-							</div>
-							<!-- Checkbox for tarped status -->
-							<div class="flex flex-col items-center ml-auto">
-								<label for={"tarped-" + id} class="mb-1 text-xs text-gray-700">
-									Check box if wagon is tarped
-								</label>
-								<input
-									id={"tarped-" + id}
-									type="checkbox"
-									class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-									checked={wagons?.find((w) => w.id == id)?.tarpedStatus === true}
-									on:change={async (e) => {
-										const target = e.target as HTMLInputElement | null;
-										const wagon = wagons?.find(w => w.id == id);
-										if (target && wagon) {
-											const isChecked = target.checked;
-											await indexedDBService.updateRecord('wagons', wagon.id, {
-												...wagon,
-												tarpedStatus: isChecked,
-												updated: new Date().toISOString(),
-												syncStatus: 'pending'
-											});
-											await loadDispatch();
-										}
-									}}
-								/>
+								<!-- Label and checkbox inline -->
+								<div class="flex items-center gap-2 mt-1">
+									<label for={"tarped-" + id} class="text-xs text-gray-400 mt-2" style="font-weight: semi-bold;">
+										Check box if wagon is tarped:
+									</label>
+									<input
+										id={"tarped-" + id}
+										type="checkbox"
+										class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mt-2 ml-2"
+										checked={wagons?.find((w) => w.id == id)?.tarpedStatus === true}
+										on:change={async (e) => {
+											const target = e.target as HTMLInputElement | null;
+											const wagon = wagons?.find(w => w.id == id);
+											if (target && wagon) {
+												const isChecked = target.checked;
+												await indexedDBService.updateRecord('wagons', wagon.id, {
+													...wagon,
+													tarpedStatus: isChecked,
+													updated: new Date().toISOString(),
+													syncStatus: 'pending'
+												});
+												await loadDispatch();
+											}
+										}}
+									/>
+								</div>
 							</div>
 						</li>
 					{/each}
