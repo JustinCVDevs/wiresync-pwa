@@ -8,6 +8,7 @@
 	import type { Assay } from '$lib/types/assay';
 	import { syncService } from '$lib/services/syncService';
 	import { page } from '$app/stores';
+	import QRPrinting from '$lib/components/QRPrinting.svelte';
 
 	let sampleId = '';
 	let trainNumber = '';
@@ -274,6 +275,8 @@
 			error={formErrors.sampleId}
 		/>
 	</div>
+
+	<QRPrinting {sampleId} />
 </div>
 </ProcessLayout>
 

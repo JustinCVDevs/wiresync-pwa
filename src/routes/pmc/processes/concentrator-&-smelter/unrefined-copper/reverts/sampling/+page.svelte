@@ -6,6 +6,7 @@
 	import FormField from '$lib/components/FormField.svelte';
 	import { syncService } from '$lib/services/syncService';
 	import { onMount } from 'svelte';
+	import QRPrinting from '$lib/components/QRPrinting.svelte';
 
 	let truckRegistration = '';
 	let materialType = 'Reverts';
@@ -157,6 +158,8 @@
 			/>
 		</div>
 	</div>
+
+	<QRPrinting {sampleId} />
 </ProcessLayout>
 
 <style>

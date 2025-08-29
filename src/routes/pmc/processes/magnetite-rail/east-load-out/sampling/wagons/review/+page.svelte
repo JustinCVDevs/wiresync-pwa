@@ -6,7 +6,7 @@
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Wagon } from '$lib/types';
 	import { Container } from 'lucide-svelte';
-	import QrPrinting from '$lib/components/QRPrinting.svelte';
+	import QRPrinting from '$lib/components/QRPrinting.svelte';
 
 	let wagonIds: string[] = [];
 	$: wagonIds = ($page.url.searchParams.get('wagonIds') || '').split(',').filter(Boolean);
@@ -165,7 +165,7 @@
 							</div>
 							{#if expandedWagonId === wagon.id}
 								<div class="bg-gray-50 px-3 py-4 border-l-4 border-blue-400">
-									<QrPrinting sampleId={wagon.sampleId} />
+									<QRPrinting sampleId={wagon.sampleId} />
 								</div>
 							{/if}
 						</div>

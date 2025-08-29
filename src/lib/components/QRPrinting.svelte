@@ -4,6 +4,7 @@
 
     let qrImageUrl: string = '';
     let loading = false;
+    let printPending = false;
 
     // Generate a combined image with Sample ID above QR code
     async function generateQRCode() {
@@ -42,39 +43,28 @@
         try {
             const qrCode = await generateQRCode();
             if (qrCode) {
-                // Create a hidden iframe for printing
-                const iframe = document.createElement('iframe');
-                iframe.style.position = 'fixed';
-                iframe.style.right = '0';
-                iframe.style.bottom = '0';
-                iframe.style.width = '0';
-                iframe.style.height = '0';
-                iframe.style.border = '0';
-                document.body.appendChild(iframe);
-
-                iframe.onload = function () {
-                    iframe.contentWindow?.focus();
-                    iframe.contentWindow?.print();
-                    setTimeout(() => document.body.removeChild(iframe), 1000);
-                };
-
-                iframe.srcdoc = `
-                    <html>
-                        <head>
-                            <title>Print QR Code</title>
-                            <style>
-                                body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #fff; }
-                                img { max-width: 100%; }
-                            </style>
-                        </head>
-                        <body>
-                            <img src="${qrCode}" alt="QR Code" />
-                        </body>
-                    </html>
-                `;
+                const printWindow = window.open('', '_blank');
+                if (printWindow) {
+                    printWindow.document.write(`
+                        <html>
+                            <head>
+                                <title>Print QR Code</title>
+                                <style>
+                                    body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #fff; }
+                                    .sample-id { font: bold 20px sans-serif; margin-bottom: 12px; }
+                                    img { max-width: 100%; width: 384px; }
+                                </style>
+                            </head>
+                            <body>
+                                <img src="${qrCode}" alt="QR Code" onload="window.print(); window.close();" />
+                            </body>
+                        </html>
+                    `);
+                    printWindow.document.close();
+                } else {
+                    alert('Unable to open print window. Please allow pop-ups for this site.');
+                }
             }
-            // Force loading for at least 3 seconds
-            await new Promise(res => setTimeout(res, 3000));
         } finally {
             loading = false;
         }

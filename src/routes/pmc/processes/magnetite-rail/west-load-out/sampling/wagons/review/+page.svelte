@@ -6,6 +6,7 @@
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Wagon } from '$lib/types';
 	import { Container } from 'lucide-svelte';
+	import QRPrinting from '$lib/components/QRPrinting.svelte';
 
 	let wagonIds: string[] = [];
 	$: wagonIds = ($page.url.searchParams.get('wagonIds') || '').split(',').filter(Boolean);
@@ -90,6 +91,12 @@
 		}
 		showPopup = false;
 	}
+
+	let expandedWagonId: string | null = null;
+
+	function toggleExpand(wagonId: string) {
+		expandedWagonId = expandedWagonId === wagonId ? null : wagonId;
+	}
 </script>
 
 <ProcessLayout
@@ -138,20 +145,29 @@
 			{#if filteredWagons.length > 0}
 				<div class="space-y-3">
 					{#each filteredWagons as wagon}
-						<div class="flex items-center gap-3 rounded bg-white px-3 py-2 shadow-sm">
-							<Container size={16} class="inline text-xs" />
-							<div class="flex-1">
-								<div class="font-medium text-gray">
-									<span class="text-sm font-light">Wagon ID:</span> {wagon.wagonId}
-								</div>
-								<div class="font-medium text-gray">
-									<span class="text-sm font-light">
-										Sample ID: </span> 
-										{wagon.sampleId 
-										? wagon.sampleId
-										: 'Not set'}
+						<div class="flex flex-col">
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<div
+								class="flex items-center gap-3 rounded bg-white px-3 py-2 shadow-sm cursor-pointer"
+								on:click={() => toggleExpand(wagon.id)}
+							>
+								<Container size={16} class="inline text-xs" />
+								<div class="flex-1">
+									<div class="font-medium text-gray">
+										<span class="text-sm font-light">Wagon ID:</span> {wagon.wagonId}
+									</div>
+									<div class="font-medium text-gray">
+										<span class="text-sm font-light">Sample ID: </span>
+										{wagon.sampleId ? wagon.sampleId : 'Not set'}
+									</div>
 								</div>
 							</div>
+							{#if expandedWagonId === wagon.id}
+								<div class="bg-gray-50 px-3 py-4 border-l-4 border-blue-400">
+									<QRPrinting sampleId={wagon.sampleId} />
+								</div>
+							{/if}
 						</div>
 					{/each}
 				</div>
