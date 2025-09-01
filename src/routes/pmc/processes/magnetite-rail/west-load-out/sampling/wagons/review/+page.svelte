@@ -106,12 +106,6 @@
 		}
 		showPopup = false;
 	}
-
-	let expandedWagonId: string | null = null;
-
-	function toggleExpand(wagonId: string) {
-		expandedWagonId = expandedWagonId === wagonId ? null : wagonId;
-	}
 </script>
 
 <ProcessLayout
@@ -165,7 +159,7 @@
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<div
 								class="flex items-center gap-3 rounded bg-white px-3 py-2 shadow-sm cursor-pointer"
-								on:click={() => toggleExpand(wagon.id)}
+								on:click={() => goto(`/pmc/processes/magnetite-rail/west-load-out/sampling/wagons?wagonId=${wagon.wagonId}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`)}
 							>
 								<Container size={16} class="inline text-xs" />
 								<div class="flex-1">
@@ -178,11 +172,6 @@
 									</div>
 								</div>
 							</div>
-							{#if expandedWagonId === wagon.id}
-								<div class="bg-gray-50 px-3 py-4 border-l-4 border-blue-400">
-									<QRPrinting sampleId={wagon.sampleId} />
-								</div>
-							{/if}
 						</div>
 					{/each}
 				</div>

@@ -38,7 +38,7 @@
 					if (train) {
 						consignments = await indexedDBService.getRecords(
 							'consignments',
-							(rec) => rec.syncStatus === 'synced' && rec.linkedTrainId === train.serverId
+							(rec) => rec.syncStatus === 'synced' && rec.linkedTrainId === train.serverId 
 						);
 					}
 				}
@@ -67,14 +67,15 @@
 		);
 
 		const trainDispatches = (await indexedDBService.getAllRecords('trainDispatches')).find(
-			(d) => !d.dispatchTimestamp && d.linkedTrainId === trains?.serverId
+			(d) => !d.dispatchTimestamp && d.linkedTrainId === trains?.serverId && d.siteLocation === 'PMC'
 		);
-		
+
 		if (trainDispatches) {
 			// Find the consignment by id
 			const consignment = (await indexedDBService.getAllRecords('consignments')).find(
 				(c) => c.serverId === trainDispatches.linkedConsignmentId || c.id === trainDispatches.linkedConsignmentId
 			);
+			console.log('Found Consignment:', consignment);
 			if (consignment) {
 				consignments = [...consignments, consignment];
 				selectedConsignment = consignment.name;
