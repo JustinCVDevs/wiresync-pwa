@@ -165,7 +165,7 @@
 </ProcessLayout>
 
 {#if showNoMoreWagons}
-	<NoMoreWagons on:ok={() => (showNoMoreWagons = false)} />
+	<NoMoreWagons process="weighing" on:ok={() => (showNoMoreWagons = false)} />
 {/if}
 
 <div class="flex space-x-4 button-group">

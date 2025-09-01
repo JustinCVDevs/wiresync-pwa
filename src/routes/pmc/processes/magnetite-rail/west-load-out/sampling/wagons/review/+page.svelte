@@ -6,6 +6,7 @@
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Wagon } from '$lib/types';
 	import { Container } from 'lucide-svelte';
+	import NoMoreWagons from '$lib/components/NoMoreWagons.svelte';
 	import QRPrinting from '$lib/components/QRPrinting.svelte';
 
 	let wagonIds: string[] = [];
@@ -19,6 +20,7 @@
 	let isLoading = true;
 	let processLayout: ProcessLayout;
 	let showPopup = false;
+	let showNoMoreWagons = false;
 
 	const steps = ['Arrival Train', 'Wagon Sampling', 'Verification'];
 	let currentStep = 3;
@@ -56,8 +58,21 @@
 		loadWagons();
 	});
 
-	function handleNewWagon() {
-		goto(`/pmc/processes/magnetite-rail/west-load-out/sampling/wagons/?wagonIds=${wagonIds.join(',')}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`);
+	async function handleNewWagon() {
+		let shuntingTrain = (await indexedDBService.getAllRecords('shuntingTrains')).find(
+			t => t.verificationTimestamp === shuntingTrainVerificationDate
+		);
+		let linkedWagonIds = shuntingTrain?.linkedWagons || [];
+		const allWagons = await indexedDBService.getAllRecords('wagons');
+		const unweighedWagons = allWagons.filter(
+			w => linkedWagonIds.includes(w.id) && !w.felTimestamp
+		);
+
+		if (unweighedWagons.length === 0) {
+			showNoMoreWagons = true;
+		} else {
+			goto(`/pmc/processes/magnetite-rail/west-load-out/sampling/wagons/?wagonIds=${wagonIds.join(',')}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`);
+		}
 	}
 
 	function handleCancel() {
@@ -177,6 +192,11 @@
 		</div>
 	{/if}
 </ProcessLayout>
+
+{#if showNoMoreWagons}
+	<NoMoreWagons process="sampling" on:ok={() => (showNoMoreWagons = false)} />
+{/if}
+
 <div class="flex space-x-4 button-group">
 	<button
 		type="button"
