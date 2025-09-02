@@ -1,9 +1,15 @@
 <script lang="ts">
     export let sampleId: string = '';
     import QRCode from 'qrcode';
+    import { tick } from 'svelte';
 
     let qrImageUrl: string = '';
     let loading = false;
+    let printPending = false;
+
+    function isMobile() {
+        return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|Mobile/i.test(navigator.userAgent);
+    }
 
     // Generate a combined image with Sample ID above QR code
     async function generateQRCode() {
@@ -42,50 +48,90 @@
         try {
             const qrCode = await generateQRCode();
             if (qrCode) {
-                // Create a hidden iframe for printing
-                const iframe = document.createElement('iframe');
-                iframe.style.position = 'fixed';
-                iframe.style.right = '0';
-                iframe.style.bottom = '0';
-                iframe.style.width = '0';
-                iframe.style.height = '0';
-                iframe.style.border = '0';
-                document.body.appendChild(iframe);
-
-                iframe.onload = function () {
-                    iframe.contentWindow?.focus();
-                    iframe.contentWindow?.print();
-                    setTimeout(() => document.body.removeChild(iframe), 1000);
-                };
-
-                iframe.srcdoc = `
-                    <html>
-                        <head>
-                            <title>Print QR Code</title>
-                            <style>
-                                body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #fff; }
-                                img { max-width: 100%; }
-                            </style>
-                        </head>
-                        <body>
-                            <img src="${qrCode}" alt="QR Code" />
-                        </body>
-                    </html>
-                `;
+                if (isMobile()) {
+                    // Open QR code in a new tab with print and close options
+                    const printWindow = window.open('', '_blank');
+                    if (printWindow) {
+                        printWindow.document.write(`
+                            <html>
+                                <head><title>QR Code</title></head>
+                                <body style="text-align: center; margin: 20px;">
+                                    <img src="${qrCode}" style="max-width: 100%;">
+                                </body>
+                            </html>
+                        `);
+                        printWindow.document.close();
+                        printWindow.print();
+                    } else {
+                        alert('Unable to open print window. Please allow pop-ups for this site.');
+                    }
+                } else {
+                    // Desktop: open new window and print immediately
+                    const printWindow = window.open('', '_blank');
+                    if (printWindow) {
+                        printWindow.document.write(`
+                            <html>
+                                <head>
+                                    <style>
+                                        body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #fff; }
+                                        img { max-width: 100%; width: 384px; }
+                                    </style>
+                                </head>
+                                <body>
+                                    <img src="${qrCode}" alt="QR Code" onload="window.print(); window.close();" />
+                                </body>
+                            </html>
+                        `);
+                        printWindow.document.close();
+                    } else {
+                        alert('Unable to open print window. Please allow pop-ups for this site.');
+                    }
+                }
             }
-            // Force loading for at least 3 seconds
-            await new Promise(res => setTimeout(res, 3000));
         } finally {
             loading = false;
         }
     }
 </script>
 
+<!-- Print-only area for mobile -->
+<div id="print-area" style="display: none;">
+    {#if qrImageUrl}
+        <img
+            src={qrImageUrl}
+            alt="QR Code"
+            style="max-width: 100%; width: 384px;"
+            on:load={() => {
+                if (printPending) {
+                    window.print();
+                    printPending = false;
+                }
+            }}
+        />
+    {/if}
+</div>
+
 {#if loading}
     <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
         <div class="bg-white p-6 rounded shadow text-center">
             <div class="mb-2 font-bold text-lg">Printing QR Code...</div>
             <div class="loader mx-auto my-2"></div>
+        </div>
+    </div>
+{/if}
+
+{#if printPending && isMobile()}
+    <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+        <div class="bg-white p-6 rounded shadow text-center">
+            <img
+                src={qrImageUrl}
+                alt="QR Code"
+                style="max-width: 100%; width: 384px;"
+                on:load={() => {
+                    window.print();
+                    printPending = false;
+                }}
+            />
         </div>
     </div>
 {/if}
@@ -111,5 +157,37 @@
 @keyframes spin {
     0% { transform: rotate(0deg);}
     100% { transform: rotate(360deg);}
+}
+
+/* Hide print area on screen, show only when printing */
+#print-area {
+    opacity: 0;
+    pointer-events: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+    text-align: center;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+@media print {
+    :global(body > *:not(#print-area)) {
+        display: none !important;
+    }
+    :global(#print-area) {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        position: static !important;
+        width: 100% !important;
+        height: auto !important;
+        z-index: 9999 !important;
+        display: block !important;
+        background: white !important;
+    }
 }
 </style>

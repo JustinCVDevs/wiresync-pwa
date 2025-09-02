@@ -6,6 +6,7 @@
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Wagon } from '$lib/types';
 	import { Container } from 'lucide-svelte';
+	import NoMoreWagons from '$lib/components/NoMoreWagons.svelte';
 
 	let wagonIds: string[] = [];
 	$: wagonIds = ($page.url.searchParams.get('wagonIds') || '').split(',').filter(Boolean);
@@ -18,6 +19,7 @@
 	let isLoading = true;
 	let processLayout: ProcessLayout;
 	let showPopup = false;
+	let showNoMoreWagons = false;
 
 	const steps = ['Arrival Train', 'Wagon Sampling', 'Verification'];
 	let currentStep = 3;
@@ -55,8 +57,21 @@
 		loadWagons();
 	});
 
-	function handleNewWagon() {
-		goto(`/bosveld/processes/loading-station/sampling/wagons/?wagonIds=${wagonIds.join(',')}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`);
+	async function handleNewWagon() {
+		let shuntingTrain = (await indexedDBService.getAllRecords('shuntingTrains')).find(
+			t => t.verificationTimestamp === shuntingTrainVerificationDate
+		);
+		let linkedWagonIds = shuntingTrain?.linkedWagons || [];
+		const allWagons = await indexedDBService.getAllRecords('wagons');
+		const unsampledWagons = allWagons.filter(
+			w => linkedWagonIds.includes(w.id) && !w.sampleTimestamp
+		);
+
+		if (unsampledWagons.length === 0) {
+			showNoMoreWagons = true;
+		} else {
+			goto(`/bosveld/processes/loading-station/sampling/wagons/?wagonIds=${wagonIds.join(',')}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`);
+		}
 	}
 
 	function handleCancel() {
@@ -138,18 +153,22 @@
 			{#if filteredWagons.length > 0}
 				<div class="space-y-3">
 					{#each filteredWagons as wagon}
-						<div class="flex items-center gap-3 rounded bg-white px-3 py-2 shadow-sm">
-							<Container size={16} class="inline text-xs" />
-							<div class="flex-1">
-								<div class="font-medium text-gray">
-									<span class="text-sm font-light">Wagon ID:</span> {wagon.wagonId}
-								</div>
-								<div class="font-medium text-gray">
-									<span class="text-sm font-light">
-										Sample ID: </span> 
-										{wagon.sampleId 
-										? wagon.sampleId
-										: 'Not set'}
+						<div class="flex flex-col">
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<div
+								class="flex items-center gap-3 rounded bg-white px-3 py-2 shadow-sm cursor-pointer"
+								on:click={() => goto(`/bosveld/processes/loading-station/sampling/wagons?wagonId=${wagon.wagonId}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`)}
+							>
+								<Container size={16} class="inline text-xs" />
+								<div class="flex-1">
+									<div class="font-medium text-gray">
+										<span class="text-sm font-light">Wagon ID:</span> {wagon.wagonId}
+									</div>
+									<div class="font-medium text-gray">
+										<span class="text-sm font-light">Sample ID: </span>
+										{wagon.sampleId ? wagon.sampleId : 'Not set'}
+									</div>
 								</div>
 							</div>
 						</div>
@@ -161,6 +180,11 @@
 		</div>
 	{/if}
 </ProcessLayout>
+
+{#if showNoMoreWagons}
+	<NoMoreWagons process="sampling" on:ok={() => (showNoMoreWagons = false)} />
+{/if}
+
 <div class="flex space-x-4 button-group">
 	<button
 		type="button"

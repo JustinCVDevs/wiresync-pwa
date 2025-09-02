@@ -8,8 +8,10 @@
 	import type { Assay } from '$lib/types/assay';
 	import { syncService } from '$lib/services/syncService';
 	import { page } from '$app/stores';
+	import QRPrinting from '$lib/components/QRPrinting.svelte';
 
 	let sampleId = '';
+	let wagonId = $page.url.searchParams.get('wagonId') || '';
 	let trainNumber = '';
 	let shuntingTrainVerificationDate = $page.url.searchParams.get('shuntingTrainVerificationDate');
 	let productGrade = localStorage.getItem('productGrade') || '';
@@ -46,7 +48,20 @@
 		trainNumber: ''
 	};
 
-	$: {
+	async function fetchData() {
+		const wagon = (await indexedDBService.getAllRecords('wagons')).find(
+			(w) => w.wagonId === wagonId
+		);
+
+		if (wagon) {
+			selectedWagon = wagon.wagonId || '';
+			productGrade = wagon.productType || '';
+			trainNumber = wagon.trainNumber || '';
+			sampleId = wagon.sampleId || '';
+		}
+	}
+
+	$: if (wagonId === '') {
 		const currentDate = new Date();
 		const YYMMDD = `${currentDate.getFullYear().toString().slice(-2)}${String(currentDate.getMonth() + 1).padStart(2, '0')}${String(currentDate.getDate()).padStart(2, '0')}`;
 
@@ -58,6 +73,8 @@
 		}[productGrade];
 
 		sampleId = `${YYMMDD}${selectedWagon ? `_${selectedWagon}` : ''}${trainNumber ? `_${trainNumber}` : ''}${productCode ? `_${productCode}` : ''}`;
+	} else {
+		fetchData();
 	}
 
 	const productGrades = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite 62%', 'Magnetite 65%'];
@@ -221,15 +238,25 @@
 
 <div class="container">
 	<div class="form">
-		<FormField
-			id="wagonId"
-			label="Wagon ID"
-			search={true}
-			options={availableWagons.map(wagon => ({value: wagon.wagonId, label: wagon.wagonId}))}
-			bind:value={selectedWagon}
-			placeholder="Select Wagon ID"
-			required
-		/>
+		{#if wagonId === ''}
+			<FormField
+				id="wagonId"
+				label="Wagon ID"
+				search={true}
+				options={availableWagons.map(wagon => ({value: wagon.wagonId, label: wagon.wagonId}))}
+				bind:value={selectedWagon}
+				placeholder="Select Wagon ID"
+				required
+			/>
+		{:else}
+			<FormField
+				id="wagonId"
+				label="Wagon ID"
+				bind:value={selectedWagon}
+				placeholder="Select Wagon ID"
+				required
+			/>
+		{/if}
 	</div>	
 	<div class="form">
 		<FormField
@@ -274,6 +301,8 @@
 			error={formErrors.sampleId}
 		/>
 	</div>
+
+	<QRPrinting {sampleId} />
 </div>
 </ProcessLayout>
 

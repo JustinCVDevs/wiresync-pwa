@@ -6,7 +6,8 @@
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Wagon } from '$lib/types';
 	import { Container } from 'lucide-svelte';
-	import QrPrinting from '$lib/components/QRPrinting.svelte';
+	import NoMoreWagons from '$lib/components/NoMoreWagons.svelte';
+	import QRPrinting from '$lib/components/QRPrinting.svelte';
 
 	let wagonIds: string[] = [];
 	$: wagonIds = ($page.url.searchParams.get('wagonIds') || '').split(',').filter(Boolean);
@@ -19,6 +20,7 @@
 	let isLoading = true;
 	let processLayout: ProcessLayout;
 	let showPopup = false;
+	let showNoMoreWagons = false;
 
 	const steps = ['Arrival Train', 'Wagon Sampling', 'Verification'];
 	let currentStep = 3;
@@ -56,8 +58,21 @@
 		loadWagons();
 	});
 
-	function handleNewWagon() {
-		goto(`/pmc/processes/magnetite-rail/east-load-out/sampling/wagons/?wagonIds=${wagonIds.join(',')}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`);
+	async function handleNewWagon() {
+		let shuntingTrain = (await indexedDBService.getAllRecords('shuntingTrains')).find(
+			t => t.verificationTimestamp === shuntingTrainVerificationDate
+		);
+		let linkedWagonIds = shuntingTrain?.linkedWagons || [];
+		const allWagons = await indexedDBService.getAllRecords('wagons');
+		const unweighedWagons = allWagons.filter(
+			w => linkedWagonIds.includes(w.id) && !w.felTimestamp
+		);
+
+		if (unweighedWagons.length === 0) {
+			showNoMoreWagons = true;
+		}else {
+			goto(`/pmc/processes/magnetite-rail/east-load-out/sampling/wagons/?wagonIds=${wagonIds.join(',')}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`);
+		}
 	}
 
 	function handleCancel() {
@@ -90,12 +105,6 @@
 			}, 1000);
 		}
 		showPopup = false;
-	}
-
-	let expandedWagonId: string | null = null;
-
-	function toggleExpand(wagonId: string) {
-		expandedWagonId = expandedWagonId === wagonId ? null : wagonId;
 	}
 </script>
 
@@ -150,7 +159,7 @@
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<div
 								class="flex items-center gap-3 rounded bg-white px-3 py-2 shadow-sm cursor-pointer"
-								on:click={() => toggleExpand(wagon.id)}
+								on:click={() => goto(`/pmc/processes/magnetite-rail/east-load-out/sampling/wagons?wagonId=${wagon.wagonId}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`)}
 							>
 								<Container size={16} class="inline text-xs" />
 								<div class="flex-1">
@@ -163,11 +172,6 @@
 									</div>
 								</div>
 							</div>
-							{#if expandedWagonId === wagon.id}
-								<div class="bg-gray-50 px-3 py-4 border-l-4 border-blue-400">
-									<QrPrinting sampleId={wagon.sampleId} />
-								</div>
-							{/if}
 						</div>
 					{/each}
 				</div>
@@ -177,6 +181,11 @@
 		</div>
 	{/if}
 </ProcessLayout>
+
+{#if showNoMoreWagons}
+	<NoMoreWagons process="sampling" on:ok={() => (showNoMoreWagons = false)} />
+{/if}
+
 <div class="flex space-x-4 button-group">
 	<button
 		type="button"

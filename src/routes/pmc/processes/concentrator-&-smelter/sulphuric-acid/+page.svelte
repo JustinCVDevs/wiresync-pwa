@@ -5,11 +5,11 @@
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import { formPersistenceService } from '$lib/services/formPersistenceService';
-
 	import type { Assay } from '$lib/types/assay';
 	import type { TruckLoad } from '$lib/types/truckLoad';
 	import type { Truck } from '$lib/types/truck';
 	import { syncService } from '$lib/services/syncService';
+	import QRPrinting from '$lib/components/QRPrinting.svelte';
 
 	let truckRegistration = '';
 	let availableTrucks: { id: string; registration: string }[] = [];
@@ -245,6 +245,8 @@
 				</div>
 			</div>
 		</div>
+
+		<QRPrinting {sampleId} />
 	</div>
 </ProcessLayout>
 

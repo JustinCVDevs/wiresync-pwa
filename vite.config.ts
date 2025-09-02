@@ -7,7 +7,8 @@ import { pwaConfiguration, replaceOptions} from './pwa-configuration.js';
 export default defineConfig({
 	server: {
 		allowedHosts: ["73a2-102-182-162-69.ngrok-free.app"],
-		port: 5173
+		port: 5173,
+		host: '0.0.0.0'
 	},
 	plugins: [tailwindcss(), sveltekit(),VitePWA(pwaConfiguration), replace(replaceOptions)
 	]

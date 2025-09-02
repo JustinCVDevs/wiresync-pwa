@@ -1,9 +1,14 @@
 <script lang="ts">
     import { createEventDispatcher } from 'svelte';
-    export let message: string = "All wagons have been weighed";
+    export let process: 'weighing' | 'sampling' = 'weighing';
     export let onOk: () => void = () => {};
 
     const dispatch = createEventDispatcher();
+
+    // Set the message based on the process
+    $: message = process === 'sampling'
+        ? "All wagons have been sampled"
+        : "All wagons have been weighed";
 
     function handleOk() {
         onOk();
