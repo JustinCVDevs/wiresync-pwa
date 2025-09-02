@@ -1,10 +1,15 @@
 <script lang="ts">
     export let sampleId: string = '';
     import QRCode from 'qrcode';
+    import { tick } from 'svelte';
 
     let qrImageUrl: string = '';
     let loading = false;
     let printPending = false;
+
+    function isMobile() {
+        return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|Mobile/i.test(navigator.userAgent);
+    }
 
     // Generate a combined image with Sample ID above QR code
     async function generateQRCode() {
@@ -43,26 +48,35 @@
         try {
             const qrCode = await generateQRCode();
             if (qrCode) {
-                const printWindow = window.open('', '_blank');
-                if (printWindow) {
-                    printWindow.document.write(`
-                        <html>
-                            <head>
-                                <title>Print QR Code</title>
-                                <style>
-                                    body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #fff; }
-                                    .sample-id { font: bold 20px sans-serif; margin-bottom: 12px; }
-                                    img { max-width: 100%; width: 384px; }
-                                </style>
-                            </head>
-                            <body>
-                                <img src="${qrCode}" alt="QR Code" onload="window.print(); window.close();" />
-                            </body>
-                        </html>
-                    `);
-                    printWindow.document.close();
+                if (isMobile()) {
+                    // Mobile: print in-place using print-only area
+                    qrImageUrl = qrCode;
+                    printPending = true;
+                    await tick();
+                    // window.print() will be called in the image's on:load handler
                 } else {
-                    alert('Unable to open print window. Please allow pop-ups for this site.');
+                    // Desktop: open new window and print
+                    const printWindow = window.open('', '_blank');
+                    if (printWindow) {
+                        printWindow.document.write(`
+                            <html>
+                                <head>
+                                    <title>Print QR Code</title>
+                                    <style>
+                                        body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #fff; }
+                                        .sample-id { font: bold 20px sans-serif; margin-bottom: 12px; }
+                                        img { max-width: 100%; width: 384px; }
+                                    </style>
+                                </head>
+                                <body>
+                                    <img src="${qrCode}" alt="QR Code" onload="window.print(); window.close();" />
+                                </body>
+                            </html>
+                        `);
+                        printWindow.document.close();
+                    } else {
+                        alert('Unable to open print window. Please allow pop-ups for this site.');
+                    }
                 }
             }
         } finally {
@@ -70,6 +84,23 @@
         }
     }
 </script>
+
+<!-- Print-only area for mobile -->
+<div id="print-area" style="display: none;">
+    {#if qrImageUrl}
+        <img
+            src={qrImageUrl}
+            alt="QR Code"
+            style="max-width: 100%; width: 384px;"
+            on:load={() => {
+                if (printPending) {
+                    window.print();
+                    printPending = false;
+                }
+            }}
+        />
+    {/if}
+</div>
 
 {#if loading}
     <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
@@ -101,5 +132,37 @@
 @keyframes spin {
     0% { transform: rotate(0deg);}
     100% { transform: rotate(360deg);}
+}
+
+/* Hide print area on screen, show only when printing */
+#print-area {
+    opacity: 0;
+    pointer-events: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+    text-align: center;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+@media print {
+    :global(body > *:not(#print-area)) {
+        display: none !important;
+    }
+    :global(#print-area) {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        position: static !important;
+        width: 100% !important;
+        height: auto !important;
+        z-index: 9999 !important;
+        display: block !important;
+        background: white !important;
+    }
 }
 </style>
