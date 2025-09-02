@@ -49,22 +49,31 @@
             const qrCode = await generateQRCode();
             if (qrCode) {
                 if (isMobile()) {
-                    // Mobile: print in-place using print-only area
-                    qrImageUrl = qrCode;
-                    printPending = true;
-                    await tick();
-                    // window.print() will be called in the image's on:load handler
+                    // Open QR code in a new tab with print and close options
+                    const printWindow = window.open('', '_blank');
+                    if (printWindow) {
+                        printWindow.document.write(`
+                            <html>
+                                <head><title>QR Code</title></head>
+                                <body style="text-align: center; margin: 20px;">
+                                    <img src="${qrCode}" style="max-width: 100%;">
+                                </body>
+                            </html>
+                        `);
+                        printWindow.document.close();
+                        printWindow.print();
+                    } else {
+                        alert('Unable to open print window. Please allow pop-ups for this site.');
+                    }
                 } else {
-                    // Desktop: open new window and print
+                    // Desktop: open new window and print immediately
                     const printWindow = window.open('', '_blank');
                     if (printWindow) {
                         printWindow.document.write(`
                             <html>
                                 <head>
-                                    <title>Print QR Code</title>
                                     <style>
                                         body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #fff; }
-                                        .sample-id { font: bold 20px sans-serif; margin-bottom: 12px; }
                                         img { max-width: 100%; width: 384px; }
                                     </style>
                                 </head>
@@ -107,6 +116,22 @@
         <div class="bg-white p-6 rounded shadow text-center">
             <div class="mb-2 font-bold text-lg">Printing QR Code...</div>
             <div class="loader mx-auto my-2"></div>
+        </div>
+    </div>
+{/if}
+
+{#if printPending && isMobile()}
+    <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+        <div class="bg-white p-6 rounded shadow text-center">
+            <img
+                src={qrImageUrl}
+                alt="QR Code"
+                style="max-width: 100%; width: 384px;"
+                on:load={() => {
+                    window.print();
+                    printPending = false;
+                }}
+            />
         </div>
     </div>
 {/if}
