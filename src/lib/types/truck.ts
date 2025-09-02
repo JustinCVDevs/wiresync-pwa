@@ -6,4 +6,5 @@ export interface Truck extends BaseRecord {
 	syncStatus: string;
 	serverId?: string;
 	loadingLocation?: string;
+	productType?: string;
 }
