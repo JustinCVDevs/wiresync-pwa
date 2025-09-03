@@ -62,6 +62,9 @@
                         `);
                         printWindow.document.close();
                         printWindow.print();
+                        setTimeout(() => {
+                            printWindow.close();
+                        }, 4000);
                     } else {
                         alert('Unable to open print window. Please allow pop-ups for this site.');
                     }
