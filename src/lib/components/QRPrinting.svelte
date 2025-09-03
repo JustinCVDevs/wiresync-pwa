@@ -54,17 +54,27 @@
                     if (printWindow) {
                         printWindow.document.write(`
                             <html>
-                                <head><title>QR Code</title></head>
-                                <body style="text-align: center; margin: 20px;">
+                                <head>
+                                    <title>QR Code</title>
+                                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                    <style>
+                                        body { text-align: center; margin: 20px; background: #fff; }
+                                        img { max-width: 100%; width: 384px; }
+                                        button { margin-top: 24px; padding: 12px 24px; font-size: 16px; border: none; border-radius: 6px; background: #e53e3e; color: #fff; }
+                                    </style>
+                                </head>
+                                <body>
                                     <img src="${qrCode}" style="max-width: 100%;">
+                                    <br>
+                                    <button onclick="window.close()">Close</button>
                                 </body>
                             </html>
                         `);
                         printWindow.document.close();
                         printWindow.print();
-                        setTimeout(() => {
+                        /*setTimeout(() => {
                             printWindow.close();
-                        }, 4000);
+                        }, 4000);*/
                     } else {
                         alert('Unable to open print window. Please allow pop-ups for this site.');
                     }
