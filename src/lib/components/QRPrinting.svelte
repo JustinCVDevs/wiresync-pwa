@@ -61,8 +61,10 @@
                                         body { text-align: center; margin: 20px; background: #fff; }
                                         img { max-width: 100%; width: 384px; }
                                         button { margin-top: 24px; padding: 12px 24px; font-size: 16px; border: none; border-radius: 6px; background: #e53e3e; color: #fff; }
-                                        .no-print {
-                                            display: none !important;
+                                        @media print {
+                                            .no-print {
+                                                display: none !important;
+                                            }
                                         }
                                     </style>
                                 </head>
