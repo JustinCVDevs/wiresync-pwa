@@ -52,7 +52,7 @@
 			let wagon = (await indexedDBService.getAllRecords('wagons')).find(
 				wagon => wagon.serverId === wagonId
 			);
-
+			console.log('Wagon:', wagon);
 			if (wagon?.sampleTimestamp !== '') {
 				goto(`/pmc/processes/magnetite-rail/east-load-out/sampling/wagons/review?shuntingTrainVerificationDate=${selectedTrain}`);
 				return;
