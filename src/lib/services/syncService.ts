@@ -10,6 +10,7 @@ import type { TruckArrival } from '$lib/types/truckArrival';
 import type { Fleet, Truck } from '$lib/types';
 import type { TrainArrival } from '$lib/types/trainArrival';
 import type { DedicatedFleetTruck } from '$lib/types/dedicatedFleetTruck';
+import { message } from 'sveltekit-superforms';
 
 function base64ToBlob(base64: string, mime: string) {
     const byteString = atob(base64.split(',')[1]);
@@ -97,8 +98,10 @@ export const syncService = {
 				}
 			}
 			return true;
-		} catch (err) {
-			console.warn('Failed to sync assay list:', err);
+		} catch (err:any) {
+			if (!err?.message?.includes('autocancelled')) {
+				console.error('❌ Failed to sync assay list:', err);
+			}
 			return false;
 		}
 	},
@@ -319,8 +322,10 @@ export const syncService = {
 				}
 			}
 			return true;
-		} catch (err) {
-			console.warn('Failed to sync truck list:', err);
+		} catch (err:any) {
+			if (!err?.message?.includes('autocancelled')) {
+				console.error('❌ Failed to sync truck list:', err);
+			}
 			return false;
 		}
 	},
@@ -396,8 +401,10 @@ export const syncService = {
 				}
 			}
 			return true;
-		} catch (err) {
-			console.warn('Failed to sync train list:', err);
+		} catch (err:any) {
+			if (!err?.message?.includes('autocancelled')) {
+				console.error('❌ Failed to sync train list:', err);
+			}
 			return false;
 		}
 	},
@@ -439,8 +446,10 @@ export const syncService = {
 				}
 			}
 			return true;
-		} catch (err) {
-			console.warn('Failed to sync consignment list:', err);
+		} catch (err:any) {
+			if (!err?.message?.includes('autocancelled')) {
+				console.error('❌ Failed to sync consignment list:', err);
+			}
 			return false;
 		}
 	},
@@ -536,9 +545,11 @@ export const syncService = {
 			}
 		}
 		return true;
-	} catch (err) {
-		console.warn('Failed to sync truck load list:', err);
-		return false;
+	} catch (err:any) {
+			if (!err?.message?.includes('autocancelled')) {
+				console.error('❌ Failed to sync truck load list:', err);
+			}
+			return false;
 	}
 },
 
@@ -621,8 +632,10 @@ export const syncService = {
 				}
 			}
 			return true;
-		} catch (err) {
-			console.warn('Failed to sync train dispatch list:', err);
+		} catch (err:any) {
+			if (!err?.message?.includes('autocancelled')) {
+				console.error('❌ Failed to sync train dispatch list:', err);
+			}
 			return false;
 		}
 	},
@@ -854,8 +867,10 @@ export const syncService = {
 				}
 			}
 			return true;
-		} catch (err) {
-			console.warn('Failed to sync shunting train list:', err);
+		} catch (err:any) {
+			if (!err?.message?.includes('autocancelled')) {
+				console.error('❌ Failed to sync shunting train list:', err);
+			}
 			return false;
 		}
 	},
@@ -919,8 +934,10 @@ export const syncService = {
 				}
 			}
 			return true;
-		} catch (err) {
-			console.error('❌ Failed to sync wagon list:', err);
+		} catch (err:any) {
+			if (!err?.message?.includes('autocancelled')) {
+				console.error('❌ Failed to sync wagon list:', err);
+			}
 			return false;
 		}
 	},
@@ -1059,8 +1076,10 @@ export const syncService = {
 				}
 			}
 			return true;
-		} catch (err) {
-			console.warn('Failed to sync truck arrival list:', err);
+		} catch (err:any) {
+			if (!err?.message?.includes('autocancelled')) {
+				console.error('❌ Failed to sync truck arrival list:', err);
+			}
 			return false;
 		}
 	},
@@ -1114,8 +1133,10 @@ export const syncService = {
 				}
 			}
 			return true;
-		} catch (err) {
-			console.warn('Failed to sync train arrival list:', err);
+		} catch (err:any) {
+			if (!err?.message?.includes('autocancelled')) {
+				console.error('❌ Failed to sync train arrival list:', err);
+			}
 			return false;
 		}
 	},
@@ -1248,8 +1269,10 @@ export const syncService = {
 				}
 			}
 			return true;
-		} catch (err) {
-			console.warn('Failed to sync fleet list:', err);
+		} catch (err:any) {
+			if (!err?.message?.includes('autocancelled')) {
+				console.error('❌ Failed to sync fleet list:', err);
+			}
 			return false;
 		}
 	},
@@ -1360,8 +1383,10 @@ export const syncService = {
 				}
 			}
 			return true;
-		} catch (err) {
-			console.warn('Failed to sync dedicated fleet truck list:', err);
+		} catch (err:any) {
+			if (!err?.message?.includes('autocancelled')) {
+				console.error('❌ Failed to sync dedicated fleet truck list:', err);
+			}
 			return false;
 		}
 	},
