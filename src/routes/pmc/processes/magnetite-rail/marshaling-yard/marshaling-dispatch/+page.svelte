@@ -49,7 +49,7 @@
 				(rec) => rec.syncStatus === 'synced'
 			);
 			consignments = consignmentRecords.filter(
-				(c) => !c.linkedTrainId && c.siteLocation === 'PMC'
+				(c) => !c.linkedTrainId
 			);
 		} catch (e) {
 			console.error(e);

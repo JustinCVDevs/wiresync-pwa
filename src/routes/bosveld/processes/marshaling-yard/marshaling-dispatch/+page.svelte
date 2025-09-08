@@ -49,7 +49,7 @@
 				(rec) => rec.syncStatus === 'synced'
 			);
 			consignments = consignmentRecords.filter(
-				(c) => !c.linkedTrainId && c.siteLocation === 'Bosveld'
+				(c) => !c.linkedTrainId
 			);
 		} catch (e) {
 			console.error(e);
