@@ -108,13 +108,9 @@
 	}
 
 	$: if (truckRegistration && dedicatedFleet === 'No') {
-		updateProductType();
-	}
-
-	async function updateProductType() {
-		if (truckRegistration) {
-			const truck = trucks.find(t => t.registration === truckRegistration);
-			productType = truck?.productType || '';
+		const truck = trucks.find(t => t.registration === truckRegistration);
+		if (truck && productType !== truck.productType) {
+			productType = truck.productType || '';
 		}
 	}
 
