@@ -5,6 +5,7 @@
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Fleet, TruckLoad, Assay } from '$lib';
+	import QrPrinting from '$lib/components/QRPrinting.svelte';
 
 	const sampleId = $page.url.searchParams.get('sampleId') || '';
 	const truckRegistration = $page.url.searchParams.get('truckRegistration') || '';
@@ -136,5 +137,6 @@
 				<p class="text-gray-500">Loading sample details...</p>
 			</div>
 		{/if}
+		<QrPrinting {sampleId} />
 	</div>
 </ProcessLayout>

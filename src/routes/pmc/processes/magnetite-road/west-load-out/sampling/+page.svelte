@@ -8,7 +8,6 @@
 	import { syncService } from '$lib/services/syncService';
 	import { onMount } from 'svelte';
 	import type { DedicatedFleetTruck } from '$lib';
-	import QrPrinting from '$lib/components/QRPrinting.svelte';
 
 	let dedicatedFleet = '';
 	let isDedicatedFleet = false;
@@ -47,8 +46,6 @@
 	}
 
 	// Call the function to initialize the sample number
-	getSampleNumber();
-
 	getSampleNumber();
 
 	async function getTrucks() {
@@ -304,8 +301,6 @@
 						bind:value={loadingLocation}
 						required
 					/>
-					
-					<QrPrinting {sampleId} />
 				{:else}
 					<div class='form-field'>
 						<FormField
@@ -365,8 +360,6 @@
 							class="w-full rounded-lg text-sm border px-3 py-2 text-gray border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none"
 						/>
 					</div>
-
-					<QrPrinting {sampleId} />
 				{/if}
 			{/if}
 		  
