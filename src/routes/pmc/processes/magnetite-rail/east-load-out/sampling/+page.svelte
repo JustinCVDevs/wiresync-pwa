@@ -20,6 +20,17 @@
 	// Reference to the ProcessLayout component
 	let processLayout: ProcessLayout;
 
+	function formatDate(date: Date | undefined): string {
+		if (!date) return 'No date';
+		return new Date(date).toLocaleDateString('en-US', {
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit'
+		});
+	}
+
 	onMount(async () => {
 		// Fetch all shunting trains
 		const shuntingTrains = (await indexedDBService.getAllRecords('shuntingTrains')).filter(
@@ -28,7 +39,7 @@
 
 		availableTrains = shuntingTrains.map(shunting => ({
 			value: shunting.verificationTimestamp,
-			label: shunting.verificationTimestamp
+			label: formatDate(shunting.postDate)
 		}));
 	});
 
