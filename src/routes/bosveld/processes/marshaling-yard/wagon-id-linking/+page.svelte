@@ -19,9 +19,15 @@
 		try {
 			const trainRecords = await indexedDBService.getRecords(
 				'shuntingTrains',
-				(rec) => rec.syncStatus === 'synced' && !rec.verificationTimestamp
+				(rec) => rec.syncStatus === 'synced'
 			);
-			shuntingTrains = trainRecords;
+			shuntingTrains = trainRecords.filter(
+				(train: ShuntingTrain) => !train.verificationTimestamp && train.siteLocation === 'Bosveld'
+			).sort((a, b) => {
+				const dateA = a.postDate ? new Date(a.postDate).getTime() : 0;
+				const dateB = b.postDate ? new Date(b.postDate).getTime() : 0;
+				return dateB - dateA;
+			});
 		} catch (e) {
 			console.error(e);
 			error = 'Failed to load shunting trains';
