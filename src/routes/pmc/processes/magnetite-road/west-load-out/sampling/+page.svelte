@@ -82,13 +82,27 @@
 			'Magnetite 65%': 'MAG65'
 		}[productType];
 
-		if (dedicatedFleet === 'Yes') {
-			sampleId = `${YYMMDD}${truckRegistration ? `_${truckRegistration}` : ''}${sampleNumberWest ? `_#${sampleNumberWest}` : ''}${productCode ? `_${productCode}` : ''}`;
+		// run only when the states are defined 
+		if (productType && truckRegistration !== undefined) {
+			if (dedicatedFleet === 'Yes') {
+				sampleId = `${YYMMDD}${truckRegistration ? `_${truckRegistration}` : ''}${sampleNumberWest ? `_#${sampleNumberWest}` : ''}${productCode ? `_${productCode}` : ''}`;
+			} else {
+				sampleId = `${YYMMDD}${truckRegistration ? `_${truckRegistration}` : ''}${productCode ? `_${productCode}` : ''}`;
+			}
 		} else {
-			sampleId = `${YYMMDD}${truckRegistration ? `_${truckRegistration}` : ''}${productCode ? `_${productCode}` : ''}`;
+			sampleId = YYMMDD; // standard sample ID is just the date
 		}
 	}
 
+	// hard remove the data when switching between dedicatedFleet States
+	$: if (dedicatedFleet === 'Yes') {
+		productType = localStorage.getItem('west-productType') || '';
+		truckRegistration = '';
+	} else   {
+		productType = '';
+		truckRegistration = '';
+	}
+	
 	$: {
         if (dedicatedFleet === 'Yes') {
             const currentDate = new Date();
@@ -105,10 +119,11 @@
             : ['Iron Oxide', 'Magnetite 62%', 'Magnetite 65%'];
 	}
 
+	// Auto-fill product type from selected truck (only for No)
 	$: if (truckRegistration && dedicatedFleet === 'No') {
 		const truck = trucks.find(t => t.registration === truckRegistration);
-		if (truck && productType !== truck.productType) {
-			productType = truck.productType || '';
+		if (truck?.productType) {
+			productType = truck.productType;
 		}
 	}
 
