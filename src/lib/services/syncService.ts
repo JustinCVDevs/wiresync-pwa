@@ -10,7 +10,6 @@ import type { TruckArrival } from '$lib/types/truckArrival';
 import type { Fleet, Truck } from '$lib/types';
 import type { TrainArrival } from '$lib/types/trainArrival';
 import type { DedicatedFleetTruck } from '$lib/types/dedicatedFleetTruck';
-import { message } from 'sveltekit-superforms';
 
 function base64ToBlob(base64: string, mime: string) {
     const byteString = atob(base64.split(',')[1]);
