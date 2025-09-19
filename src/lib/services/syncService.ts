@@ -1028,6 +1028,7 @@ export const syncService = {
 				const existingTruckArrival = allIndexedTruckArrivals.find(
 					(t) => t.serverId === arrival.id || t.id === arrival.id
 				);
+				
 				if (existingTruckArrival) {
 					// Update the existing record
 					await indexedDBService.updateRecord('truckArrivals', existingTruckArrival.id, {
@@ -1076,10 +1077,8 @@ export const syncService = {
 			}
 			return true;
 		} catch (err:any) {
-			if (!err?.message?.includes('autocancelled')) {
-				console.error('❌ Failed to sync truck arrival list:', err);
-			}
-			return false;
+			console.error('❌ Failed to sync truck arrival list:', err.message, err.stack);
+        	return false;
 		}
 	},
 
@@ -1409,31 +1408,36 @@ export const syncService = {
 		]);
 
 		// Sync records from PocketBase
-		await this.syncAssayList();
-		await this.syncConsignmentList();
-		await this.syncFleetList();
-		await this.syncShuntingTrainList();
-		await this.syncTrainArrivalList();
-		await this.syncTrainDispatchList();
-		await this.syncTrainList();
-		await this.syncTruckArrivalList();
-		await this.syncTruckLoadList();
-		await this.syncTruckList();
-		await this.syncWagonList();
-		await this.syncDedicatedFleetTrucksList();
+		await Promise.all([
+			this.syncAssayList(),
+			this.syncConsignmentList(),
+			this.syncFleetList(),
+			this.syncShuntingTrainList(),
+			this.syncTrainArrivalList(),
+			this.syncTrainDispatchList(),
+			this.syncTrainList(),
+			this.syncTruckArrivalList(),
+			this.syncTruckLoadList(),
+			this.syncTruckList(),
+			this.syncWagonList(),
+			this.syncDedicatedFleetTrucksList(),
+		]);
 		
 		// Delete records that no longer exist on the server
-		await this.syncDeletedRecords('assays');
-		await this.syncDeletedRecords('consignments');
-		await this.syncDeletedRecords('fleet');
-		await this.syncDeletedRecords('shuntingTrains');
-		await this.syncDeletedRecords('trainArrivals');
-		await this.syncDeletedRecords('trainDispatches');
-		await this.syncDeletedRecords('trains');
-		await this.syncDeletedRecords('truckArrivals');
-		await this.syncDeletedRecords('truckLoads');
-		await this.syncDeletedRecords('trucks');
-		await this.syncDeletedRecords('wagons');
+		await Promise.all([
+			this.syncDeletedRecords('assays'),
+			this.syncDeletedRecords('consignments'),
+			this.syncDeletedRecords('fleet'),
+			this.syncDeletedRecords('shuntingTrains'),
+			this.syncDeletedRecords('trainArrivals'),
+			this.syncDeletedRecords('trainDispatches'),
+			this.syncDeletedRecords('trains'),
+			this.syncDeletedRecords('truckArrivals'),
+			this.syncDeletedRecords('truckLoads'),
+			this.syncDeletedRecords('trucks'),
+			this.syncDeletedRecords('wagons'),
+			this.syncDeletedRecords('dedicatedFleetTrucks'),
+		]);
 	},
 };
 

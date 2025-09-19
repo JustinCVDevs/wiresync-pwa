@@ -15,9 +15,9 @@ export interface TruckArrival extends BaseRecord{
 	transporter?: string;
 	truck_commodity?: string;
 	gross_measured_kg?: number;
-	gross_timestamp?: string;                  // ISO datetime
+	gross_timestamp?: Date;                  // ISO datetime
 	tare_stored_kg?: number;
-	tare_timestamp?: string;                   // ISO datetime
+	tare_timestamp?: Date;                   // ISO datetime
 	truck_origin_location?: 'TLG' | 'RCL' | 'BOP';
 	syncStatus?: string;
 	serverId?: string;
