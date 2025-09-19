@@ -97,7 +97,7 @@
 			}
 
 			// Initialize editable fields with current values
-			editableWagonId = wagon.wagonId || '';
+			editableWagonId = wagon.wagonIdSimple || '';
 			editableTemporaryRfid = wagon.transcoreTag || '';
 			
 			console.log('Successfully loaded wagon and train data');
@@ -136,7 +136,7 @@
 			// Update wagon with new values
 			const updatedWagon: Wagon = {
 				...wagon,
-				wagonId: editableWagonId,
+				wagonIdSimple: editableWagonId,
 				transcoreTag: editableTemporaryRfid,
 				syncStatus: 'pending'
 			};
