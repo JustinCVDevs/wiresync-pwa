@@ -57,7 +57,7 @@
 </script>
 
 <ProcessLayout
-	title="BOP Truck Arrival"
+	title="Bosveld Truck Arrival"
 	steps={processSteps}
 	{currentStep}
 	on:cancel={handleCancel}

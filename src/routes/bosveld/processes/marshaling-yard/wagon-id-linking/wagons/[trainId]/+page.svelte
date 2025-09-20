@@ -47,7 +47,7 @@
 				
 				const wagonResults = await Promise.all(wagonPromises);
 				// Filter out null results and ensure we have valid wagon objects
-				linkedWagons = wagonResults.filter(wagon => wagon !== null && wagon !== undefined) as Wagon[];
+				linkedWagons = wagonResults.filter(wagon => wagon !== null && wagon !== undefined).sort((a, b) => (a.wagonPosition ?? 0) - (b.wagonPosition ?? 0)) as Wagon[];
 			} else {
 				linkedWagons = [];
 			}
@@ -146,7 +146,7 @@
             {#each linkedWagons as wagon, index}
                 <div class="border border-gray-300 rounded-lg p-4 bg-white">
                     <div class="mb-3">
-                        <h6 class="font-semibold text-center">Number {index + 1}</h6>
+                        <h6 class="font-semibold text-center">Position {wagon.wagonPosition}</h6>
                     </div>
 					
                     <div class="space-y-3">

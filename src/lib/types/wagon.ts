@@ -11,6 +11,7 @@ export interface Wagon extends BaseRecord {
 	verificationTs?: string; // PMC_WAGON_VERIFICATION_TIMESTAMP (YYYY-MM-DD)
 	linkedTrainId?: ID; // relation to Train.id
 	linkedConsignmentId?: ID; // relation to Consignment.id (dispatch)
+	wagonPosition?: number; // WAGON_POSITION
 	felWeight?: number; // WAGON_WEIGHT
 	samplingStatus?: string; // WAGON_SAMPLING_STATUS
 	serverId?: string;
