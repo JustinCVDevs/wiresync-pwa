@@ -21,7 +21,7 @@ function base64ToBlob(base64: string, mime: string) {
     return new Blob([ab], { type: mime });
 }
 
-async function fetchAllFromPocketBase(collection: PBCollection, perPage = 50, maxRetries = 3) {
+async function fetchAllFromPocketBase(collection: PBCollection, perPage = 1000, maxRetries = 3) {
 	let page = 1;
 	let allItems: any[] = [];
 	let totalItems = 0;
@@ -82,6 +82,8 @@ async function fetchAllFromPocketBase(collection: PBCollection, perPage = 50, ma
 	console.log(`🎉 Completed ${collection} sync: ${allItems.length} items`);
 	return allItems;
 }
+
+
 
 export const syncService = {
 	async syncAssayList() {
