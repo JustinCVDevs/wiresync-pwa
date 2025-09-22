@@ -21,17 +21,65 @@ function base64ToBlob(base64: string, mime: string) {
     return new Blob([ab], { type: mime });
 }
 
-async function fetchAllFromPocketBase(collection: PBCollection, perPage = 50) {
+async function fetchAllFromPocketBase(collection: PBCollection, perPage = 50, maxRetries = 3) {
 	let page = 1;
-	let items: any[] = [];
 	let allItems: any[] = [];
-	let response;
-	do {
-		response = await pocketbaseService.list(collection, { page, perPage });
-		items = response.items;
-		allItems = allItems.concat(items);
-		page++;
-	} while (items.length === perPage);
+	let totalItems = 0;
+	let hasMore = true;
+	
+	console.log(`🔄 Starting sync for ${collection}...`);
+	
+	while (hasMore) {
+		let retryCount = 0;
+		let success = false;
+		
+		while (retryCount < maxRetries && !success) {
+			try {
+				console.log(`📄 Fetching ${collection} page ${page} (${allItems.length} items so far)`);
+				
+				const response = await pocketbaseService.list(collection, { 
+					page, 
+					perPage,
+					// Add timeout and other options if needed
+				});
+				
+				if (!response || !Array.isArray(response.items)) {
+					throw new Error(`Invalid response structure for ${collection}`);
+				}
+				
+				const items = response.items;
+				allItems = allItems.concat(items);
+				totalItems = response.totalItems || 0;
+				
+				console.log(`✅ Page ${page}: Got ${items.length} items (${allItems.length}/${totalItems} total)`);
+				
+				// More reliable pagination check
+				hasMore = items.length === perPage && allItems.length < totalItems;
+				
+				if (hasMore) {
+					page++;
+				}
+				
+				success = true;
+				
+			} catch (error) {
+				retryCount++;
+				console.warn(`⚠️ Attempt ${retryCount}/${maxRetries} failed for ${collection} page ${page}:`, error);
+				
+				if (retryCount < maxRetries) {
+					// Exponential backoff
+					const delay = Math.min(1000 * Math.pow(2, retryCount - 1), 5000);
+					console.log(`⏳ Retrying in ${delay}ms...`);
+					await new Promise(resolve => setTimeout(resolve, delay));
+				} else {
+					console.error(`❌ Failed to fetch ${collection} after ${maxRetries} attempts`);
+					throw error;
+				}
+			}
+		}
+	}
+	
+	console.log(`🎉 Completed ${collection} sync: ${allItems.length} items`);
 	return allItems;
 }
 
@@ -876,9 +924,18 @@ export const syncService = {
 
 	async syncWagonList() {
 		try {
+			console.log('🚂 Starting wagon list sync...');
+			
 			const allWagons = await fetchAllFromPocketBase('wagons');
 			const allIndexedWagons = await indexedDBService.getRecords('wagons');
-
+			
+			console.log(`📊 Sync comparison: ${allWagons.length} from server, ${allIndexedWagons.length} in IndexedDB`);
+			
+			if (allWagons.length === 0) {
+				console.warn('⚠️ No wagons received from server - this might indicate a sync issue');
+				return false;
+			}
+			
 			for (const wagon of allWagons) {
 				const existingWagon = allIndexedWagons.find(
 					(w) => w.serverId === wagon.id || w.id === wagon.wagonId
@@ -1426,20 +1483,20 @@ export const syncService = {
 		]);
 		
 		// Delete records that no longer exist on the server
-		await Promise.all([
-			this.syncDeletedRecords('assays'),
-			this.syncDeletedRecords('consignments'),
-			this.syncDeletedRecords('fleet'),
-			this.syncDeletedRecords('shuntingTrains'),
-			this.syncDeletedRecords('trainArrivals'),
-			this.syncDeletedRecords('trainDispatches'),
-			this.syncDeletedRecords('trains'),
-			this.syncDeletedRecords('truckArrivals'),
-			this.syncDeletedRecords('truckLoads'),
-			this.syncDeletedRecords('trucks'),
-			this.syncDeletedRecords('wagons'),
-			this.syncDeletedRecords('dedicatedFleetTrucks'),
-		]);
+		// await Promise.all([
+		// 	this.syncDeletedRecords('assays'),
+		// 	this.syncDeletedRecords('consignments'),
+		// 	this.syncDeletedRecords('fleet'),
+		// 	this.syncDeletedRecords('shuntingTrains'),
+		// 	this.syncDeletedRecords('trainArrivals'),
+		// 	this.syncDeletedRecords('trainDispatches'),
+		// 	this.syncDeletedRecords('trains'),
+		// 	this.syncDeletedRecords('truckArrivals'),
+		// 	this.syncDeletedRecords('truckLoads'),
+		// 	this.syncDeletedRecords('trucks'),
+		// 	this.syncDeletedRecords('wagons'),
+		// 	this.syncDeletedRecords('dedicatedFleetTrucks'),
+		// ]);
 	},
 };
 
