@@ -21,6 +21,7 @@ function base64ToBlob(base64: string, mime: string) {
     return new Blob([ab], { type: mime });
 }
 
+
 async function fetchAllFromPocketBase(collection: PBCollection, perPage = 1000) {
     const allItems: any[] = [];
 
@@ -62,7 +63,10 @@ async function fetchAllFromPocketBase(collection: PBCollection, perPage = 1000) 
         console.error(`[sync] failed to fetch all '${collection}':`, err);
         throw err;
     }
+
 }
+
+
 
 export const syncService = {
 	async syncAssayList() {
@@ -905,10 +909,19 @@ export const syncService = {
 
 	async syncWagonList() {
 		try {
+			console.log('🚂 Starting wagon list sync...');
+			
 			const allWagons = await fetchAllFromPocketBase('wagons');
 			console.log(`Fetched ${allWagons.length} wagons from PocketBase`);
 			const allIndexedWagons = await indexedDBService.getRecords('wagons');
-
+			
+			console.log(`📊 Sync comparison: ${allWagons.length} from server, ${allIndexedWagons.length} in IndexedDB`);
+			
+			if (allWagons.length === 0) {
+				console.warn('⚠️ No wagons received from server - this might indicate a sync issue');
+				return false;
+			}
+			
 			for (const wagon of allWagons) {
 				const existingWagon = allIndexedWagons.find(
 					(w) => w.serverId === wagon.id || w.id === wagon.wagonId
@@ -1456,20 +1469,21 @@ export const syncService = {
 		]);
 		
 		// Delete records that no longer exist on the server
-		/*await Promise.all([
-			this.syncDeletedRecords('assays'),
-			this.syncDeletedRecords('consignments'),
-			this.syncDeletedRecords('fleet'),
-			this.syncDeletedRecords('shuntingTrains'),
-			this.syncDeletedRecords('trainArrivals'),
-			this.syncDeletedRecords('trainDispatches'),
-			this.syncDeletedRecords('trains'),
-			this.syncDeletedRecords('truckArrivals'),
-			this.syncDeletedRecords('truckLoads'),
-			this.syncDeletedRecords('trucks'),
-			this.syncDeletedRecords('wagons'),
-			this.syncDeletedRecords('dedicatedFleetTrucks'),
-		]);*/
+
+		// await Promise.all([
+		// 	this.syncDeletedRecords('assays'),
+		// 	this.syncDeletedRecords('consignments'),
+		// 	this.syncDeletedRecords('fleet'),
+		// 	this.syncDeletedRecords('shuntingTrains'),
+		// 	this.syncDeletedRecords('trainArrivals'),
+		// 	this.syncDeletedRecords('trainDispatches'),
+		// 	this.syncDeletedRecords('trains'),
+		// 	this.syncDeletedRecords('truckArrivals'),
+		// 	this.syncDeletedRecords('truckLoads'),
+		// 	this.syncDeletedRecords('trucks'),
+		// 	this.syncDeletedRecords('wagons'),
+		// 	this.syncDeletedRecords('dedicatedFleetTrucks'),
+		// ]);
 	},
 };
 
