@@ -21,66 +21,49 @@ function base64ToBlob(base64: string, mime: string) {
     return new Blob([ab], { type: mime });
 }
 
-async function fetchAllFromPocketBase(collection: PBCollection, perPage = 1000, maxRetries = 3) {
-	let page = 1;
-	let allItems: any[] = [];
-	let totalItems = 0;
-	let hasMore = true;
-	
-	console.log(`🔄 Starting sync for ${collection}...`);
-	
-	while (hasMore) {
-		let retryCount = 0;
-		let success = false;
-		
-		while (retryCount < maxRetries && !success) {
-			try {
-				console.log(`📄 Fetching ${collection} page ${page} (${allItems.length} items so far)`);
-				
-				const response = await pocketbaseService.list(collection, { 
-					page, 
-					perPage,
-					// Add timeout and other options if needed
-				});
-				
-				if (!response || !Array.isArray(response.items)) {
-					throw new Error(`Invalid response structure for ${collection}`);
-				}
-				
-				const items = response.items;
-				allItems = allItems.concat(items);
-				totalItems = response.totalItems || 0;
-				
-				console.log(`✅ Page ${page}: Got ${items.length} items (${allItems.length}/${totalItems} total)`);
-				
-				// More reliable pagination check
-				hasMore = items.length === perPage && allItems.length < totalItems;
-				
-				if (hasMore) {
-					page++;
-				}
-				
-				success = true;
-				
-			} catch (error) {
-				retryCount++;
-				console.warn(`⚠️ Attempt ${retryCount}/${maxRetries} failed for ${collection} page ${page}:`, error);
-				
-				if (retryCount < maxRetries) {
-					// Exponential backoff
-					const delay = Math.min(1000 * Math.pow(2, retryCount - 1), 5000);
-					console.log(`⏳ Retrying in ${delay}ms...`);
-					await new Promise(resolve => setTimeout(resolve, delay));
-				} else {
-					console.error(`❌ Failed to fetch ${collection} after ${maxRetries} attempts`);
-					throw error;
-				}
-			}
-		}
-	}
-	
-	console.log(`🎉 Completed ${collection} sync: ${allItems.length} items`);
-	return allItems;
+
+async function fetchAllFromPocketBase(collection: PBCollection, perPage = 1000) {
+    const allItems: any[] = [];
+
+    async function fetchPage(page: number, retries = 3, delayMs = 300) {
+        for (let attempt = 1; attempt <= retries; attempt++) {
+            try {
+                return await pocketbaseService.list(collection, { page, perPage });
+            } catch (err) {
+                console.warn(`[sync] page ${page} fetch failed (attempt ${attempt}) for '${collection}':`, err);
+                if (attempt < retries) await new Promise(r => setTimeout(r, delayMs * attempt));
+                else throw err;
+            }
+        }
+    }
+
+    try {
+        // fetch first page to get totals / meta
+        let page = 1;
+        let res: any = await fetchPage(page);
+        allItems.push(...(res.items || []));
+
+        const totalItems = typeof res?.totalItems === 'number' ? res.totalItems : (typeof res?.total === 'number' ? res.total : undefined);
+        if (typeof totalItems === 'number') {
+            const totalPages = Math.max(1, Math.ceil(totalItems / perPage));
+            for (page = 2; page <= totalPages; page++) {
+                res = await fetchPage(page);
+                allItems.push(...(res.items || []));
+            }
+        } else {
+            while ((res.items?.length ?? 0) === perPage) {
+                page++;
+                res = await fetchPage(page);
+                if (!res?.items?.length) break;
+                allItems.push(...res.items);
+            }
+        }
+        return allItems;
+    } catch (err) {
+        console.error(`[sync] failed to fetch all '${collection}':`, err);
+        throw err;
+    }
+
 }
 
 
@@ -929,6 +912,7 @@ export const syncService = {
 			console.log('🚂 Starting wagon list sync...');
 			
 			const allWagons = await fetchAllFromPocketBase('wagons');
+			console.log(`Fetched ${allWagons.length} wagons from PocketBase`);
 			const allIndexedWagons = await indexedDBService.getRecords('wagons');
 			
 			console.log(`📊 Sync comparison: ${allWagons.length} from server, ${allIndexedWagons.length} in IndexedDB`);
@@ -1485,6 +1469,7 @@ export const syncService = {
 		]);
 		
 		// Delete records that no longer exist on the server
+
 		// await Promise.all([
 		// 	this.syncDeletedRecords('assays'),
 		// 	this.syncDeletedRecords('consignments'),
