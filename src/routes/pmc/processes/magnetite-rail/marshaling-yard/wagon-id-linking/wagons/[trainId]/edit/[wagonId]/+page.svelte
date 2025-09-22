@@ -15,7 +15,7 @@
 	let isSubmitting = false;
 	let trainId: string;
 	let wagonId: string;
-	let wagonPosition: number = 1;
+	let wagonPosition: number = 0;
 
 	// Editable fields
 	let editableWagonId = '';
@@ -44,21 +44,7 @@
 		}
 	}
 
-	$: {
-		try {
-			const positionParam = $page.url.searchParams.get('position');
-			if (positionParam) {
-				wagonPosition = parseInt(positionParam, 10) || 1;
-			}
-		} catch (e) {
-			console.error('Error getting position:', e);
-			wagonPosition = 1;
-		}
-	}
-
-	$: if(editableWagonId) {
-		wagonValue = true;
-	}
+	$: wagonValue = !!(wagon?.wagonIdSimple && String(wagon.wagonIdSimple).trim() !== '');
 
 	async function loadWagonAndTrain() {
 		try {
@@ -74,6 +60,7 @@
 
 			// Load the wagon
 			wagon = await indexedDBService.getRecord('wagons', wagonId) ?? null;
+			wagonPosition = wagon?.wagonPosition || 0;
 			
 			if (!wagon) {
 				console.error('Wagon not found with ID:', wagonId);
@@ -266,7 +253,7 @@
 			<!-- Wagon Details Form -->
 			<div class="border border-gray-300 rounded-lg p-4 bg-white">
 				<div class="mb-3">
-					<h6 class="font-semibold text-center">Number {wagonPosition}</h6>
+					<h6 class="font-semibold text-center">Position {wagonPosition}</h6>
 				</div>
 				
 				<div class="space-y-4">
