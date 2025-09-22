@@ -63,7 +63,6 @@ class PocketBaseService {
 
 	private constructor() {
 		this.pb = new PocketBase(POCKETBASE_URL);
-		this.pb.autoCancellation(false);
 	}
 
 	/** Singleton accessor */

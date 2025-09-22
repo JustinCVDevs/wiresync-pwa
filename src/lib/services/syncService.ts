@@ -21,52 +21,21 @@ function base64ToBlob(base64: string, mime: string) {
     return new Blob([ab], { type: mime });
 }
 
+let runningList = false;
 
 async function fetchAllFromPocketBase(collection: PBCollection, perPage = 1000) {
-    const allItems: any[] = [];
-
-    async function fetchPage(page: number, retries = 3, delayMs = 300) {
-        for (let attempt = 1; attempt <= retries; attempt++) {
-            try {
-                return await pocketbaseService.list(collection, { page, perPage });
-            } catch (err) {
-                console.warn(`[sync] page ${page} fetch failed (attempt ${attempt}) for '${collection}':`, err);
-                if (attempt < retries) await new Promise(r => setTimeout(r, delayMs * attempt));
-                else throw err;
-            }
-        }
-    }
-
-    try {
-        // fetch first page to get totals / meta
-        let page = 1;
-        let res: any = await fetchPage(page);
-        allItems.push(...(res.items || []));
-
-        const totalItems = typeof res?.totalItems === 'number' ? res.totalItems : (typeof res?.total === 'number' ? res.total : undefined);
-        if (typeof totalItems === 'number') {
-            const totalPages = Math.max(1, Math.ceil(totalItems / perPage));
-            for (page = 2; page <= totalPages; page++) {
-                res = await fetchPage(page);
-                allItems.push(...(res.items || []));
-            }
-        } else {
-            while ((res.items?.length ?? 0) === perPage) {
-                page++;
-                res = await fetchPage(page);
-                if (!res?.items?.length) break;
-                allItems.push(...res.items);
-            }
-        }
-        return allItems;
-    } catch (err) {
-        console.error(`[sync] failed to fetch all '${collection}':`, err);
-        throw err;
-    }
-
+    let page = 1;
+    let items: any[] = [];
+    let allItems: any[] = [];
+    let response;
+    do {
+        response = await pocketbaseService.list(collection, { page, perPage });
+        items = response.items;
+        allItems = allItems.concat(items);
+        page++;
+    } while (items.length === perPage);
+    return allItems;
 }
-
-
 
 export const syncService = {
 	async syncAssayList() {
@@ -909,18 +878,8 @@ export const syncService = {
 
 	async syncWagonList() {
 		try {
-			console.log('🚂 Starting wagon list sync...');
-			
 			const allWagons = await fetchAllFromPocketBase('wagons');
-			console.log(`Fetched ${allWagons.length} wagons from PocketBase`);
 			const allIndexedWagons = await indexedDBService.getRecords('wagons');
-			
-			console.log(`📊 Sync comparison: ${allWagons.length} from server, ${allIndexedWagons.length} in IndexedDB`);
-			
-			if (allWagons.length === 0) {
-				console.warn('⚠️ No wagons received from server - this might indicate a sync issue');
-				return false;
-			}
 			
 			for (const wagon of allWagons) {
 				const existingWagon = allIndexedWagons.find(
@@ -1452,38 +1411,43 @@ export const syncService = {
 			this.syncPendingWagons(),
 		]);
 
-		// Sync records from PocketBase
-		await Promise.all([
-			this.syncAssayList(),
-			this.syncConsignmentList(),
-			this.syncFleetList(),
-			this.syncShuntingTrainList(),
-			this.syncTrainArrivalList(),
-			this.syncTrainDispatchList(),
-			this.syncTrainList(),
-			this.syncTruckArrivalList(),
-			this.syncTruckLoadList(),
-			this.syncTruckList(),
-			this.syncWagonList(),
-			this.syncDedicatedFleetTrucksList(),
-		]);
-		
+		if (!runningList) {
+			runningList = true;
+			try {
+				// Sync records from PocketBase
+				await this.syncAssayList();
+				await this.syncConsignmentList();
+				await this.syncFleetList();
+				await this.syncShuntingTrainList();
+				await this.syncTrainArrivalList();
+				await this.syncTrainDispatchList();
+				await this.syncTrainList();
+				await this.syncTruckArrivalList();
+				await this.syncTruckLoadList();
+				await this.syncTruckList();
+				await this.syncWagonList();
+				await this.syncDedicatedFleetTrucksList();
+			} catch (err) {
+				console.error('Error during syncAllPending:', err);
+			} finally {
+				runningList = false;
+			}
+		}
 		// Delete records that no longer exist on the server
-
-		// await Promise.all([
-		// 	this.syncDeletedRecords('assays'),
-		// 	this.syncDeletedRecords('consignments'),
-		// 	this.syncDeletedRecords('fleet'),
-		// 	this.syncDeletedRecords('shuntingTrains'),
-		// 	this.syncDeletedRecords('trainArrivals'),
-		// 	this.syncDeletedRecords('trainDispatches'),
-		// 	this.syncDeletedRecords('trains'),
-		// 	this.syncDeletedRecords('truckArrivals'),
-		// 	this.syncDeletedRecords('truckLoads'),
-		// 	this.syncDeletedRecords('trucks'),
-		// 	this.syncDeletedRecords('wagons'),
-		// 	this.syncDeletedRecords('dedicatedFleetTrucks'),
-		// ]);
+		/*await Promise.all([
+			this.syncDeletedRecords('assays'),
+			this.syncDeletedRecords('consignments'),
+			this.syncDeletedRecords('fleet'),
+			this.syncDeletedRecords('shuntingTrains'),
+			this.syncDeletedRecords('trainArrivals'),
+			this.syncDeletedRecords('trainDispatches'),
+			this.syncDeletedRecords('trains'),
+			this.syncDeletedRecords('truckArrivals'),
+			this.syncDeletedRecords('truckLoads'),
+			this.syncDeletedRecords('trucks'),
+			this.syncDeletedRecords('wagons'),
+			this.syncDeletedRecords('dedicatedFleetTrucks'),
+		]);*/
 	},
 };
 
