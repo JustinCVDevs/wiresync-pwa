@@ -274,7 +274,7 @@
 			<YesNo 
 				bind:selected={dedicatedFleet} 
 				label={"Dedicated Fleet"} 
-				description={"Please specify wether the truck is part of a fleet."}
+				description={"Select YES for CPAL, Crosscon and Bosveld trucks. Select NO for trucks loading DMS."}
 			/>
 			{#if dedicatedFleet}
 		  		{#if dedicatedFleet === 'No'}
