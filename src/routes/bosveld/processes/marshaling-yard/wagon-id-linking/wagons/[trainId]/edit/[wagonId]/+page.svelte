@@ -26,9 +26,7 @@
 	const steps = ['Select Shunting Train', 'Wagon ID/RFID Editing'];
 	let currentStep = 2;
 
-	$: if(editableWagonId) {
-		wagonValue = true;
-	}
+	$: wagonValue = !!(wagon?.wagonIdSimple && String(wagon.wagonIdSimple).trim() !== '');
 
 	// Wrap reactive statements in try-catch to prevent exceptions
 	$: {
@@ -75,7 +73,7 @@
 
 			// Load the wagon
 			wagon = await indexedDBService.getRecord('wagons', wagonId) ?? null;
-			console.log('Loaded wagon:', wagon);
+			wagonPosition = wagon?.wagonPosition || 0;
 			
 			if (!wagon) {
 				console.error('Wagon not found with ID:', wagonId);
@@ -273,7 +271,7 @@
 			<!-- Wagon Details Form -->
 			<div class="border border-gray-300 rounded-lg p-4 bg-white">
 				<div class="mb-3">
-					<h6 class="font-semibold text-center">Number {wagonPosition}</h6>
+					<h6 class="font-semibold text-center">Position {wagonPosition}</h6>
 				</div>
 				
 				<div class="space-y-4">

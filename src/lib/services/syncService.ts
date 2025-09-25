@@ -21,18 +21,20 @@ function base64ToBlob(base64: string, mime: string) {
     return new Blob([ab], { type: mime });
 }
 
-async function fetchAllFromPocketBase(collection: PBCollection, perPage = 50) {
-	let page = 1;
-	let items: any[] = [];
-	let allItems: any[] = [];
-	let response;
-	do {
-		response = await pocketbaseService.list(collection, { page, perPage });
-		items = response.items;
-		allItems = allItems.concat(items);
-		page++;
-	} while (items.length === perPage);
-	return allItems;
+let runningList = false;
+
+async function fetchAllFromPocketBase(collection: PBCollection, perPage = 1000) {
+    let page = 1;
+    let items: any[] = [];
+    let allItems: any[] = [];
+    let response;
+    do {
+        response = await pocketbaseService.list(collection, { page, perPage });
+        items = response.items;
+        allItems = allItems.concat(items);
+        page++;
+    } while (items.length === perPage);
+    return allItems;
 }
 
 export const syncService = {
@@ -878,7 +880,7 @@ export const syncService = {
 		try {
 			const allWagons = await fetchAllFromPocketBase('wagons');
 			const allIndexedWagons = await indexedDBService.getRecords('wagons');
-
+			
 			for (const wagon of allWagons) {
 				const existingWagon = allIndexedWagons.find(
 					(w) => w.serverId === wagon.id || w.id === wagon.wagonId
@@ -1233,7 +1235,7 @@ export const syncService = {
 					await indexedDBService.updateRecord('fleet', existingFleet.id, {
 						...existingFleet,
 						sampleId: fleet.sampleId,
-						sampleSize: fleet.sampleSize,
+						sampleNumber: fleet.sampleNumber,
 						commodity: fleet.commodity,
 						materialType: fleet.materialType,
 						loadingLocation: fleet.loadingLocation,
@@ -1252,7 +1254,7 @@ export const syncService = {
 					await indexedDBService.saveRecord('fleet', {
 						id: fleet.id,
 						sampleId: fleet.sampleId,
-						sampleSize: fleet.sampleSize,
+						sampleNumber: fleet.sampleNumber,
 						commodity: fleet.commodity,
 						materialType: fleet.materialType,
 						loadingLocation: fleet.loadingLocation,
@@ -1409,24 +1411,30 @@ export const syncService = {
 			this.syncPendingWagons(),
 		]);
 
-		// Sync records from PocketBase
-		await Promise.all([
-			this.syncAssayList(),
-			this.syncConsignmentList(),
-			this.syncFleetList(),
-			this.syncShuntingTrainList(),
-			this.syncTrainArrivalList(),
-			this.syncTrainDispatchList(),
-			this.syncTrainList(),
-			this.syncTruckArrivalList(),
-			this.syncTruckLoadList(),
-			this.syncTruckList(),
-			this.syncWagonList(),
-			this.syncDedicatedFleetTrucksList(),
-		]);
-		
+		if (!runningList) {
+			runningList = true;
+			try {
+				// Sync records from PocketBase
+				await this.syncAssayList();
+				await this.syncConsignmentList();
+				await this.syncFleetList();
+				await this.syncShuntingTrainList();
+				await this.syncTrainArrivalList();
+				await this.syncTrainDispatchList();
+				await this.syncTrainList();
+				await this.syncTruckArrivalList();
+				await this.syncTruckLoadList();
+				await this.syncTruckList();
+				await this.syncWagonList();
+				await this.syncDedicatedFleetTrucksList();
+			} catch (err) {
+				console.error('Error during syncAllPending:', err);
+			} finally {
+				runningList = false;
+			}
+		}
 		// Delete records that no longer exist on the server
-		await Promise.all([
+		/*await Promise.all([
 			this.syncDeletedRecords('assays'),
 			this.syncDeletedRecords('consignments'),
 			this.syncDeletedRecords('fleet'),
@@ -1439,7 +1447,7 @@ export const syncService = {
 			this.syncDeletedRecords('trucks'),
 			this.syncDeletedRecords('wagons'),
 			this.syncDeletedRecords('dedicatedFleetTrucks'),
-		]);
+		]);*/
 	},
 };
 
