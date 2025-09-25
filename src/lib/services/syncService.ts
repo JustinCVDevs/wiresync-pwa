@@ -1235,7 +1235,7 @@ export const syncService = {
 					await indexedDBService.updateRecord('fleet', existingFleet.id, {
 						...existingFleet,
 						sampleId: fleet.sampleId,
-						sampleSize: fleet.sampleSize,
+						sampleNumber: fleet.sampleNumber,
 						commodity: fleet.commodity,
 						materialType: fleet.materialType,
 						loadingLocation: fleet.loadingLocation,
@@ -1254,7 +1254,7 @@ export const syncService = {
 					await indexedDBService.saveRecord('fleet', {
 						id: fleet.id,
 						sampleId: fleet.sampleId,
-						sampleSize: fleet.sampleSize,
+						sampleNumber: fleet.sampleNumber,
 						commodity: fleet.commodity,
 						materialType: fleet.materialType,
 						loadingLocation: fleet.loadingLocation,

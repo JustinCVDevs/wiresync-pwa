@@ -27,26 +27,31 @@
 	let dedicatedFleetTrucks: DedicatedFleetTruck[] = [];
 	let productTypes = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite 62%', 'Magnetite 65%'];
 
-	// Function to get or reset the sample number for the day
-	function getSampleNumber() {
-		const currentDate = new Date().toISOString().split('T')[0];
-		const storedData = JSON.parse(localStorage.getItem('sampleNumberGravelotte') || '{}');
+	// Function to determine today's (00:00-23:59) next sample number from the fleet table
+	async function getSampleNumberFromFleet() {
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
+        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime();
 
-		if (storedData.date === currentDate) {
-			sampleNumberGravelotte = storedData.number + 1;
-		} else {
-			sampleNumberGravelotte = 1;
-		}
-
-		// Save the updated sample number in localStorage
-		localStorage.setItem(
-			'sampleNumberGravelotte',
-			JSON.stringify({ date: currentDate, number: sampleNumberGravelotte })
+        // load all fleet records and compute highest numeric sampleNumber for the selected loadingLocation within today
+        const allFleet = (await indexedDBService.getRecords('fleet')).filter(
+			(fleet: Fleet) => fleet.loadingLocation === 'Gravelotte'
 		);
-	}
+        let max = 0;
 
-	// Call the function to initialize the sample number
-	getSampleNumber();
+        for (const rec of allFleet) {
+            const createdTs = rec.created ? new Date(rec.created).getTime() : NaN;
+            if (Number.isNaN(createdTs)) continue;
+            if (createdTs < startOfDay || createdTs > endOfDay) continue;
+
+            const n = Number(rec.sampleNumber);
+            if (Number.isFinite(n) && n > max) max = Math.floor(n);
+        }
+
+        // no fallback: always return highest found + 1 (will be 1 if none found)
+        sampleNumberGravelotte = max + 1;
+        return sampleNumberGravelotte;
+    }
 
 	async function getTrucks() {
 		trucks = await indexedDBService.getAllRecords('trucks');
@@ -60,14 +65,15 @@
 		dedicatedFleetTrucks.sort((a, b) => a.registration.localeCompare(b.registration));
 	}
 
-	// Fetch truck records from IndexedDB on component mount
+	// Fetch truck records and initialize sample number from IndexedDB on component mount
 	onMount(async () => {
 		try {
-			getTrucks();
-			getDedicatedFleetTruck();
+			await getTrucks();
+			await getDedicatedFleetTruck();
+			await getSampleNumberFromFleet();
 		} catch (err) {
-			console.error('Failed to load trucks from IndexedDB:', err);
-			error = 'Failed to load truck records';
+			console.error('Failed to load trucks from IndexedDB or initialize sample number:', err);
+			error = 'Failed to load truck records or sample number';
 		}
 	});
 
