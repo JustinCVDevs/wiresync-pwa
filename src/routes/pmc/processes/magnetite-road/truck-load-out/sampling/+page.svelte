@@ -137,6 +137,7 @@
 					materialType: 'Coarse',
 					registration: truckRegistration,
 					felMassKg: 0,
+					sampleNumber: sampleNumberTruck,
 					loadingLocation: loadingLocation,
 					loadingHour: loadingTime,
 					syncStatus: 'pending',
