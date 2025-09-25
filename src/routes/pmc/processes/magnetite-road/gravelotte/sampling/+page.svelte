@@ -136,6 +136,7 @@
 					materialType: 'Coarse',
 					registration: truckRegistration,
 					felMassKg: 0,
+					sampleNumber: sampleNumberGravelotte,
 					loadingLocation: loadingLocation,
 					loadingHour: loadingTime,
 					syncStatus: 'pending',
