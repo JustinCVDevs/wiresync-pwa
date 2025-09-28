@@ -32,7 +32,7 @@
 	onMount(async () => {
 		// Fetch all train arrivals
 		const trainArrivals = (await indexedDBService.getAllRecords('trainArrivals')).filter(
-			arrival => arrival.portRailArrivalTimestamp !== '' && arrival.portStagingTimestamp !== '' && arrival.finishSamplingTimestamp === ''
+			arrival => arrival.portRailArrivalTimestamp && arrival.portStagingTimestamp && !arrival.finishSamplingTimestamp
 		);
 
 		let linkedTrains = trainArrivals.map(arrival => arrival.trainId);
@@ -49,31 +49,36 @@
 	});
 
 	async function handleSubmit() {
-		if (!selectedTrain) {
-			processLayout.setError('Please select a train reference number.');
-			return;
-		}
-		let train = (await indexedDBService.getAllRecords('trains')).filter(
-			train => train.refNr === selectedTrain
-		)[0];
-
-		let trainArrival = (await indexedDBService.getAllRecords('trainArrivals')).filter(
-			arrival => arrival.trainId === train.serverId
-		)[0];
-
-		let linkedWagonIds = trainArrival.linkedWagonIds || [];
-
-		for (let wagonId of linkedWagonIds) {
-			let wagon = (await indexedDBService.getAllRecords('wagons')).find(
-				wagon => wagon.serverId === wagonId
-			);
-
-			if (wagon?.sampleTimestamp) {
-				goto(`/richardsbay/processes/rail/train-sampling/wagons/review?trainRefNr=${selectedTrain}`);
+		isSubmitting = true;
+		try {
+			if (!selectedTrain) {
+				processLayout.setError('Please select a train reference number.');
+				isSubmitting = false;
 				return;
 			}
+			let train = (await indexedDBService.getAllRecords('trains')).find(
+				train => train.refNr === selectedTrain
+			);
+
+			let trainArrival = (await indexedDBService.getAllRecords('trainArrivals')).find(
+				arrival => arrival.trainId === train?.serverId
+			);
+
+			let linkedWagonIds = trainArrival?.linkedWagonIds || [];
+			const wagons = await indexedDBService.getAllRecords('wagons');
+			const hasSampledWagon = linkedWagonIds.some(wid => {
+				const wagon = wagons.find(w => w.id === wid || w.serverId === wid);
+				return wagon && wagon.sampleTimestamp;
+			});
+
+			if (hasSampledWagon) {
+				goto(`/richardsbay/processes/rail/train-sampling/wagons/review?trainRefNr=${selectedTrain}`);
+			} else {
+				goto(`/richardsbay/processes/rail/train-sampling/wagons?trainRefNr=${selectedTrain}`);
+			}
+		} finally {
+			isSubmitting = false;
 		}
-		goto(`/richardsbay/processes/rail/train-sampling/wagons?trainRefNr=${selectedTrain}`);
 	}
 
 	async function confirmFinishSampling(confirm: boolean) {
@@ -87,7 +92,7 @@
 			)[0];
 
 			await indexedDBService.updateRecord('trainArrivals', trainArrival.id, {
-				finishSamplingTimestamp: formatTimestamp(new Date()),
+				finishSamplingTimestamp: new Date(),
 				syncStatus: 'pending'
 			});
 
