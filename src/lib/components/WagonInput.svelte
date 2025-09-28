@@ -3,18 +3,18 @@
 	import FormField from './FormField.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 
-	export let wagonId = '';
+	export let wagonIdSimple = '';
 	export let tarpedStatus = false; // Add this line
 
 	let availableWagons: any[] = [];
 
 	const dispatch = createEventDispatcher<{
-		submit: { wagonId: string; tarpedStatus: boolean }; // Add tarpedStatus to event
+		submit: { wagonIdSimple: string; tarpedStatus: boolean }; // Add tarpedStatus to event
 		cancel: void;
 	}>();
 
 	function handleSubmit() {
-		dispatch('submit', { wagonId, tarpedStatus }); // Include tarpedStatus
+		dispatch('submit', { wagonIdSimple, tarpedStatus }); // Include tarpedStatus
 	}
 
 	function handleCancel() {
@@ -23,9 +23,9 @@
 
 	onMount(async () => {
 		const allWagons = (await indexedDBService.getAllRecords('wagons')).filter(
-			w => !w.dispatchTimestamp
+			w => !w.dispatchTimestamp && w.wagonIdSimple !== ''
 		);
-		availableWagons = allWagons.map((w) => ({ value: w.wagonId, label: w.wagonId }));
+		availableWagons = allWagons.map((w) => ({ value: w.wagonIdSimple, label: w.wagonIdSimple }));
 	});
 </script>
 
@@ -33,10 +33,10 @@
 	<div class="form">
 		<FormField
 			label="Wagon ID"
-			id="wagonId"
+			id="wagonIdSimple"
 			search={true}
 			placeholder="Select Wagon ID"
-			bind:value={wagonId}
+			bind:value={wagonIdSimple}
 			options={availableWagons}
 		/>
 	</div>

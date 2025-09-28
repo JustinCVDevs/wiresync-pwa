@@ -12,7 +12,7 @@
 
 	let sampleId = '';
 	let trainNumber = '';
-	let wagonId = $page.url.searchParams.get('wagonIdSimple') || '';
+	let wagonIdSimple = $page.url.searchParams.get('wagonIdSimple') || '';
 	let shuntingTrainVerificationDate = $page.url.searchParams.get('shuntingTrainVerificationDate');
 	let productGrade = localStorage.getItem('productGrade') || '';
 	let loadingLocation = 'East Load Out';
@@ -50,7 +50,7 @@
 
 	async function fetchData() {
 		const wagon = (await indexedDBService.getAllRecords('wagons')).find(
-			(w) => w.wagonIdSimple === wagonId
+			(w) => w.wagonIdSimple === wagonIdSimple
 		);
 
 		if (wagon) {
@@ -61,7 +61,7 @@
 		}
 	}
 
-	$: if (wagonId === '') {
+	$: if (wagonIdSimple === '') {
 		const currentDate = new Date();
 		const YYMMDD = `${currentDate.getFullYear().toString().slice(-2)}${String(currentDate.getMonth() + 1).padStart(2, '0')}${String(currentDate.getDate()).padStart(2, '0')}`;
 
@@ -238,12 +238,12 @@
 
 <div class="container">
 	<div class="form">
-		{#if wagonId === ''}
+		{#if wagonIdSimple === ''}
 			<FormField
 				id="wagonId"
 				label="Wagon ID"
 				search={true}
-				options={availableWagons.map(wagon => ({value: wagon.wagonId, label: wagon.wagonId}))}
+				options={availableWagons.map(wagon => ({value: wagon.wagonIdSimple, label: wagon.wagonIdSimple}))}
 				bind:value={selectedWagon}
 				placeholder="Select Wagon ID"
 				required

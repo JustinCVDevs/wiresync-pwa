@@ -653,15 +653,25 @@ export const syncService = {
 						trainDispatch.linkedWagonIds.map((id) => indexedDBService.getRecord('wagons', id))
 					);
 
-					// Check if all wagons have server IDs
-					const allWagonsHaveServerId = wagons.every((wagon) => wagon?.serverId);
+					// Sync any wagons that do not have a serverId
+					for (const wagon of wagons) {
+						if (wagon && !wagon.serverId) {
+							await syncService.syncWagon(wagon);
+						}
+					}
+
+					// Re-fetch wagons after syncing
+					const syncedWagons = await Promise.all(
+						trainDispatch.linkedWagonIds.map((id) => indexedDBService.getRecord('wagons', id))
+					);
+					const allWagonsHaveServerId = syncedWagons.every((wagon) => wagon?.serverId);
 					if (!allWagonsHaveServerId) {
 						console.warn('Waiting for all wagons to sync before updating train dispatch');
 						return false;
 					}
 
 					// Replace local IDs with server IDs
-					payload.linkedWagonIds = wagons
+					payload.linkedWagonIds = syncedWagons
 						.map((wagon) => wagon?.serverId)
 						.filter((id): id is string => id !== undefined);
 				}
@@ -1434,7 +1444,7 @@ export const syncService = {
 			}
 		}
 		// Delete records that no longer exist on the server
-		/*await Promise.all([
+		await Promise.all([
 			this.syncDeletedRecords('assays'),
 			this.syncDeletedRecords('consignments'),
 			this.syncDeletedRecords('fleet'),
@@ -1447,7 +1457,7 @@ export const syncService = {
 			this.syncDeletedRecords('trucks'),
 			this.syncDeletedRecords('wagons'),
 			this.syncDeletedRecords('dedicatedFleetTrucks'),
-		]);*/
+		]);
 	},
 };
 
