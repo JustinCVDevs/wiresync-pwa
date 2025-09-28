@@ -58,52 +58,51 @@
   
 	$: if (dispatchId) loadDispatch();
   
-	async function handleWagonSubmit(event: { preventDefault: () => void; detail: { wagonId: any; tarpedStatus: boolean; }; }) {
-    event.preventDefault();
-    if (!trainDispatch || !trainDispatch.linkedWagonIds) {
-        return;
-    }
-    error = '';
-    try {
-        if (trainDispatch.linkedWagonIds.length >= 80) {
-            error = 'Maximum of 80 wagons can be linked to a train dispatch';
-            return;
-        }
-        // Find the existing wagon by wagonId
-        const allWagons = await indexedDBService.getAllRecords('wagons');
-        const wagon = allWagons.find(w => w.wagonId === event.detail.wagonId);
+	async function handleWagonSubmit(event: { preventDefault: () => void; detail: { wagonIdSimple: any; tarpedStatus: boolean; }; }) {
+		event.preventDefault();
+		if (!trainDispatch || !trainDispatch.linkedWagonIds) {
+			return;
+		}
+		error = '';
+		try {
+			if (trainDispatch.linkedWagonIds.length >= 80) {
+				error = 'Maximum of 80 wagons can be linked to a train dispatch';
+				return;
+			}
+			// Find the existing wagon by wagonIdSimple
+			const allWagons = await indexedDBService.getAllRecords('wagons');
+			const wagon = allWagons.find(w => w.wagonIdSimple === event.detail.wagonIdSimple);
 
-        if (!wagon) {
-            error = 'Wagon not found';
-            return;
-        }
+			if (!wagon) {
+				error = 'Wagon not found';
+				return;
+			}
 
-        await indexedDBService.updateRecord('wagons', wagon.id, {
-            ...wagon,
-            syncStatus: 'pending',
-            dispatchTimestamp: new Date(),
-            tarpedStatus: event.detail.tarpedStatus,
-            updated: new Date().toISOString()
-        });
+			await indexedDBService.updateRecord('wagons', wagon.id, {
+				syncStatus: 'pending',
+				dispatchTimestamp: new Date(),
+				tarpedStatus: event.detail.tarpedStatus,
+				updated: new Date().toISOString()
+			});
 
-        const updatedIds = [...(trainDispatch.linkedWagonIds), wagon.id];
+			const updatedIds = [...(trainDispatch.linkedWagonIds), wagon.id];
 
-        await indexedDBService.updateRecord('trainDispatches', dispatchId, {
-            ...trainDispatch,
-            linkedWagonIds: updatedIds,
-            syncStatus: 'pending',
-            updated: new Date().toISOString()
-        });
+			await indexedDBService.updateRecord('trainDispatches', dispatchId, {
+				...trainDispatch,
+				linkedWagonIds: updatedIds,
+				syncStatus: 'pending',
+				updated: new Date().toISOString()
+			});
 
-        success = 'Wagon linked';
-        currentStep = 3;
-        await loadDispatch();
-        showWagonInput = false;
-    } catch (e) {
-        console.error(e);
-        error = 'Failed to update wagon';
-    }
-}
+			success = 'Wagon linked';
+			currentStep = 3;
+			await loadDispatch();
+			showWagonInput = false;
+		} catch (e) {
+			console.error(e);
+			error = 'Failed to update wagon';
+		}
+	}
 
 	async function confirmFinishDispatch(confirm: boolean) {
 		if (confirm) {
@@ -192,9 +191,7 @@
 						<li class="rounded bg-white shadow-sm px-3 py-2 flex items-center align-middle gap-3">
 							<Container size={16} class="inline text-xs"/>
 							<div>
-								<div class="text-gray font-medium ">
-									<span class="text-sm font-light">Wagon ID</span>: {wagons?.find((w)=> w.id == id)?.wagonId}
-								</div>
+								<div class="text-gray font-medium "><span class="text-sm font-light">Wagon ID</span>: {wagons?.find((w)=> w.id == id)?.wagonIdSimple}</div>
 								<div class="text-xs text-gray-400 text-left">
 									Date linked: {wagons?.find((w) => w.id == id)?.created
 									? new Date(wagons.find((w) => w.id == id)?.created!).toLocaleString("en-GB", {
