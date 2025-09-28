@@ -30,13 +30,11 @@
 	async function loadTruckData() {
 		// Fetch all truck arrivals
 		const truckArrivals = (await indexedDBService.getAllRecords('truckArrivals')).filter(
-			arrival => !arrival.port_truck_arrival_timestamp
+			arrival => !arrival.port_truck_arrival_timestamp && arrival.siteLocation === 'BOP'
 		);
 
 		// Fetch all trucks
-		const allTrucks = (await indexedDBService.getAllRecords('trucks')).filter(
-			truck => truck.loadingLocation === 'BOP'
-		);
+		const allTrucks = (await indexedDBService.getAllRecords('trucks'));
 
 		// Filter trucks that match the truck arrivals' truckId
 		// Check both local id and serverId to handle synced and unsynced trucks
