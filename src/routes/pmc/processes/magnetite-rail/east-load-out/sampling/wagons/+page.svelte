@@ -12,7 +12,7 @@
 
 	let sampleId = '';
 	let trainNumber = '';
-	let wagonId = $page.url.searchParams.get('wagonId') || '';
+	let wagonId = $page.url.searchParams.get('wagonIdSimple') || '';
 	let shuntingTrainVerificationDate = $page.url.searchParams.get('shuntingTrainVerificationDate');
 	let productGrade = localStorage.getItem('productGrade') || '';
 	let loadingLocation = 'East Load Out';
@@ -50,11 +50,11 @@
 
 	async function fetchData() {
 		const wagon = (await indexedDBService.getAllRecords('wagons')).find(
-			(w) => w.wagonId === wagonId
+			(w) => w.wagonIdSimple === wagonId
 		);
 
 		if (wagon) {
-			selectedWagon = wagon.wagonId || '';
+			selectedWagon = wagon.wagonIdSimple || '';
 			productGrade = wagon.productType || '';
 			trainNumber = wagon.trainNumber || '';
 			sampleId = wagon.sampleId || '';
@@ -127,7 +127,7 @@
 	}
 
 	let existingIdsArray: string[] = [];
-	$: existingIdsArray = ($page.url.searchParams.get('wagonIds') || '').split(',').filter(Boolean);
+	$: existingIdsArray = ($page.url.searchParams.get('wagonIdSimple') || '').split(',').filter(Boolean);
 
 	onMount(async () => {
 		let shuntingTrain = (await indexedDBService.getAllRecords('shuntingTrains')).find(t => t.verificationTimestamp === shuntingTrainVerificationDate);
@@ -164,7 +164,7 @@
 
 			if (selectedWagon) {
 				let wagon = (await indexedDBService.getAllRecords('wagons')).find(
-					(w) => w.wagonId === selectedWagon
+					(w) => w.wagonIdSimple === selectedWagon
 				);
 
 				if (!wagon) {
@@ -208,7 +208,7 @@
 				processLayout.setSuccess('Data saved successfully');
 				setTimeout(() => {
 					goto(
-						`/pmc/processes/magnetite-rail/east-load-out/sampling/wagons/review?wagonId=${encodeURIComponent(selectedWagon)}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`
+						`/pmc/processes/magnetite-rail/east-load-out/sampling/wagons/review?wagonIdSimple=${encodeURIComponent(selectedWagon)}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`
 					);
 				}, 1000);
 			}

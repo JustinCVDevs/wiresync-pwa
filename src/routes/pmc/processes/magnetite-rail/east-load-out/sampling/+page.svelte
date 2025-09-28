@@ -35,7 +35,11 @@
 		// Fetch all shunting trains
 		const shuntingTrains = (await indexedDBService.getAllRecords('shuntingTrains')).filter(
 			shunting => !shunting.finishSamplingTimestamp && shunting.verificationTimestamp && shunting.siteLocation === 'PMC'
-		);
+		).sort((a, b) => {
+			const dateA = a.postDate ? new Date(a.postDate).getTime() : 0;
+			const dateB = b.postDate ? new Date(b.postDate).getTime() : 0;
+			return dateB - dateA;
+		});
 
 		availableTrains = shuntingTrains.map(shunting => ({
 			value: shunting.verificationTimestamp,
@@ -112,18 +116,18 @@
 	on:submit={handleSubmit}
 >
 	<div slot="header">
-		<h5 class="text-xl font-bold text-gray">Sampling Arrived Trains</h5>
+		<h5 class="text-xl font-bold text-gray">Sampling</h5>
 	</div>
 
 	<div class="space-y-6">
 		<div class="form">
 			<FormField
 				id="trainArrival"
-				label="Train Reference Number"
+				label="Shunting Train Date"
 				isSelect={true}
 				options={availableTrains}
 				bind:value={selectedTrain}
-				placeholder="Select Train Reference Number"
+				placeholder="Select Shunting Train Date"
 				required
 			/>
 		</div>

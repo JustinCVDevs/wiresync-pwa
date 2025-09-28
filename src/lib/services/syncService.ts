@@ -1398,7 +1398,7 @@ export const syncService = {
 		await Promise.all([
 			// Sync all pending records
 			this.syncPendingAssays(),
-			this.syncPendingConsignment(),
+			//this.syncPendingConsignment(), Consignments do not need to be created in PB
 			this.syncPendingFleet(),
 			this.syncPendingShuntingTrains(),
 			this.syncPendingTrainArrivals(),
