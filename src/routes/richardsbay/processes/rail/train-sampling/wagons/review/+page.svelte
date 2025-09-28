@@ -43,7 +43,7 @@
 			let linkedWagonIds = trainArrival?.linkedWagonIds || [];
 
 			const allWagons = (await indexedDBService.getAllRecords('wagons')).filter(
-				wagon => wagon.sampleTimestamp !== ''
+				wagon => wagon.sampleTimestamp
 			);
 
 			filteredWagons = allWagons.filter(w => linkedWagonIds.includes(w.id));

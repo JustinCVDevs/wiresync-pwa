@@ -68,7 +68,7 @@
 				wagon => wagon.serverId === wagonId
 			);
 
-			if (wagon?.sampleTimestamp !== '') {
+			if (wagon?.sampleTimestamp) {
 				goto(`/richardsbay/processes/rail/train-sampling/wagons/review?trainRefNr=${selectedTrain}`);
 				return;
 			}

@@ -70,7 +70,7 @@
 					wagon => wagon.serverId === wagonId
 				);
 
-				if (wagon?.sampleTimestamp !== '') {
+				if (wagon?.sampleTimestamp) {
 					goto(`/pmc/processes/magnetite-rail/east-load-out/sampling/wagons/review?shuntingTrainVerificationDate=${selectedTrain}`);
 					isSubmitting = false;
 					return;

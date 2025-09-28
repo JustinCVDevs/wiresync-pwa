@@ -135,7 +135,7 @@
 		const linkedWagons = shuntingTrain?.linkedWagons || [];
 		
 		let allwagons = (await indexedDBService.getAllRecords('wagons')).filter(
-			wagon => wagon.sampleTimestamp === ''
+			wagon => !wagon.sampleTimestamp
 		);
 		
 		availableWagons = allwagons.filter(
@@ -177,7 +177,7 @@
 				wagon.loadingLocation = loadingLocation;
 				wagon.sampleId = sampleId;
 				wagon.syncStatus = 'pending';
-				wagon.sampleTimestamp = formatTimestamp(new Date());
+				wagon.sampleTimestamp = new Date();
 				wagon.updated = formatTimestamp(new Date());
 
 				await indexedDBService.updateRecord('wagons', wagon.id, wagon);

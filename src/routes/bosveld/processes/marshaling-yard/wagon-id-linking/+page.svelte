@@ -114,10 +114,10 @@
 		<div>Loading…</div>
 	{:else}
 		<FormField
-			label="Select Train"
+			label="Shunting Train Date"
 			id="trainSelect"
 			isSelect={true}
-			placeholder="Select Shunting Train"
+			placeholder="Select Shunting Train Date"
 			bind:value={selectedTrain}
 			options={shuntingTrains.map((train) => ({
 				value: train.postDate ? new Date(train.postDate).toISOString() : '',
