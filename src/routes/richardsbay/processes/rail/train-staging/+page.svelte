@@ -10,19 +10,16 @@
 	let isSubmitting = false;
 	let currentStep = 1;
 
-	let availableTrains: Train[] = [];
+	let availableTrains: any[] = [];
 	let selectedTrain: any = '';
 	let comment: string | undefined = '';
-	// Process steps
 	const processSteps = ['Arrival Train', 'Wagon', 'Verification'];
-
-	// Reference to the ProcessLayout component
 	let processLayout: ProcessLayout;
 
 	onMount(async () => {
 		// Fetch all train arrivals
 		const trainArrivals = (await indexedDBService.getAllRecords('trainArrivals')).filter(
-			arrival => arrival.portRailArrivalTimestamp !== '' && arrival.portStagingTimestamp === ''
+			arrival => arrival.portRailArrivalTimestamp && !arrival.portStagingTimestamp
 		);
 
 		let linkedTrains = trainArrivals.map(arrival => arrival.trainId);
@@ -33,57 +30,84 @@
 		);
 
 		// Filter trains that match the train arrivals' port_arrival_sample_id
-		availableTrains = allTrains.filter(train =>
+		const filteredTrains = allTrains.filter(train =>
 			trainArrivals.some(arrival => arrival.trainId === train.serverId)
 		);
+
+		availableTrains = filteredTrains.map(train => ({
+			value: train.refNr,
+			label: train.refNr
+		}));
 	});
 
-	async function fetchTrainDetails() {
-		if (!selectedTrain) return;
-
+	async function fetchComment() {
+		if (!selectedTrain) {
+			comment = '';
+			return;
+		}
 		const train = (await indexedDBService.getAllRecords('trains')).find(
 			t => t.refNr === selectedTrain
 		);
-
+		if (!train) {
+			comment = '';
+			return;
+		}
 		const trainArrival = (await indexedDBService.getAllRecords('trainArrivals')).find(
 			arrival => arrival.trainId === train?.serverId
 		);
 		if (!trainArrival) {
-			processLayout.setError('Train arrival not found.');
+			comment = '';
 			return;
 		}
-
 		comment = trainArrival.comment;
 	}
 
-	$: if(selectedTrain) {
-		fetchTrainDetails();
+	$: if (selectedTrain) {
+		fetchComment();
 	}
 
 	async function handleSubmit() {
-		if (!selectedTrain) {
-			processLayout.setError('Please select a train arrival ID.');
-			return;
+		isSubmitting = true;
+		try {
+			if (!selectedTrain) {
+				processLayout.setError('Please select a train reference number.');
+				isSubmitting = false;
+				return;
+			}
+			const train = (await indexedDBService.getAllRecords('trains')).find(
+				t => t.refNr === selectedTrain
+			);
+
+			const trainArrival = (await indexedDBService.getAllRecords('trainArrivals')).find(
+				arrival => arrival.trainId === train?.serverId
+			);
+			if (!trainArrival) {
+				processLayout.setError('Train arrival not found.');
+				isSubmitting = false;
+				return;
+			}
+
+			await indexedDBService.updateRecord('trainArrivals', trainArrival.id, {
+				comment: comment,
+				syncStatus: 'pending'
+			});
+
+			// Check linked wagons for stagingTimestamp
+			const linkedWagonIds = trainArrival.linkedWagonIds || [];
+			const wagons = await indexedDBService.getAllRecords('wagons');
+			const hasStagedWagon = linkedWagonIds.some(wid => {
+				const wagon = wagons.find(w => w.id === wid || w.serverId === wid);
+				return wagon && wagon.stagingTimestamp;
+			});
+
+			if (hasStagedWagon) {
+				goto(`/richardsbay/processes/rail/train-staging/wagons/review?trainRefNr=${selectedTrain}`);
+			} else {
+				goto(`/richardsbay/processes/rail/train-staging/wagons?trainRefNr=${selectedTrain}`);
+			}
+		} finally {
+			isSubmitting = false;
 		}
-
-		const train = (await indexedDBService.getAllRecords('trains')).find(
-			t => t.refNr === selectedTrain
-		);
-
-		const trainArrival = (await indexedDBService.getAllRecords('trainArrivals')).find(
-			arrival => arrival.trainId === train?.serverId
-		);
-		if (!trainArrival) {
-			processLayout.setError('Train arrival not found.');
-			return;
-		}
-
-		await indexedDBService.updateRecord('trainArrivals', trainArrival.id, {
-			comment: comment,
-			syncStatus: 'pending'
-		});
-
-		goto(`/richardsbay/processes/rail/train-staging/wagons?trainRefNr=${selectedTrain}`);
 	}
 
 	function handleCancel() {
@@ -112,7 +136,7 @@
 				id="trainArrival"
 				label="Train Reference Number"
 				isSelect={true}
-				options={availableTrains.map(train => ({ value: train.refNr, label: train.refNr }))}
+				options={availableTrains}
 				bind:value={selectedTrain}
 				placeholder="Select Train Reference Number"
 				required

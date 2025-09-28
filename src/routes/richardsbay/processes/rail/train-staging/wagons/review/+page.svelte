@@ -7,11 +7,10 @@
 	import type { Wagon } from '$lib/types';
 	import { Container } from 'lucide-svelte';
 
-	let wagonIds: string[] = [];
-	$: wagonIds = ($page.url.searchParams.get('wagonIds') || '').split(',').filter(Boolean);
+	let wagonIdSimple: string[] = [];
+	$: wagonIdSimple = ($page.url.searchParams.get('wagonIdSimples') || '').split(',').filter(Boolean);
 
 	let trainRefNr = $page.url.searchParams.get('trainRefNr') || '';
-	let wagons: Wagon[] = [];
 	let filteredWagons: Wagon[] = [];
 	let error = '';
 	let success = '';
@@ -22,11 +21,14 @@
 	let currentStep = 3;
 
 	function formatTimestamp(date: Date) {
-		const yyyy = date.getFullYear();
-		const mm = String(date.getMonth() + 1).padStart(2, '0');
-		const dd = String(date.getDate()).padStart(2, '0');
-		const hh = String(date.getHours()).padStart(2, '0');
-		const min = String(date.getMinutes()).padStart(2, '0');
+		if (!date) return '-';
+		const d = typeof date === 'string' ? new Date(date) : date;
+		if (isNaN(d.getTime())) return '-';
+		const yyyy = d.getFullYear();
+		const mm = String(d.getMonth() + 1).padStart(2, '0');
+		const dd = String(d.getDate()).padStart(2, '0');
+		const hh = String(d.getHours()).padStart(2, '0');
+		const min = String(d.getMinutes()).padStart(2, '0');
 		return `${yyyy}/${mm}/${dd} ${hh}:${min}`;
 	}
 	
@@ -34,8 +36,16 @@
 		isLoading = true;
 		try {
 			const allWagons = await indexedDBService.getAllRecords('wagons');
-			wagons = allWagons;
-			filteredWagons = wagons.filter(w => wagonIds.includes(w.id));
+			let linkedTrain = (await indexedDBService.getAllRecords('trains')).find(
+				train => train.refNr === trainRefNr
+			);
+			let trainArrival = (await indexedDBService.getAllRecords('trainArrivals')).find(
+				train => train.trainId === linkedTrain?.id
+			);
+			const linkedWagonIds = trainArrival?.linkedWagonIds || [];
+			filteredWagons = linkedWagonIds
+				.map(wid => allWagons.find(w => (w.id === wid || w.serverId === wid) && w.stagingTimestamp))
+				.filter((w): w is Wagon => !!w);
 		} catch (e) {
 			console.error(e);
 			error = 'Failed to load wagon data';
@@ -49,7 +59,7 @@
 	});
 
 	function handleNewWagon() {
-		goto(`/richardsbay/processes/rail/train-staging/wagons/?wagonIds=${wagonIds.join(',')}&trainRefNr=${trainRefNr}`);
+		goto(`/richardsbay/processes/rail/train-staging/wagons/?wagonIdSimples=${wagonIdSimple.join(',')}&trainRefNr=${trainRefNr}`);
 	}
 
 	function handleCancel() {
@@ -66,7 +76,7 @@
 		)[0];
 
 		await indexedDBService.updateRecord('trainArrivals', trainArrival.id, {
-			portStagingTimestamp: formatTimestamp(new Date()),
+			portStagingTimestamp: new Date(),
 			status: 'sampling',
 			syncStatus: 'pending'
 		})
@@ -129,14 +139,12 @@
 							<Container size={16} class="inline text-xs" />
 							<div class="flex-1">
 								<div class="font-medium text-gray">
-									<span class="text-sm font-light">Wagon ID:</span> {wagon.wagonId}
+									<span class="text-sm font-light">Wagon ID:</span> {wagon.wagonIdSimple}
 								</div>
 								<div class="font-medium text-gray">
 									<span class="text-sm font-light">
 										Staging Date: </span> 
-										{wagon.dispatchTimestamp 
-										? new Date(wagon.dispatchTimestamp).toLocaleDateString('en-GB')
-										: 'Not set'}
+										{formatTimestamp(wagon.stagingTimestamp ?? new Date())}
 								</div>
 							</div>
 						</div>

@@ -19,6 +19,7 @@ export interface Wagon extends BaseRecord {
 	process?: string; // e.g. "Loading" / "Unloading" / "Transferring"
 	dispatchTimestamp?: Date;
 	sampleTimestamp?: Date; // Timestamp when the wagon was sampled
+	stagingTimestamp?: Date; // Timestamp when the wagon was staged at the port
 	felTimestamp?: Date;
 	releaseTimestamp?: Date;
 	loadingLocation?: string; // Location where the wagon is loaded
