@@ -88,13 +88,18 @@
 			}
 
 			// Check if truck exists in Pocketbase DB
-			const trucks = (await indexedDBService.getAllRecords('trucks')).filter(
+			const trucks = (await indexedDBService.getAllRecords('trucks')).find(
 				truck => truck.registration.toLowerCase() === selectedTruck.toLowerCase()
-			)[0];
+			);
+
+			if (!trucks) {
+				processLayout.setError('Truck not found. Please select a valid truck.');
+				return;
+			}
 
 			// Update Truck Arrival data
 			const truckArrival = (await indexedDBService.getAllRecords('truckArrivals')).filter(
-				arrival => arrival.truckId === trucks.serverId
+				arrival => arrival.truckId === trucks.serverId && !arrival.port_truck_arrival_timestamp && arrival.status !== 'received'
 			)[0];
 
 			// Save to IndexedDB using the generic saveRecord method
