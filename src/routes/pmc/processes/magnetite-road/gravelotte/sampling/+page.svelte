@@ -147,6 +147,13 @@
 			if (dedicatedFleet === 'Yes') {
 				isDedicatedFleet = true;
 
+				// Find linked truck using getRecords with filter (more efficient)
+				const linkedTrucks = await indexedDBService.getRecords(
+					'dedicatedFleetTrucks',
+					(truck: DedicatedFleetTruck) => truck.registration === truckRegistration
+				);
+				const linkedTruck = linkedTrucks[0];
+
 				// Create fleet object
 				const fleet: Fleet = {
 					id: crypto.randomUUID(),
@@ -163,16 +170,12 @@
 					created: new Date()
 				};
 
-				await indexedDBService.saveRecord('fleet', fleet);
-				await syncService.syncFleet(fleet);
-
-				let newFleet = (await indexedDBService.getAllRecords('fleet')).filter(
-					(fleet: Fleet) => fleet.sampleId === sampleId
-				)[0];
-
-				let linkedTruck = (await indexedDBService.getAllRecords('dedicatedFleetTrucks')).filter(
-					(truck: DedicatedFleetTruck) => truck.registration === truckRegistration
-				)[0];
+				// Save fleet and create assay in parallel
+				const [savedFleet] = await Promise.all([
+					indexedDBService.saveRecord('fleet', fleet),
+					// Don't wait for sync - do it in background
+					syncService.syncFleet(fleet).catch(console.warn)
+				]);
 
 				const assay: Assay = {
 					id: crypto.randomUUID(),
@@ -180,7 +183,7 @@
 					productType: productType,
 					dedicatedFleet: isDedicatedFleet,
 					linkedDedicatedFleetTruckIds: [linkedTruck?.serverId || ''],
-					linkedFleetIds: [newFleet?.serverId || ''],
+					linkedFleetIds: [fleet.id], // Use the fleet ID directly
 					syncStatus: 'pending',
 					location: loadingLocation,
 					created: new Date(),
@@ -189,9 +192,10 @@
 					siteLocation: 'PMC'
 				};
 
-				// Save assay to IndexedDB
+				// Save assay and navigate immediately
 				await indexedDBService.saveRecord('assays', assay);
-				await syncService.syncAssay(assay);
+				// Sync in background
+				syncService.syncAssay(assay).catch(console.warn);
 
 				goto(
 					`/pmc/processes/magnetite-road/gravelotte/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`
@@ -199,9 +203,12 @@
 			} else {
 				isDedicatedFleet = false;
 
-				let linkedTruck = (await indexedDBService.getAllRecords('trucks')).filter(
+				// Find linked truck using getRecords with filter (more efficient)
+				const linkedTrucks = await indexedDBService.getRecords(
+					'trucks',
 					(truck: Truck) => truck.registration === truckRegistration
-				)[0];
+				);
+				const linkedTruck = linkedTrucks[0];
 
 				// Create truckLoad object
 				const truckLoad: TruckLoad = {
@@ -215,19 +222,17 @@
 					siteLocation: 'PMC'
 				};
 
+				// Save truckLoad
 				await indexedDBService.saveRecord('truckLoads', truckLoad);
-				await syncService.syncTruckLoad(truckLoad);
-
-				let newTruckLoad = (await indexedDBService.getAllRecords('truckLoads')).filter(
-					(truckLoad: TruckLoad) => truckLoad.sampleId === sampleId
-				)[0];
+				// Sync in background
+				syncService.syncTruckLoad(truckLoad).catch(console.warn);
 
 				const assay: Assay = {
 					id: crypto.randomUUID(),
 					name: sampleId,
 					productType: productType,
 					dedicatedFleet: isDedicatedFleet,
-					linkedTruckLoadIds: [newTruckLoad?.serverId || ''],
+					linkedTruckLoadIds: [truckLoad.id], // Use the truckLoad ID directly
 					linkedTruckIds: [linkedTruck?.serverId || ''],
 					syncStatus: 'pending',
 					location: loadingLocation,
@@ -237,9 +242,10 @@
 					siteLocation: 'PMC'
 				};
 
-				// Save assay to IndexedDB
+				// Save assay and navigate immediately
 				await indexedDBService.saveRecord('assays', assay);
-				await syncService.syncAssay(assay);
+				// Sync in background
+				syncService.syncAssay(assay).catch(console.warn);
 
 				goto(
 					`/pmc/processes/magnetite-road/gravelotte/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`
