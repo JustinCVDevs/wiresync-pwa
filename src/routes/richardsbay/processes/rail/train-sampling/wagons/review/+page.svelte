@@ -100,7 +100,7 @@
 </script>
 
 <ProcessLayout
-	title="Train Staging - Review"
+	title="Train Sampling - Review"
 	{steps}
 	{currentStep}
 	isSubmitting={isLoading}
