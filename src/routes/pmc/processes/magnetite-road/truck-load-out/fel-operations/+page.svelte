@@ -88,7 +88,11 @@
 						.getAllRecords('truckLoads')
 						.then((loads) => loads.find((load) => load.truckId === truck.serverId));
 
-					await indexedDBService.updateRecord('truckLoads', truckLoad?.id ?? '', {
+					if (!truckLoad) {
+						throw new Error(`Truck load record for "${selectedTruck}" not found.`);
+					}
+
+					await indexedDBService.updateRecord('truckLoads', truckLoad.id, {
 						loadingLocation: loadingLocation,
 						syncStatus: 'pending',
 						felWeight: felWeight
@@ -117,7 +121,7 @@
 	title="Truck Load Out"
 	{steps}
 	{currentStep}
-	isSubmitting={isSubmitting}
+	{isSubmitting}
 	bind:this={processLayout}
 	cancelPath="/pmc/processes/magnetite-road/truck-load-out"
 	on:cancel={handleCancel}

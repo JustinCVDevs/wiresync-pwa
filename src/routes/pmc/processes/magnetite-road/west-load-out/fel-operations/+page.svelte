@@ -89,11 +89,16 @@
 						.getAllRecords('truckLoads')
 						.then((loads) => loads.find((load) => load.truckId === truck.serverId));
 
-					await indexedDBService.updateRecord('truckLoads', truckLoad?.id ?? '', {
+					if (!truckLoad) {
+						throw new Error(`Truck load for "${selectedTruck}" not found.`);
+					}
+
+					await indexedDBService.updateRecord('truckLoads', truckLoad.id, {
 						loadingLocation: loadingLocation,
 						syncStatus: 'pending',
 						felWeight: felWeight
 					});
+
 					formPersistenceService.clearForm('fel-operations-west-load-out');
 					goto(
 						`/pmc/processes/magnetite-road/west-load-out/fel-operations/verification?truckRegistration=${encodeURIComponent(selectedTruck || '')}&sampleId=${encodeURIComponent(truckLoad?.sampleId || '')}`

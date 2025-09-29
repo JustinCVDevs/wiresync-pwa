@@ -88,7 +88,11 @@
 						.getAllRecords('truckLoads')
 						.then((loads) => loads.find((load) => load.truckId === truck.serverId));
 
-					await indexedDBService.updateRecord('truckLoads', truckLoad?.id ?? '', {
+					if (!truckLoad) {
+						throw new Error(`Truck load for registration "${selectedTruck}" not found.`);
+					}
+
+					await indexedDBService.updateRecord('truckLoads', truckLoad.id, {
 						loadingLocation: loadingLocation,
 						syncStatus: 'pending',
 						felWeight: felWeight
@@ -116,7 +120,7 @@
 	title="Gravelotte"
 	{steps}
 	{currentStep}
-	isSubmitting={isSubmitting}
+	{isSubmitting}
 	bind:this={processLayout}
 	cancelPath="/pmc/processes/magnetite-road/gravelotte"
 	on:cancel={handleCancel}
