@@ -12,7 +12,7 @@
 
 	let sampleId = '';
 	let trainNumber = '';
-	let wagonId = $page.url.searchParams.get('wagonId') || '';
+	let wagonId = $page.url.searchParams.get('wagonIdSimple') || '';
 	let shuntingTrainVerificationDate = $page.url.searchParams.get('shuntingTrainVerificationDate');
 	let productGrade = localStorage.getItem('productGrade') || '';
 	let loadingLocation = 'West Load Out';
@@ -50,11 +50,11 @@
 
 	async function fetchData() {
 		const wagon = (await indexedDBService.getAllRecords('wagons')).find(
-			(w) => w.wagonId === wagonId
+			(w) => w.wagonIdSimple === wagonId
 		);
 
 		if (wagon) {
-			selectedWagon = wagon.wagonId || '';
+			selectedWagon = wagon.wagonIdSimple || '';
 			productGrade = wagon.productType || '';
 			trainNumber = wagon.trainNumber || '';
 			sampleId = wagon.sampleId || '';
@@ -72,7 +72,7 @@
 			'Magnetite 65%': 'MAG65'
 		}[productGrade];
 
-		sampleId = `${YYMMDD}${selectedWagon ? `_${selectedWagon}` : ''}${trainNumber ? `_${trainNumber}` : ''}${productCode ? `_${productCode}` : ''}`;
+	sampleId = `${YYMMDD}${selectedWagon ? `_${selectedWagon}` : ''}${trainNumber ? `_${trainNumber}` : ''}${productCode ? `_${productCode}` : ''}`;
 	} else {
 		fetchData();
 	}
@@ -127,7 +127,7 @@
 	}
 
 	let existingIdsArray: string[] = [];
-	$: existingIdsArray = ($page.url.searchParams.get('wagonIds') || '').split(',').filter(Boolean);
+	$: existingIdsArray = ($page.url.searchParams.get('wagonIdSimple') || '').split(',').filter(Boolean);
 
 	onMount(async () => {
 		let shuntingTrain = (await indexedDBService.getAllRecords('shuntingTrains')).find(t => t.verificationTimestamp === shuntingTrainVerificationDate);
@@ -135,7 +135,7 @@
 		const linkedWagons = shuntingTrain?.linkedWagons || [];
 		
 		let allwagons = (await indexedDBService.getAllRecords('wagons')).filter(
-			wagon => wagon.sampleTimestamp === ''
+			wagon => !wagon.sampleTimestamp
 		);
 		
 		availableWagons = allwagons.filter(
@@ -164,7 +164,7 @@
 
 			if (selectedWagon) {
 				let wagon = (await indexedDBService.getAllRecords('wagons')).find(
-					(w) => w.wagonId === selectedWagon
+					(w) => w.wagonIdSimple === selectedWagon
 				);
 
 				if (!wagon) {
@@ -177,7 +177,7 @@
 				wagon.loadingLocation = loadingLocation;
 				wagon.sampleId = sampleId;
 				wagon.syncStatus = 'pending';
-				wagon.sampleTimestamp = formatTimestamp(new Date());
+				wagon.sampleTimestamp = new Date();
 				wagon.updated = formatTimestamp(new Date());
 
 				await indexedDBService.updateRecord('wagons', wagon.id, wagon);
@@ -208,7 +208,7 @@
 				processLayout.setSuccess('Data saved successfully');
 				setTimeout(() => {
 					goto(
-						`/pmc/processes/magnetite-rail/west-load-out/sampling/wagons/review?wagonId=${encodeURIComponent(selectedWagon)}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`
+						`/pmc/processes/magnetite-rail/west-load-out/sampling/wagons/review?wagonIdSimple=${encodeURIComponent(selectedWagon)}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`
 					);
 				}, 1000);
 			}
@@ -243,7 +243,7 @@
 				id="wagonId"
 				label="Wagon ID"
 				search={true}
-				options={availableWagons.map(wagon => ({value: wagon.wagonId, label: wagon.wagonId}))}
+				options={availableWagons.map(wagon => ({value: wagon.wagonIdSimple, label: wagon.wagonIdSimple}))}
 				bind:value={selectedWagon}
 				placeholder="Select Wagon ID"
 				required

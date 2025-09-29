@@ -9,7 +9,7 @@
 
 	// Form state
 	let trainRefNr = $page.url.searchParams.get('trainRefNr');
-	let wagonID = '';
+	let wagonIdSimple = '';
 	let isSubmitting = false;
 	let currentStep = 2;
 	let sampleId = '';
@@ -27,7 +27,7 @@
 	let processLayout: ProcessLayout;
 
 	let existingIdsArray: string[] = [];
-	$: existingIdsArray = ($page.url.searchParams.get('wagonIds') || '').split(',').filter(Boolean);
+	$: existingIdsArray = ($page.url.searchParams.get('wagonIdSimples') || '').split(',').filter(Boolean);
 
 	onMount(async () => {
 		let train = (await indexedDBService.getAllRecords('trains')).find(t => t.refNr === trainRefNr);
@@ -39,7 +39,7 @@
 		const linkedWagons = trainArrival?.linkedWagonIds || [];
 
 		let allwagons = (await indexedDBService.getAllRecords('wagons')).filter(
-			wagon => wagon.dispatchTimestamp && wagon.sampleTimestamp === ''
+			wagon => wagon.stagingTimestamp && !wagon.sampleTimestamp
 		);
 
 		availableWagons = allwagons.filter(
@@ -48,7 +48,7 @@
 	});
 
 	function handleWagonInput() {
-		const value = wagonID.trim();
+		const value = wagonIdSimple.trim();
 		selectedWagon = null;
 		showWagonNotFound = false;
 
@@ -59,16 +59,16 @@
 		}
 
 		filteredWagonSuggestions = availableWagons.filter(wagon =>
-			wagon.wagonId?.toLowerCase().includes(value.toLowerCase())
+			wagon.wagonIdSimple?.toLowerCase().includes(value.toLowerCase())
 		).slice(0, 6);
 
 		const exactMatch = availableWagons.find(wagon =>
-			wagon.wagonId?.toLowerCase() === value.toLowerCase()
+			wagon.wagonIdSimple?.toLowerCase() === value.toLowerCase()
 		);
 
 		if (exactMatch) {
 			selectedWagon = exactMatch;
-			wagonID = exactMatch.wagonId ?? '';
+			wagonIdSimple = exactMatch.wagonIdSimple ?? '';
 			showWagonSuggestions = false;
 		} else if (value.length >= 2) {
 			showWagonSuggestions = filteredWagonSuggestions.length > 0;
@@ -101,7 +101,7 @@
 
 			// Check if wagon exists in Pocketbase DB
 			const pbWagons = await indexedDBService.getAllRecords('wagons');
-			const wagonToUse = pbWagons.find(wagon => wagon.wagonId === wagonID);
+			const wagonToUse = pbWagons.find(wagon => wagon.wagonIdSimple === wagonIdSimple);
 
 			if (!wagonToUse) {
 				processLayout.setError('Wagon Not in Pre-Registration List');
@@ -113,13 +113,13 @@
 			await indexedDBService.updateRecord('wagons', wagonToUse.id, {
 				...wagonToUse,
 				syncStatus: 'pending',
-				sampleTimestamp: new Date().toISOString(),
+				sampleTimestamp: new Date(),
 				sampleId: sampleId
 			});
 
 			// Add the new wagon's id to the list and pass as a query param
 			const dispatchedIds = [...(existingIdsArray), wagonToUse.id];
-			goto(`/richardsbay/processes/rail/train-sampling/wagons/review?wagonIds=${dispatchedIds.join(',')}&trainRefNr=${trainRefNr}`);
+			goto(`/richardsbay/processes/rail/train-sampling/wagons/review?wagonIdSimples=${dispatchedIds.join(',')}&trainRefNr=${trainRefNr}`);
 		} catch (error) {
 			console.error('Failed to submit wagon arrival:', error);
 			processLayout.setError('Failed to submit wagon arrival. Please try again.');
@@ -157,7 +157,7 @@
 			<input
 				id="wagonId"
 				type="text"
-				bind:value={wagonID}
+				bind:value={wagonIdSimple}
 				placeholder="Scan/Enter Wagon ID"
 				on:input={handleWagonInput}
 				on:focus={showAllWagonSuggestions}
@@ -172,13 +172,13 @@
 							<button
 								type="button"
 								on:mousedown|preventDefault={() => {
-									wagonID = suggestion.wagonId || '';
+									wagonIdSimple = suggestion.wagonIdSimple || '';
 									showWagonSuggestions = false;
 									selectedWagon = suggestion;
 									sampleId = suggestion.sampleId || '';
 								}}
 							>
-								{suggestion.wagonId || 'Unknown Wagon'}
+								{suggestion.wagonIdSimple || 'Unknown Wagon'}
 							</button>
 						</li>
 					{/each}

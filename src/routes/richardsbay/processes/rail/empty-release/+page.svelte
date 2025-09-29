@@ -22,7 +22,7 @@
 
 	onMount(async () => {
 		availableWagons = (await indexedDBService.getAllRecords('wagons')).filter(
-			wagon => !wagon.releaseTimestamp && wagon.dispatchTimestamp
+			wagon => !wagon.releaseTimestamp && wagon.dispatchTimestamp && wagon.wagonIdSimple
 		);
 	});
 
@@ -104,7 +104,7 @@
 				<ul>
 					{#each filteredWagons as wagon}
 						<li class="flex items-center justify-between border-b py-2">
-							<span class="text-gray-800">{wagon.wagonId}</span>
+							<span class="text-gray-800">{wagon.wagonIdSimple}</span>
 							<input
 								type="checkbox"
 								class="w-5 h-5"

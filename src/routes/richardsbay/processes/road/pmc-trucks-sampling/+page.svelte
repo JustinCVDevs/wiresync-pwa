@@ -21,7 +21,7 @@
 	onMount(async () => {
 		// Fetch all truck arrivals
 		const truckArrivals = (await indexedDBService.getAllRecords('truckArrivals')).filter(
-			arrival => arrival.port_truck_arrival_timestamp !== '' && arrival.port_arrival_sample_id === ''
+			arrival => arrival.port_truck_arrival_timestamp && arrival.port_arrival_sample_id === ''
 		);
 
 		// Get linked trucks from truck arrivals

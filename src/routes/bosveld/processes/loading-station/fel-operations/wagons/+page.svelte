@@ -80,7 +80,7 @@
 
 	// Fetch all wagons from IndexedDB that just got scanned in from sampling
 	let existingIdsArray: string[] = [];
-	$: existingIdsArray = ($page.url.searchParams.get('wagonIds') || '').split(',').filter(Boolean);
+	$: existingIdsArray = ($page.url.searchParams.get('wagonIdSimple') || '').split(',').filter(Boolean);
 
 	onMount(async () => {
 		if (!shuntingTrainVerificationDate) {
@@ -112,7 +112,7 @@
 
 			if (selectedWagon) {
 				let wagon = (await indexedDBService.getAllRecords('wagons')).find(
-					(w) => w.wagonId === selectedWagon
+					(w) => w.wagonIdSimple === selectedWagon
 				);
 
 				if (!wagon) {
@@ -133,7 +133,7 @@
 				processLayout.setSuccess('Data saved successfully');
 				setTimeout(() => {
 					goto(
-						`/bosveld/processes/loading-station/fel-operations/wagons/review?wagonId=${encodeURIComponent(selectedWagon)}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`
+						`/bosveld/processes/loading-station/fel-operations/wagons/review?wagonIdSimple=${encodeURIComponent(selectedWagon)}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`
 					);
 				}, 1000);
 			}
@@ -169,7 +169,7 @@
 			id="wagonId"
 			label="Wagon ID"
 			search={true}
-			options={availableWagons.map(wagon => ({value: wagon.wagonId, label: wagon.wagonId}))}
+			options={availableWagons.map(wagon => ({value: wagon.wagonIdSimple, label: wagon.wagonIdSimple}))}
 			bind:value={selectedWagon}
 			placeholder="Select Wagon ID"
 			required

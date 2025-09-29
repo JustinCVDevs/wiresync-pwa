@@ -9,8 +9,8 @@
 	import NoMoreWagons from '$lib/components/NoMoreWagons.svelte';
 	import QRPrinting from '$lib/components/QRPrinting.svelte';
 
-	let wagonIds: string[] = [];
-	$: wagonIds = ($page.url.searchParams.get('wagonIds') || '').split(',').filter(Boolean);
+	let wagonIdSimple: string[] = [];
+	$: wagonIdSimple = ($page.url.searchParams.get('wagonIdSimple') || '').split(',').filter(Boolean);
 
 	let shuntingTrainVerificationDate = $page.url.searchParams.get('shuntingTrainVerificationDate') || '';
 	let wagons: Wagon[] = [];
@@ -42,7 +42,7 @@
 			let linkedWagonIds = shuntingTrain?.linkedWagons || [];
 
 			const allWagons = (await indexedDBService.getAllRecords('wagons')).filter(
-				wagon => wagon.sampleTimestamp !== ''
+				wagon => wagon.sampleTimestamp
 			);
 
 			filteredWagons = allWagons.filter(w => linkedWagonIds.includes(w.id));
@@ -71,7 +71,7 @@
 		if (unweighedWagons.length === 0) {
 			showNoMoreWagons = true;
 		}else {
-			goto(`/pmc/processes/magnetite-rail/east-load-out/sampling/wagons/?wagonIds=${wagonIds.join(',')}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`);
+			goto(`/pmc/processes/magnetite-rail/east-load-out/sampling/wagons/?wagonIdSimple=${wagonIdSimple.join(',')}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`);
 		}
 	}
 
@@ -159,12 +159,12 @@
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<div
 								class="flex items-center gap-3 rounded bg-white px-3 py-2 shadow-sm cursor-pointer"
-								on:click={() => goto(`/pmc/processes/magnetite-rail/east-load-out/sampling/wagons?wagonId=${wagon.wagonId}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`)}
+								on:click={() => goto(`/pmc/processes/magnetite-rail/east-load-out/sampling/wagons?wagonIdSimple=${wagon.wagonIdSimple}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`)}
 							>
 								<Container size={16} class="inline text-xs" />
 								<div class="flex-1">
 									<div class="font-medium text-gray">
-										<span class="text-sm font-light">Wagon ID:</span> {wagon.wagonId}
+										<span class="text-sm font-light">Wagon ID:</span> {wagon.wagonIdSimple}
 									</div>
 									<div class="font-medium text-gray">
 										<span class="text-sm font-light">Sample ID: </span>

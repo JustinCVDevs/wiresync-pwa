@@ -7,8 +7,8 @@
 	import type { Wagon } from '$lib/types';
 	import { Container } from 'lucide-svelte';
 
-	let wagonIds: string[] = [];
-	$: wagonIds = ($page.url.searchParams.get('wagonIds') || '').split(',').filter(Boolean);
+	let wagonIdSimples: string[] = [];
+	$: wagonIdSimples = ($page.url.searchParams.get('wagonIdSimples') || '').split(',').filter(Boolean);
 
 	let trainRefNr = $page.url.searchParams.get('trainRefNr') || '';
 	let wagons: Wagon[] = [];
@@ -42,11 +42,11 @@
 
 			let linkedWagonIds = trainArrival?.linkedWagonIds || [];
 
-			const allWagons = (await indexedDBService.getAllRecords('wagons')).filter(
-				wagon => wagon.sampleTimestamp !== ''
-			);
+			const allWagons = await indexedDBService.getAllRecords('wagons');
 
-			filteredWagons = allWagons.filter(w => linkedWagonIds.includes(w.id));
+			filteredWagons = linkedWagonIds
+				.map(wid => allWagons.find(w => (w.id === wid || w.serverId === wid) && w.sampleTimestamp))
+				.filter((w): w is Wagon => !!w);
 		} catch (e) {
 			console.error(e);
 			error = 'Failed to load wagon data';
@@ -60,7 +60,7 @@
 	});
 
 	function handleNewWagon() {
-		goto(`/richardsbay/processes/rail/train-sampling/wagons/?wagonIds=${wagonIds.join(',')}&trainRefNr=${trainRefNr}`);
+		goto(`/richardsbay/processes/rail/train-sampling/wagons/?wagonIdSimples=${wagonIdSimples.join(',')}&trainRefNr=${trainRefNr}`);
 	}
 
 	function handleCancel() {
@@ -86,7 +86,7 @@
 			)[0];
 
 			await indexedDBService.updateRecord('trainArrivals', trainArrival.id, {
-				finishSamplingTimestamp: formatTimestamp(new Date()),
+				finishSamplingTimestamp: new Date(),
 				syncStatus: 'pending'
 			});
 
@@ -149,7 +149,7 @@
 							<Container size={16} class="inline text-xs" />
 							<div class="flex-1">
 								<div class="font-medium text-gray">
-									<span class="text-sm font-light">Wagon ID:</span> {wagon.wagonId}
+									<span class="text-sm font-light">Wagon ID:</span> {wagon.wagonIdSimple}
 								</div>
 								<div class="font-medium text-gray">
 									<span class="text-sm font-light">

@@ -29,7 +29,7 @@
 	onMount(async () => {
 		// Fetch all train arrivals
 		const trainArrivals = (await indexedDBService.getAllRecords('trainArrivals')).filter(
-			arrival => arrival.portRailArrivalTimestamp === ''
+			arrival => !arrival.portRailArrivalTimestamp
 		);
 
 		// Fetch all trains
@@ -108,16 +108,14 @@
 			await indexedDBService.updateRecord('trainArrivals', trainArrival.id, {
 					...trainArrival,
 					syncStatus: 'pending',
-					portRailArrivalTimestamp: arrivalTimestamp,
+					portRailArrivalTimestamp: new Date(arrivalTimestamp),
 					trainPhotoUrl: photoData,
 					status: 'sampling',
 				});
 
 			processLayout.setSuccess('Train Successfully Received!');
 
-			setTimeout(() => {
-				location.reload();
-			}, 1000);
+			goto('/richardsbay/processes/rail/train-arrival/verification?trainArrivalId=' + trainArrival.id);
 		} catch (error) {
 			console.error('Failed to submit train arrival:', error);
 			processLayout.setError('Failed to submit train arrival. Please try again.');
@@ -183,9 +181,6 @@
 				<div style="margin-top: 1.2rem;">
 					<Camera onPhotoSelected={handlePhotoSelected} />
 				</div>
-				{#if !submit}
-					<div style="margin-top: 1.5rem;" class="text-green-500 mt-1 font-bold text-center">Train Successfully Received</div>
-				{/if}
 			{/if}
 		</div>
 	</div>

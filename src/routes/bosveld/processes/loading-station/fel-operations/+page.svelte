@@ -18,45 +18,68 @@
 	// Reference to the ProcessLayout component
 	let processLayout: ProcessLayout;
 
+	function formatDate(date: Date | undefined): string {
+		if (!date) return 'No date';
+		return new Date(date).toLocaleDateString('en-US', {
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit'
+		});
+	}
+
 	onMount(async () => {
 		// Fetch all shunting trains
 		const shuntingTrains = (await indexedDBService.getAllRecords('shuntingTrains')).filter(
 			shunting => !shunting.finishFELOperationTimestamp && shunting.verificationTimestamp && shunting.siteLocation === 'Bosveld'
-		);
+		).sort((a, b) => {
+			const dateA = a.postDate ? new Date(a.postDate).getTime() : 0;
+			const dateB = b.postDate ? new Date(b.postDate).getTime() : 0;
+			return dateB - dateA;
+		});
 
 		availableTrains = shuntingTrains.map(shunting => ({
 			value: shunting.verificationTimestamp,
-			label: shunting.verificationTimestamp
+			label: formatDate(shunting.postDate)
 		}));
 	});
 
 	async function handleSubmit() {
-		if (!selectedTrain) {
-			processLayout.setError('Please select a train reference number.');
-			return;
-		}
-		let shuntingTrain = (await indexedDBService.getAllRecords('shuntingTrains')).find(
-			train => train.verificationTimestamp === selectedTrain
-		);
-
-		if (!shuntingTrain) {
-			processLayout.setError(`No shunting train found.`);
-			return;
-		}
-
-		let linkedWagonIds = shuntingTrain.linkedWagons || [];
-
-		for (let wagonId of linkedWagonIds) {
-			let wagon = (await indexedDBService.getAllRecords('wagons')).find(
-				wagon => wagon.serverId === wagonId
-			);
-
-			if (wagon?.felTimestamp) {
-				goto(`/bosveld/processes/loading-station/fel-operations/wagons/review?shuntingTrainVerificationDate=${selectedTrain}`);
+		isSubmitting = true;
+		try {
+			if (!selectedTrain) {
+				processLayout.setError('Please select a train reference number.');
+				isSubmitting = false;
 				return;
 			}
+			let shuntingTrain = (await indexedDBService.getAllRecords('shuntingTrains')).find(
+				train => train.verificationTimestamp === selectedTrain
+			);
+
+			if (!shuntingTrain) {
+				processLayout.setError(`No shunting train found.`);
+				isSubmitting = false;
+				return;
+			}
+
+			let linkedWagonIds = shuntingTrain.linkedWagons || [];
+
+			for (let wagonId of linkedWagonIds) {
+				let wagon = (await indexedDBService.getAllRecords('wagons')).find(
+					wagon => wagon.serverId === wagonId
+				);
+
+				if (wagon?.felTimestamp) {
+					goto(`/bosveld/processes/loading-station/fel-operations/wagons/review?shuntingTrainVerificationDate=${selectedTrain}`);
+					isSubmitting = false;
+					return;
+				}
+			}
+			goto(`/bosveld/processes/loading-station/fel-operations/wagons?shuntingTrainVerificationDate=${selectedTrain}`);
+		} finally {
+			isSubmitting = false;
 		}
-		goto(`/bosveld/processes/loading-station/fel-operations/wagons?shuntingTrainVerificationDate=${selectedTrain}`);
 	}
 
 	function handleCancel() {
@@ -75,18 +98,18 @@
 	on:submit={handleSubmit}
 >
 	<div slot="header">
-		<h5 class="text-xl font-bold text-gray">FEL capturing Shunting Trains</h5>
+		<h5 class="text-xl font-bold text-gray">FEL capturing</h5>
 	</div>
 
 	<div class="space-y-6">
 		<div class="form">
 			<FormField
 				id="trainArrival"
-				label="Train Reference Number"
+				label="Shunting Train Date"
 				isSelect={true}
 				options={availableTrains}
 				bind:value={selectedTrain}
-				placeholder="Select Train Reference Number"
+				placeholder="Select Shunting Train Date"
 				required
 			/>
 		</div>

@@ -24,10 +24,7 @@
 
 	async function loadTrainsAndConsignments() {
 		try {
-			const trainRecords = await indexedDBService.getRecords(
-				'trains',
-				(rec) => rec.syncStatus === 'synced'
-			);
+			const trainRecords = await indexedDBService.getRecords('trains');
 			trains = trainRecords;
 
 			if (selectedTrainRef) {
@@ -38,16 +35,13 @@
 					if (train) {
 						consignments = await indexedDBService.getRecords(
 							'consignments',
-							(rec) => rec.syncStatus === 'synced' && rec.linkedTrainId === train.serverId
+							(rec) => rec.linkedTrainId === train.serverId
 						);
 					}
 				}
 			}
 
-			const consignmentRecords = await indexedDBService.getRecords(
-				'consignments',
-				(rec) => rec.syncStatus === 'synced'
-			);
+			const consignmentRecords = await indexedDBService.getRecords('consignments');
 			consignments = consignmentRecords.filter(
 				(c) => !c.linkedTrainId
 			);
@@ -69,12 +63,13 @@
 		const trainDispatches = (await indexedDBService.getAllRecords('trainDispatches')).find(
 			(d) => !d.dispatchTimestamp && d.linkedTrainId === trains?.serverId && d.siteLocation === 'Bosveld'
 		);
-		
+
 		if (trainDispatches) {
 			// Find the consignment by id
 			const consignment = (await indexedDBService.getAllRecords('consignments')).find(
 				(c) => c.serverId === trainDispatches.linkedConsignmentId || c.id === trainDispatches.linkedConsignmentId
 			);
+
 			if (consignment) {
 				consignments = [...consignments, consignment];
 				selectedConsignment = consignment.name;
@@ -141,7 +136,7 @@
 				const trainDispatches = (await indexedDBService.getAllRecords('trainDispatches')).find(
 					(d) => !d.dispatchTimestamp && d.linkedTrainId === trains?.serverId
 				);
-				
+
 				goto(`/bosveld/processes/marshaling-yard/marshaling-dispatch/wagon-linkage?dispatchId=${trainDispatches?.serverId}`);
 			} else {
 				const train = (await indexedDBService.getAllRecords('trains')).find(
@@ -149,7 +144,6 @@
 				);
 
 				const linkedConsignment = consignments.find((c) => c.name === selectedConsignment);
-				console.log('linkedConsignment', linkedConsignment);
 				if (!linkedConsignment) {
 					error = 'Selected consignment not found';
 					return;
@@ -158,7 +152,7 @@
 					error = 'Selected train not found';
 					return;
 				}
-
+				
 				await indexedDBService.updateRecord('consignments', linkedConsignment.id, {
 					linkedTrainId: train.serverId,
 					siteLocation: 'Bosveld',
@@ -193,7 +187,7 @@
 			}
 		} catch (e: any) {
 			console.error(e);
-			error = 'Failed to initialize dispatch ' + e?.data?.toJson();
+			error = 'Failed to initialize dispatch' + e?.data?.toJson();
 		}
 	}
 </script>

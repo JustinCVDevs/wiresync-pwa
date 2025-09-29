@@ -3,20 +3,17 @@
 	import { onMount } from 'svelte';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
+	import FormField from '$lib/components/FormField.svelte';
 	import type { Wagon } from '$lib/types/wagon';
 	import { page } from '$app/stores';
 
 	// Form state
 	let trainRefNr = $page.url.searchParams.get('trainRefNr') || '';
-	let wagonID = '';
+	let wagonIdSimple = '';
 	let isSubmitting = false;
+	let showSearch = false;
 	let currentStep = 2;
-
 	let availableWagons: Wagon[] = [];
-	let filteredWagonSuggestions: Wagon[] = [];
-	let showWagonSuggestions = false;
-	let showWagonNotFound = false;
-	let selectedWagon: Wagon | null = null;
 
 	// Process steps
 	const processSteps = ['Arrival Train', 'Wagon', 'Verification'];
@@ -28,71 +25,24 @@
 	$: existingIdsArray = ($page.url.searchParams.get('wagonIds') || '').split(',').filter(Boolean);
 
 	onMount(async () => {
-		let linkedTrain = (await indexedDBService.getAllRecords('trains')).filter(
+		let linkedTrain = (await indexedDBService.getAllRecords('trains')).find(
 			train => train.refNr === trainRefNr
-		)[0];
+		);
+	
+		let trainArrival = (await indexedDBService.getAllRecords('trainArrivals')).find(
+			train => train.trainId === linkedTrain?.id
+		);
 
-		let trainArrival = (await indexedDBService.getAllRecords('trainArrivals')).filter(
-			train => train.trainId === linkedTrain.id
-		)[0];
-
-		const linkedWagons = trainArrival.linkedWagonIds || [];
+		const linkedWagons = trainArrival?.linkedWagonIds || [];
 
 		let allwagons = (await indexedDBService.getAllRecords('wagons')).filter(
-			wagon => !wagon.dispatchTimestamp
+			wagon => !wagon.stagingTimestamp
 		);
 
 		availableWagons = allwagons.filter(
-			wagon => linkedWagons.some(linkedWagon => linkedWagon === wagon.id)
+			wagon => linkedWagons.some(linkedWagon => linkedWagon === wagon.id || linkedWagon === wagon.serverId)
 		);
 	});
-
-	function handleWagonInput() {
-		const value = wagonID.trim();
-		selectedWagon = null;
-		showWagonNotFound = false;
-
-		if (value.length === 0) {
-			showWagonSuggestions = false;
-			filteredWagonSuggestions = [];
-			return;
-		}
-
-		filteredWagonSuggestions = availableWagons.filter(wagon =>
-			wagon.wagonId?.toLowerCase().includes(value.toLowerCase())
-		).slice(0, 6);
-
-		const exactMatch = availableWagons.find(wagon =>
-			wagon.wagonId?.toLowerCase() === value.toLowerCase()
-		);
-
-		if (exactMatch) {
-			selectedWagon = exactMatch;
-			wagonID = exactMatch.wagonId ?? '';
-			showWagonSuggestions = false;
-		} else if (value.length >= 2) {
-			showWagonSuggestions = filteredWagonSuggestions.length > 0;
-			if (value.length >= 3 && filteredWagonSuggestions.length === 0) {
-				showWagonNotFound = true;
-			}
-		}
-	}
-
-	function showAllWagonSuggestions() {
-		if (availableWagons.length > 0) {
-			filteredWagonSuggestions = availableWagons.slice(0, 6);
-			showWagonSuggestions = true;
-		}
-	}
-
-	function formatTimestamp(date: Date) {
-		const yyyy = date.getFullYear();
-		const mm = String(date.getMonth() + 1).padStart(2, '0');
-		const dd = String(date.getDate()).padStart(2, '0');
-		const hh = String(date.getHours()).padStart(2, '0');
-		const min = String(date.getMinutes()).padStart(2, '0');
-		return `${yyyy}/${mm}/${dd} ${hh}:${min}`;
-	}
 
 	async function handleSubmit() {
 		try {
@@ -101,7 +51,7 @@
 
 			// Check if wagon exists in Pocketbase DB
 			const pbWagons = await indexedDBService.getAllRecords('wagons');
-			const wagonToUse = pbWagons.find(wagon => wagon.wagonId === wagonID);
+			const wagonToUse = pbWagons.find(wagon => wagon.wagonIdSimple === wagonIdSimple);
 
 			if (!wagonToUse) {
 				processLayout.setError('Wagon Not in Pre-Registration List');
@@ -113,12 +63,12 @@
 			await indexedDBService.updateRecord('wagons', wagonToUse.id, {
 				...wagonToUse,
 				syncStatus: 'pending',
-				dispatchTimestamp: new Date(),
+				stagingTimestamp: new Date(),
 			});
 
 			// Add the new wagon's id to the list and pass as a query param
 			const dispatchedIds = [...(existingIdsArray), wagonToUse.id];
-			goto(`/richardsbay/processes/rail/train-staging/wagons/review?wagonIds=${dispatchedIds.join(',')}&trainRefNr=${trainRefNr}`);
+			goto(`/richardsbay/processes/rail/train-staging/wagons/review?wagonIdSimples=${dispatchedIds.join(',')}&trainRefNr=${trainRefNr}`);
 		} catch (error) {
 			console.error('Failed to submit wagon arrival:', error);
 			processLayout.setError('Failed to submit wagon arrival. Please try again.');
@@ -152,36 +102,17 @@
 	
 
 		<div class="form">
-			<label for="wagonId" class="block font-medium text-gray text-sm mb-1">Wagon ID *</label>
-			<input
+			<FormField
 				id="wagonId"
-				type="text"
-				bind:value={wagonID}
-				placeholder="Scan/Enter Wagon ID"
-				on:input={handleWagonInput}
-				on:focus={showAllWagonSuggestions}
-				on:blur={() => setTimeout(() => showWagonSuggestions = false, 100)}
+				label="Wagon ID"
+				search={true}
+				options={availableWagons.map(wagon => ({ value: wagon.wagonIdSimple ?? '', label: wagon.wagonIdSimple ?? '' }))}
+				bind:value={wagonIdSimple}
+				placeholder="Select Wagon ID"
 				required
-				class="w-full rounded-lg text-sm border px-3 py-2 text-gray border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none"
+				on:focus={() => showSearch = true}
+				on:blur={() => setTimeout(() => (showSearch = false), 200)}
 			/>
-			{#if showWagonSuggestions}
-				<ul class="suggestions-list">
-					{#each filteredWagonSuggestions as suggestion, i}
-						<li>
-							<button
-								type="button"
-								on:click={() => {
-									wagonID = suggestion.wagonId ?? '';
-									showWagonSuggestions = false;
-									selectedWagon = suggestion;
-								}}
-							>
-								{suggestion.wagonId}
-							</button>
-						</li>
-					{/each}
-				</ul>
-			{/if}
 		</div>
 	</div>
 </ProcessLayout>
@@ -190,49 +121,5 @@
 	.form {
 		margin-top: 1rem;
 		position: relative;
-	}
-	.form #wagonId {
-		min-height: 40px;
-	}
-
-	.suggestions-list {
-		border: 1px solid #ccc;
-		background: #fff;
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		max-height: 150px;
-		overflow-y: auto;
-		position: absolute;
-		z-index: 10;
-		width: 100%;
-	}
-
-	.suggestions-list li:nth-child(even) {
-		background: #f6f8fa;
-	}
-	.suggestions-list li:nth-child(odd) {
-		background: #fff;
-	}
-
-	.suggestions-list button {
-		width: 100%;
-		text-align: left;
-		padding: 0.5rem;
-		background: transparent;
-		border: none;
-		cursor: pointer;
-		color: #222;
-		transition: background 0.2s;
-	}
-
-	.suggestions-list button:hover {
-		background: #2563eb;
-		color: #fff;
-	}
-
-	.suggestions-list li {
-		padding: 0;
-		margin: 0;
 	}
 </style>

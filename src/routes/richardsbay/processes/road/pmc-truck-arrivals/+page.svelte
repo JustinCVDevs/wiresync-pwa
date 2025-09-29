@@ -28,16 +28,14 @@
 	onMount(async () => {
 		// Fetch all truck arrivals
 		const truckArrivals = (await indexedDBService.getAllRecords('truckArrivals')).filter(
-			arrival => !arrival.port_truck_arrival_timestamp
+			arrival => !arrival.port_truck_arrival_timestamp && arrival.siteLocation === 'PMC'
 		);
 
 		// Get linked trucks from truck arrivals
 		const linkedTrucks = truckArrivals.map(arrival => arrival.truckId);
 
 		// Fetch all trucks
-		const allTrucks = (await indexedDBService.getAllRecords('trucks')).filter(
-			truck => truck.loadingLocation === 'PMC'
-		);
+		const allTrucks = (await indexedDBService.getAllRecords('trucks'));
 
 		// Filter trucks that match the truck arrivals' port_arrival_sample_id
 		availableTrucks = allTrucks.filter(truck =>

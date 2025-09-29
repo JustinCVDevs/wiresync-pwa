@@ -8,8 +8,8 @@
 	import { Container } from 'lucide-svelte';
 	import NoMoreWagons from '$lib/components/NoMoreWagons.svelte';
 
-	let wagonIds: string[] = [];
-	$: wagonIds = ($page.url.searchParams.get('wagonIds') || '').split(',').filter(Boolean);
+	let wagonIdSimple: string[] = [];
+	$: wagonIdSimple = ($page.url.searchParams.get('wagonIdSimple') || '').split(',').filter(Boolean);
 
 	let shuntingTrainVerificationDate = $page.url.searchParams.get('shuntingTrainVerificationDate') || '';
 	let wagons: Wagon[] = [];
@@ -61,7 +61,7 @@
 		if (unweighedWagons.length === 0) {
 			showNoMoreWagons = true;
 		} else {
-			goto(`/bosveld/processes/loading-station/fel-operations/wagons/?wagonIds=${wagonIds.join(',')}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`);
+			goto(`/bosveld/processes/loading-station/fel-operations/wagons/?wagonIdSimple=${wagonIdSimple.join(',')}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`);
 		}
 	}
 
@@ -147,7 +147,7 @@
 							<Container size={16} class="inline text-xs" />
 							<div class="flex-1">
 								<div class="font-medium text-gray">
-									<span class="text-sm font-light">Wagon ID:</span> {wagon.wagonId}
+									<span class="text-sm font-light">Wagon ID:</span> {wagon.wagonIdSimple}
 								</div>
 
 								<div>
@@ -181,7 +181,7 @@
 {#if showPopup}
 	<div class="popup-overlay">
 		<div class="popup-content">
-			<p class="popup-message">Are you sure you are done Weighing train {shuntingTrainVerificationDate}?</p>
+			<p class="popup-message">Are you sure you are done weighing train {shuntingTrainVerificationDate}?</p>
 			<div class="popup-buttons">
 				<button
 					type="button"

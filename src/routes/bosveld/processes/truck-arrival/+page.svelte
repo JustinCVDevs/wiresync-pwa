@@ -14,7 +14,7 @@
 	let arrivalTimestamp = formatTimestamp(new Date());
 	let showSearch = false;
 	let matchFound = false;
-	let photoData: string = '';
+	let photoData = '';
 	let availableTrucks: Truck[] = [];
 	let filteredTrucks: any[] = [];
 	let selectedTruck: any = '';
@@ -28,16 +28,14 @@
 	onMount(async () => {
 		// Fetch all truck arrivals
 		const truckArrivals = (await indexedDBService.getAllRecords('truckArrivals')).filter(
-			arrival => !arrival.port_truck_arrival_timestamp
+			arrival => !arrival.port_truck_arrival_timestamp && arrival.siteLocation === 'Bosveld'
 		);
 
 		// Get linked trucks from truck arrivals
 		const linkedTrucks = truckArrivals.map(arrival => arrival.truckId);
 
 		// Fetch all trucks
-		const allTrucks = (await indexedDBService.getAllRecords('trucks')).filter(
-			truck => truck.loadingLocation === 'Bosveld'
-		);
+		const allTrucks = (await indexedDBService.getAllRecords('trucks'));
 
 		// Filter trucks that match the truck arrivals' port_arrival_sample_id
 		availableTrucks = allTrucks.filter(truck =>
@@ -70,7 +68,7 @@
 
 	function handlePhotoSelected(file: File) {
 		if (!file) return;
-
+		// Example: read as base64 or save to DB
 		const reader = new FileReader();
 		reader.onload = () => {
 			photoData = reader.result as string;
@@ -116,7 +114,7 @@
 			isSubmitting = false;
 		}
 	}
-	
+
 	function handleCancel() {
 		goto('/bosveld/processes');
 	}
@@ -124,7 +122,7 @@
 </script>
 
 <ProcessLayout
-	title="Truck Arrival"
+	title="Bosveld Truck Arrival"
 	steps={processSteps}
 	{currentStep}
 	{isSubmitting}
