@@ -6,7 +6,9 @@
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import { onMount } from 'svelte';
 	import { formPersistenceService } from '$lib/services/formPersistenceService';
-  
+	import type { DedicatedFleetTruck } from '$lib';
+	import type { Truck } from '$lib/types';
+
 	let dedicatedFleet = '';
 	let isDedicatedFleet = false;
 
@@ -15,66 +17,32 @@
 	let error = '';
 	let processLayout: ProcessLayout;
 
-	let availableTrucks: any[] = [];
 	let selectedTruck: any = '';
+	let trucks: Truck[] = [];
+	let dedicatedFleetTrucks: DedicatedFleetTruck[] = [];
 
 	const steps = ["FEL Details", "Complete"]
 
 	onMount(async () => {
-		availableTrucks = await getTrucks();
+		try {
+			await getTrucks();
+			await getDedicatedFleetTruck();
+		} catch (err) {
+			console.error('Failed to load trucks from IndexedDB:', err);
+			error = 'Failed to load truck records';
+		}
 	});
 
 	async function getTrucks() {
-		try {
-			let filteredTrucks: any[] = [];
+		trucks = await indexedDBService.getAllRecords('trucks');
 
-			if (dedicatedFleet === 'Yes') {
-				const allDedicatedFleetTrucks = (await indexedDBService.getAllRecords('dedicatedFleetTrucks'));
-				// Filter trucks where dedicatedFleet is true and loadingLocation is "West Load Out"
-				const fleet = (await indexedDBService.getAllRecords('fleet')).filter(
-					(f) => f.felMassKg === 0 && f.loadingLocation === loadingLocation
-				);
+        trucks.sort((a, b) => a.registration.localeCompare(b.registration));
+	}
 
-				// Map fleet to get linkedFleetIds
-				const linkedFleetIds = fleet.map(f => f.serverId);
+	async function getDedicatedFleetTruck() {
+		dedicatedFleetTrucks = await indexedDBService.getAllRecords('dedicatedFleetTrucks');
 
-				// Find matching assays
-				const matchingAssays = (await indexedDBService.getAllRecords('assays')).filter(
-					assay => assay.linkedFleetIds?.some(id => linkedFleetIds.includes(id))
-				);
-
-				// Map truck to get linkedTruckIds
-				const linkedDedicatedFleetTruckIds = matchingAssays.flatMap(assay => assay.linkedDedicatedFleetTruckIds ?? []);
-
-				filteredTrucks = allDedicatedFleetTrucks.filter(trucks =>
-					linkedDedicatedFleetTruckIds.some(truck => truck === trucks.serverId)
-				);
-			} else {
-				const allTrucks = (await indexedDBService.getAllRecords('trucks'));
-				// Filter assays where dedicatedFleet is false and location is "West Load Out"
-				const filteredAssays = (await indexedDBService.getAllRecords('assays')).filter(
-					assay => assay.dedicatedFleet === false && assay.location === loadingLocation
-				);
-
-				// Collect all linkedTruckIds from the filtered assays
-				const linkedTruckIds = filteredAssays.flatMap(assay => assay.linkedTruckIds ?? []);
-
-				// Filter truckLoads where truckLoadId matches any linkedTruckId
-				const matchingTruckLoads = await indexedDBService.getAllRecords('truckLoads').then(loads =>
-					loads.filter(truckLoad => (truckLoad.felWeight === '') && (truckLoad.loadingLocation === loadingLocation) && (linkedTruckIds.includes(truckLoad.truckId ?? '')))
-				);
-
-				filteredTrucks = allTrucks.filter(truck =>
-					matchingTruckLoads.some(truckLoad => truckLoad.truckId === truck.serverId)
-				);
-			}
-
-			// Sort the filtered trucks alphabetically by registration
-			return filteredTrucks.sort((a, b) => a.registration.localeCompare(b.registration));
-		} catch (error) {
-			console.error('No trucks available', error);
-			return [];
-		}
+		dedicatedFleetTrucks.sort((a, b) => a.registration.localeCompare(b.registration));
 	}
 	
 	async function handleSubmit() {
@@ -86,39 +54,27 @@
             isDedicatedFleet = true;
 
             if (selectedTruck) {
-                const fleet = (await indexedDBService.getAllRecords('fleet')).filter(
+                const fleet = (await indexedDBService.getAllRecords('fleet')).find(
                     (f) => f.registration === selectedTruck
-                )[0];
+                );
 
-                const truck = availableTrucks.find(truck => truck.registration === selectedTruck);
-
-                if (!truck) {
+                if (!fleet) {
                     throw new Error(`Truck with registration "${selectedTruck}" not found.`);
                 }
 
-                truck.dedicatedFleet = true;
-                truck.loadingLocation = loadingLocation;
-                truck.felWeight = Number(felWeight);
-                truck.updated = new Date().toISOString();
-                truck.syncStatus = 'pending';
-
-                await indexedDBService.updateRecord('trucks', truck.id, truck);
-
-                await indexedDBService.updateRecord('fleet', fleet?.id ?? '', {
+                await indexedDBService.updateRecord('fleet', fleet.id, {
                     loadingLocation: loadingLocation,
                     syncStatus: 'pending',
                     felMassKg: Number(felWeight),
                 });
-
                 formPersistenceService.clearForm('fel-operations-gravelotte');
-
                 goto(`/pmc/processes/magnetite-road/gravelotte/fel-operations/verification?truckRegistration=${encodeURIComponent(selectedTruck || '')}&sampleId=${encodeURIComponent(fleet?.sampleId || '')}`);
             }
         } else {
             isDedicatedFleet = false;
 
             if (selectedTruck) {
-                const truck = availableTrucks.find(truck => truck.registration === selectedTruck);
+                const truck = trucks.find(truck => truck.registration === selectedTruck);
 
                 if (!truck) {
                     throw new Error(`Truck with registration "${selectedTruck}" not found.`);
@@ -133,24 +89,18 @@
                     syncStatus: 'pending',
                     felWeight: felWeight,
                 });
+				formPersistenceService.clearForm('fel-operations-gravelotte');
 				goto(`/pmc/processes/magnetite-road/gravelotte/fel-operations/verification?truckRegistration=${encodeURIComponent(selectedTruck || '')}&sampleId=${encodeURIComponent(truckLoad?.sampleId || '')}`);
             }
-            formPersistenceService.clearForm('fel-operations-gravelotte');
         }
     } catch (err) {
         error = 'Failed to submit data';
         console.error(err);
     }
 }
-	  let currentStep = 1;
-	  function handleCancel() {
-		  goto('/pmc/processes/magnetite-road/gravelotte');
-	  }
-
-	$: if (dedicatedFleet !== '') {
-		(async () => {
-			availableTrucks = await getTrucks();
-		})();
+	let currentStep = 1;
+	function handleCancel() {
+		goto('/pmc/processes/magnetite-road/gravelotte');
 	}
 </script>
 	<ProcessLayout
@@ -185,7 +135,7 @@
 								id="truckRegistration"
 								label="Truck Registration"
 								search={true}
-								options={availableTrucks.map(truck => ({value: truck.registration, label: truck.registration}))}
+								options={trucks.map((truck) => ({ value: truck.registration, label: truck.registration }))}
 								bind:value={selectedTruck}
 								placeholder="Select Truck Registration"
 								required
@@ -219,7 +169,7 @@
 								id="truckRegistration"
 								label="Truck Registration"
 								search={true}
-								options={availableTrucks.map(truck => ({value: truck.registration, label: truck.registration}))}
+								options={dedicatedFleetTrucks.map((truck) => ({ value: truck.registration, label: truck.registration }))}
 								bind:value={selectedTruck}
 								placeholder="Select Truck Registration"
 								required
