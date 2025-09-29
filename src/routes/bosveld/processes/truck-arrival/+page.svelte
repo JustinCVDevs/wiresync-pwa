@@ -67,82 +67,18 @@
 		return `${yyyy}/${mm}/${dd} ${hh}:${min}`;
 	}
 
-	// Resize image to ensure it doesn't exceed 1MB
-	async function resizeImageToMaxSize(file: File, maxSizeInMB: number = 1): Promise<string> {
-		return new Promise((resolve, reject) => {
-			const reader = new FileReader();
-			reader.onload = (e) => {
-				const img = new Image();
-				img.onload = () => {
-					const canvas = document.createElement('canvas');
-					let width = img.width;
-					let height = img.height;
-					
-					// Calculate size and determine if resizing is needed
-					const MAX_SIZE_BYTES = maxSizeInMB * 1024 * 1024;
-					
-					// Start with original dimensions
-					let quality = 0.9; // Initial quality
-					let resizeRatio = 1;
-					
-					// If the image is very large, we need to resize dimensions
-					if (width > 1920 || height > 1920) {
-						resizeRatio = 1920 / Math.max(width, height);
-						width = Math.floor(width * resizeRatio);
-						height = Math.floor(height * resizeRatio);
-					}
-					
-					canvas.width = width;
-					canvas.height = height;
-					
-					const ctx = canvas.getContext('2d');
-					if (!ctx) {
-						reject(new Error('Could not get canvas context'));
-						return;
-					}
-					
-					// Draw image on canvas with new dimensions
-					ctx.drawImage(img, 0, 0, width, height);
-					
-					// Get as base64 with reduced quality
-					const dataUrl = canvas.toDataURL('image/jpeg', quality);
-					
-					// Return the resized data URL
-					resolve(dataUrl);
-				};
-				img.onerror = () => reject(new Error('Failed to load image'));
-				img.src = e.target?.result as string;
-			};
-			reader.onerror = () => reject(new Error('Failed to read file'));
-			reader.readAsDataURL(file);
-		});
-	}
+	// Function moved to Camera.svelte component
 
-	async function handlePhotoSelected(file: File) {
+	// Handle photo selection from Camera component
+	function handlePhotoSelected(file: File) {
 		if (!file) return;
 		
-		try {
-			// Check file size
-			const fileSizeInMB = file.size / (1024 * 1024);
-			console.log(`Original photo size: ${fileSizeInMB.toFixed(2)} MB`);
-			
-			if (fileSizeInMB > 1) {
-				console.log('Resizing image to reduce file size...');
-				// Resize the image to reduce file size
-				photoData = await resizeImageToMaxSize(file);
-				console.log('Photo resized successfully');
-			} else {
-				// File is already under 1MB, just read it normally
-				const reader = new FileReader();
-				reader.onload = () => {
-					photoData = reader.result as string;
-				};
-				reader.readAsDataURL(file);
-			}
-		} catch (error) {
-			console.error('Error processing photo:', error);
-			processLayout.setError('Failed to process photo. Please try again.');
-		}
+		// File is already resized by the Camera component if needed
+		const reader = new FileReader();
+		reader.onload = () => {
+			photoData = reader.result as string;
+		};
+		reader.readAsDataURL(file);
 	}
 
 	async function handleSubmit() {
