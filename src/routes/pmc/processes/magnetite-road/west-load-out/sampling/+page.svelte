@@ -11,6 +11,8 @@
 
 	let dedicatedFleet = '';
 	let isDedicatedFleet = false;
+	let isSubmitting = false;
+	let currentStep = 1;
 
 	let truckRegistration = '';
 	let productType = localStorage.getItem('west-productType') || '';
@@ -21,7 +23,7 @@
 	let processLayout: ProcessLayout;
 	let productTypes = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite 62%', 'Magnetite 65%'];
 
-	const steps = ["Sample Details", "Complete"];
+	const steps = ['Sample Details', 'Complete'];
 
 	let sampleNumberWest = 1;
 	let trucks: Truck[] = [];
@@ -29,34 +31,50 @@
 
 	// Function to determine today's (00:00-23:59) next sample number from the fleet table
 	async function getSampleNumberFromFleet() {
-        const now = new Date();
-        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
-        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime();
+		const now = new Date();
+		const startOfDay = new Date(
+			now.getFullYear(),
+			now.getMonth(),
+			now.getDate(),
+			0,
+			0,
+			0,
+			0
+		).getTime();
+		const endOfDay = new Date(
+			now.getFullYear(),
+			now.getMonth(),
+			now.getDate(),
+			23,
+			59,
+			59,
+			999
+		).getTime();
 
-        // load all fleet records and compute highest numeric sampleNumber for the selected loadingLocation within today
-        const allFleet = (await indexedDBService.getRecords('fleet')).filter(
+		// load all fleet records and compute highest numeric sampleNumber for the selected loadingLocation within today
+		const allFleet = (await indexedDBService.getRecords('fleet')).filter(
 			(fleet: Fleet) => fleet.loadingLocation === 'West Load Out'
 		);
-        let max = 0;
+		let max = 0;
 		console.log('allFleet', allFleet);
-        for (const rec of allFleet) {
-            const createdTs = rec.created ? new Date(rec.created).getTime() : NaN;
-            if (Number.isNaN(createdTs)) continue;
-            if (createdTs < startOfDay || createdTs > endOfDay) continue;
+		for (const rec of allFleet) {
+			const createdTs = rec.created ? new Date(rec.created).getTime() : NaN;
+			if (Number.isNaN(createdTs)) continue;
+			if (createdTs < startOfDay || createdTs > endOfDay) continue;
 
-            const n = Number(rec.sampleNumber);
-            if (Number.isFinite(n) && n > max) max = Math.floor(n);
-        }
+			const n = Number(rec.sampleNumber);
+			if (Number.isFinite(n) && n > max) max = Math.floor(n);
+		}
 
-        // no fallback: always return highest found + 1 (will be 1 if none found)
-        sampleNumberWest = max + 1;
-        return sampleNumberWest;
-    }
+		// no fallback: always return highest found + 1 (will be 1 if none found)
+		sampleNumberWest = max + 1;
+		return sampleNumberWest;
+	}
 
 	async function getTrucks() {
 		trucks = await indexedDBService.getAllRecords('trucks');
 
-        trucks.sort((a, b) => a.registration.localeCompare(b.registration));
+		trucks.sort((a, b) => a.registration.localeCompare(b.registration));
 	}
 
 	async function getDedicatedFleetTruck() {
@@ -88,7 +106,7 @@
 			'Magnetite 65%': 'MAG65'
 		}[productType];
 
-		// run only when the states are defined 
+		// run only when the states are defined
 		if (productType && truckRegistration !== undefined) {
 			if (dedicatedFleet === 'Yes') {
 				sampleId = `${YYMMDD}${truckRegistration ? `_${truckRegistration}` : ''}${sampleNumberWest ? `_#${sampleNumberWest}` : ''}${productCode ? `_${productCode}` : ''}`;
@@ -104,36 +122,38 @@
 	$: if (dedicatedFleet === 'Yes') {
 		productType = localStorage.getItem('west-productType') || '';
 		truckRegistration = '';
-	} else   {
+	} else {
 		productType = '';
 		truckRegistration = '';
 	}
-	
-	$: {
-        if (dedicatedFleet === 'Yes') {
-            const currentDate = new Date();
-            const currentHour = String(currentDate.getHours()).padStart(2, '0');
-            const currentMinutes = String(currentDate.getMinutes()).padStart(2, '0');
-            loadingTime = `${currentHour}:${currentMinutes}`;
-        }
-    }
 
-    // Dynamically filter productTypes based on dedicatedFleet
-    $: {
-		productTypes = dedicatedFleet === 'No'
-            ? ['Iron Oxide', 'Magnetite-DMS', 'Magnetite 62%', 'Magnetite 65%']
-            : ['Iron Oxide', 'Magnetite 62%', 'Magnetite 65%'];
+	$: {
+		if (dedicatedFleet === 'Yes') {
+			const currentDate = new Date();
+			const currentHour = String(currentDate.getHours()).padStart(2, '0');
+			const currentMinutes = String(currentDate.getMinutes()).padStart(2, '0');
+			loadingTime = `${currentHour}:${currentMinutes}`;
+		}
+	}
+
+	// Dynamically filter productTypes based on dedicatedFleet
+	$: {
+		productTypes =
+			dedicatedFleet === 'No'
+				? ['Iron Oxide', 'Magnetite-DMS', 'Magnetite 62%', 'Magnetite 65%']
+				: ['Iron Oxide', 'Magnetite 62%', 'Magnetite 65%'];
 	}
 
 	// Auto-fill product type from selected truck (only for No)
 	$: if (truckRegistration && dedicatedFleet === 'No') {
-		const truck = trucks.find(t => t.registration === truckRegistration);
+		const truck = trucks.find((t) => t.registration === truckRegistration);
 		if (truck?.productType) {
 			productType = truck.productType;
 		}
 	}
 
 	async function handleSubmit() {
+		isSubmitting = true;
 		try {
 			processLayout.setError('');
 			processLayout.setSuccess('');
@@ -165,7 +185,7 @@
 					loadingHour: loadingTime,
 					syncStatus: 'pending',
 					siteLocation: 'PMC',
-					created: new Date(),
+					created: new Date()
 				};
 
 				// Save fleet and create assay in parallel
@@ -187,7 +207,7 @@
 					created: new Date(),
 					updated: new Date().toISOString(),
 					sampleId: sampleId,
-					siteLocation: 'PMC',
+					siteLocation: 'PMC'
 				};
 
 				// Save assay and navigate immediately
@@ -195,7 +215,9 @@
 				// Sync in background
 				syncService.syncAssay(assay).catch(console.warn);
 
-				goto(`/pmc/processes/magnetite-road/west-load-out/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`);
+				goto(
+					`/pmc/processes/magnetite-road/west-load-out/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`
+				);
 			} else {
 				isDedicatedFleet = false;
 
@@ -235,7 +257,7 @@
 					created: new Date(),
 					updated: new Date().toISOString(),
 					sampleId: sampleId,
-					siteLocation: 'PMC',
+					siteLocation: 'PMC'
 				};
 
 				// Save assay and navigate immediately
@@ -243,158 +265,168 @@
 				// Sync in background
 				syncService.syncAssay(assay).catch(console.warn);
 
-				goto(`/pmc/processes/magnetite-road/west-load-out/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`);
+				goto(
+					`/pmc/processes/magnetite-road/west-load-out/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`
+				);
 			}
-			
 		} catch (err) {
 			error = 'Failed to submit data';
 			console.error(err);
+		} finally {
+			isSubmitting = false;
 		}
-	  }
-	  let currentStep = 1;
-	  function handleCancel() {
-		  goto('/pmc/processes/magnetite-road/west-load-out');
-	  }
+	}
 
-  </script>
-  <ProcessLayout
-  title="West Load Out"
-  {steps}
-  {currentStep}
-  isSubmitting={false}
-  bind:this={processLayout}
-  cancelPath="/pmc/processes/magnetite-road/west-load-out"
-  on:cancel={handleCancel}
-  on:submit={handleSubmit}
-  on:error={({ detail }) => (error = detail)}
-  >
-  <slot name="header" />
-  
-	  {#if error}
-		  <div class="mb-4 rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">
-			  {error}
-		  </div>
-	  {/if}
-  
-		  <h2 class="">Truck Data Capturing</h2>
+	function handleCancel() {
+		goto('/pmc/processes/magnetite-road/west-load-out');
+	}
+</script>
 
-			<YesNo 
-				bind:selected={dedicatedFleet} 
-				label={"Dedicated Fleet"} 
-				description={"Select YES for CPAL, Crosscon and Bosveld trucks. Select NO for trucks loading DMS."}
+<ProcessLayout
+	title="West Load Out"
+	{steps}
+	{currentStep}
+	{isSubmitting}
+	bind:this={processLayout}
+	cancelPath="/pmc/processes/magnetite-road/west-load-out"
+	on:cancel={handleCancel}
+	on:submit={handleSubmit}
+	on:error={({ detail }) => (error = detail)}
+>
+	<slot name="header" />
+
+	{#if error}
+		<div class="mb-4 rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">
+			{error}
+		</div>
+	{/if}
+
+	<h2 class="">Truck Data Capturing</h2>
+
+	<YesNo
+		bind:selected={dedicatedFleet}
+		label={'Dedicated Fleet'}
+		description={'Select YES for CPAL, Crosscon and Bosveld trucks. Select NO for trucks loading DMS.'}
+	/>
+	{#if dedicatedFleet}
+		{#if dedicatedFleet === 'No'}
+			<div class="form-field">
+				<FormField
+					id="truckRegistration"
+					label="Select the Truck Registration"
+					search={true}
+					options={trucks.map((truck) => ({
+						value: truck.registration,
+						label: truck.registration
+					}))}
+					bind:value={truckRegistration}
+					placeholder="Select Truck Registration"
+					required
+				/>
+			</div>
+
+			<FormField
+				id="productType"
+				label="Product Type"
+				isSelect={true}
+				options={productTypes.map((type) => ({ value: type, label: type }))}
+				bind:value={productType}
+				placeholder="Select Product Type"
+				required
 			/>
-			{#if dedicatedFleet}
-		  		{#if dedicatedFleet === 'No'}
-		  			<div class='form-field'>
-						<FormField
-							id="truckRegistration"
-							label="Select the Truck Registration"
-							search={true}
-							options={trucks.map((truck) => ({ value: truck.registration, label: truck.registration }))} 
-							bind:value={truckRegistration}
-							placeholder="Select Truck Registration"
-							required
-						/>
-					</div>
 
-					<FormField
-						id="productType"
-						label="Product Type"
-						isSelect={true}
-						options={productTypes.map((type) => ({ value: type, label: type }))}
-						bind:value={productType}
-						placeholder="Select Product Type"
-						required
-					/>
+			<FormField
+				id="sampleId"
+				label="Sample ID"
+				type="text"
+				bind:value={sampleId}
+				placeholder="Enter Sample ID"
+				required
+			/>
 
-					<FormField
-						id="sampleId"
-						label="Sample ID"
-						type="text"
-						bind:value={sampleId}
-						placeholder="Enter Sample ID"
-						required
-					/>
+			<FormField
+				id="loadingLocation"
+				label="Loading Location"
+				isSelect={true}
+				options={[
+					{ value: 'West Load Out', label: 'West Load Out' },
+					{ value: 'Gravelotte', label: 'Gravelotte' },
+					{ value: 'Truck Load Out', label: 'Truck Load Out' }
+				]}
+				bind:value={loadingLocation}
+				required
+			/>
+		{:else}
+			<div class="form-field">
+				<FormField
+					id="truckRegistration"
+					label="Select the Truck Registration"
+					search={true}
+					options={dedicatedFleetTrucks.map((truck) => ({
+						value: truck.registration,
+						label: truck.registration
+					}))}
+					bind:value={truckRegistration}
+					placeholder="Select Truck Registration"
+					required
+				/>
+			</div>
 
-					<FormField
-						id="loadingLocation"
-						label="Loading Location"
-						isSelect={true}
-						options={[
-							{ value: 'West Load Out', label: 'West Load Out' },
-							{ value: 'Gravelotte', label: 'Gravelotte' },
-							{ value: 'Truck Load Out', label: 'Truck Load Out' }
-						]}
-						bind:value={loadingLocation}
-						required
-					/>
-				{:else}
-					<div class='form-field'>
-						<FormField
-							id="truckRegistration"
-							label="Select the Truck Registration"
-							search={true}
-							options={dedicatedFleetTrucks.map((truck) => ({ value: truck.registration, label: truck.registration }))} 
-							bind:value={truckRegistration}
-							placeholder="Select Truck Registration"
-							required
-						/>
-					</div>
+			<FormField
+				id="productType"
+				label="Product Type"
+				isSelect={true}
+				options={productTypes.map((type) => ({ value: type, label: type }))}
+				bind:value={productType}
+				placeholder="Select Product Type"
+				required
+			/>
 
-					<FormField
-						id="productType"
-						label="Product Type"
-						isSelect={true}
-						options={productTypes.map((type) => ({ value: type, label: type }))}
-						bind:value={productType}
-						placeholder="Select Product Type"
-						required
-					/>
+			<FormField
+				id="sampleId"
+				label="Sample ID"
+				type="text"
+				bind:value={sampleId}
+				disabled={true}
+				placeholder="Enter Sample ID"
+				required
+			/>
 
-					<FormField
-						id="sampleId"
-						label="Sample ID"
-						type="text"
-						bind:value={sampleId}
-						disabled={true}
-						placeholder="Enter Sample ID"
-						required
-					/>
+			<FormField
+				id="loadingLocation"
+				label="Loading Location"
+				isSelect={true}
+				options={[
+					{ value: 'West Load Out', label: 'West Load Out' },
+					{ value: 'Gravelotte', label: 'Gravelotte' },
+					{ value: 'Truck Load Out', label: 'Truck Load Out' }
+				]}
+				bind:value={loadingLocation}
+				required
+			/>
 
-					<FormField
-						id="loadingLocation"
-						label="Loading Location"
-						isSelect={true}
-						options={[
-							{ value: 'West Load Out', label: 'West Load Out' },
-							{ value: 'Gravelotte', label: 'Gravelotte' },
-							{ value: 'Truck Load Out', label: 'Truck Load Out' }
-						]}
-						bind:value={loadingLocation}
-						required
-					/>
-					
-					<div class="form-field">
-						<label for="loadingTime" class="block font-medium text-gray text-sm mb-1">Loading Time (hh:mm) *</label>
-						<input
-							id="loadingTime"
-							type="text"
-							bind:value={loadingTime}
-							maxlength="5"
-							pattern="^([01]\d|2[0-3]):([0-5]\d)$"
-							placeholder="Enter time (hh:mm)"
-							required
-							class="w-full rounded-lg text-sm border px-3 py-2 text-gray border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none"
-						/>
-					</div>
-				{/if}
-			{/if}
-		  
-  </ProcessLayout>
+			<div class="form-field">
+				<label for="loadingTime" class="text-gray mb-1 block text-sm font-medium"
+					>Loading Time (hh:mm) *</label
+				>
+				<input
+					id="loadingTime"
+					type="text"
+					bind:value={loadingTime}
+					maxlength="5"
+					pattern="^([01]\d|2[0-3]):([0-5]\d)$"
+					placeholder="Enter time (hh:mm)"
+					required
+					class="text-gray w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 focus:outline-none"
+				/>
+			</div>
+		{/if}
+	{/if}
+</ProcessLayout>
 
-  <style>
+<style>
 	.form-field {
 		margin-top: 1rem;
 		position: relative;
 	}
-  </style>
+</style>
