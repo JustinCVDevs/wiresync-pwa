@@ -12,13 +12,28 @@ import type { TrainArrival } from '$lib/types/trainArrival';
 import type { DedicatedFleetTruck } from '$lib/types/dedicatedFleetTruck';
 
 function base64ToBlob(base64: string, mime: string) {
-    const byteString = atob(base64.split(',')[1]);
-    const ab = new ArrayBuffer(byteString.length);
-    const ia = new Uint8Array(ab);
-    for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
-    }
-    return new Blob([ab], { type: mime });
+	// Always use a supported image format (default to image/jpeg)
+	let format = mime;
+	if (!format || !format.startsWith('image/')) {
+		format = 'image/jpeg';
+	}
+	// If the base64 string includes a mime type, extract it
+	const matches = base64.match(/^data:(image\/(jpeg|png|webp|gif|bmp|jpg|svg\+xml|tiff|x-icon|heic|heif));base64,/);
+	if (matches && matches[1]) {
+		// If HEIC/HEIF, fallback to jpeg (PocketBase doesn't support HEIC/HEIF)
+		if (matches[2] === 'heic' || matches[2] === 'heif') {
+			format = 'image/jpeg';
+		} else {
+			format = matches[1];
+		}
+	}
+	const byteString = atob(base64.split(',')[1]);
+	const ab = new ArrayBuffer(byteString.length);
+	const ia = new Uint8Array(ab);
+	for (let i = 0; i < byteString.length; i++) {
+		ia[i] = byteString.charCodeAt(i);
+	}
+	return new Blob([ab], { type: format });
 }
 
 let runningList = false;
