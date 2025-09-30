@@ -5,6 +5,7 @@
 
 	export let wagonIdSimple = '';
 	export let tarpedStatus = false; // Add this line
+	export let linkedIds: string[] = []; // IDs (id or serverId) that should be excluded from the list
 
 	let availableWagons: any[] = [];
 
@@ -23,7 +24,12 @@
 
 	onMount(async () => {
 		const allWagons = (await indexedDBService.getAllRecords('wagons')).filter(
-			w => !w.dispatchTimestamp && w.wagonIdSimple !== ''
+			w =>
+				!w.dispatchTimestamp &&
+				w.wagonIdSimple !== '' &&
+				// Exclude wagons whose id or serverId are present in linkedIds
+				!linkedIds.includes(w.id) &&
+				!(w.serverId ? linkedIds.includes(w.serverId) : false)
 		);
 		availableWagons = allWagons.map((w) => ({ value: w.wagonIdSimple, label: w.wagonIdSimple }));
 	});
@@ -56,7 +62,7 @@
 	<button
 		on:click={handleSubmit}
 		class="w-36 text-sm items-center justify-center rounded-lg bg-gray py-3 px-2  text-white transition hover:bg-green-700 active:bg-black disabled:opacity-50"
-		type="submit"
+		type="button"
 	>
 			Submit Wagon</button>
 </div>
