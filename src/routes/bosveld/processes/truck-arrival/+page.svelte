@@ -4,7 +4,6 @@
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import FormField from '$lib/components/FormField.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
-	import { syncService } from '$lib/services/syncService';
 	import type { Truck } from '$lib/types/truck';
 	import Camera from '$lib/components/Camera.svelte';
 
@@ -67,13 +66,9 @@
 		return `${yyyy}/${mm}/${dd} ${hh}:${min}`;
 	}
 
-	// Function moved to Camera.svelte component
-
-	// Handle photo selection from Camera component
 	function handlePhotoSelected(file: File) {
 		if (!file) return;
-		
-		// File is already resized by the Camera component if needed
+		// Read as base64 or save to DB
 		const reader = new FileReader();
 		reader.onload = () => {
 			photoData = reader.result as string;
@@ -86,7 +81,6 @@
 			isSubmitting = true;
 			submit = true;
 			processLayout.setError('');
-			processLayout.setSuccess('Processing...');
 
 			if (!photoData) {
 				processLayout.setError('Please take a photo of the truck.');
@@ -94,12 +88,7 @@
 				return;
 			}
 
-			// Estimate photo size (base64 is ~33% larger than the actual file)
-			const estimatedSizeInMB = (photoData.length * 0.75) / (1024 * 1024);
-			console.log(`Estimated photo size: ${estimatedSizeInMB.toFixed(2)} MB`);
-			
-			// Check if truck exists in Pocketbase DB
-			processLayout.setSuccess('Verifying truck information...');
+			// Check if truck exists in IndexedDB
 			const trucks = (await indexedDBService.getAllRecords('trucks')).find(
 				truck => truck.registration.toLowerCase() === selectedTruck.toLowerCase()
 			);
@@ -111,61 +100,26 @@
 			}
 
 			// Update Truck Arrival data
-			processLayout.setSuccess('Finding truck arrival record...');
-			const allTruckArrivals = await indexedDBService.getAllRecords('truckArrivals');
-			
-			const filteredArrivals = allTruckArrivals.filter(
+			const truckArrival = (await indexedDBService.getAllRecords('truckArrivals')).filter(
 				arrival => arrival.truckId === trucks.serverId && !arrival.port_truck_arrival_timestamp && arrival.status !== 'received'
-			);
-			
-			if (!filteredArrivals.length) {
+			)[0];
+
+			if (!truckArrival) {
 				processLayout.setError('No matching truck arrivals found for this registration.');
 				isSubmitting = false;
 				return;
 			}
-			
-			const truckArrival = filteredArrivals[0];
 
-			// Define status with proper type
-			const status: 'received' | 'registered' = 'received';
-			
 			// Save to IndexedDB using the generic saveRecord method
-			processLayout.setSuccess('Saving data...');
-			
-			const updatedData = {
-				...truckArrival,
-				syncStatus: 'pending',
-				port_truck_arrival_timestamp: new Date(),
-				status,
-				truck_photo: photoData
-			};
-			
-			console.log('Updating record with ID:', truckArrival.id);
-			await indexedDBService.updateRecord('truckArrivals', truckArrival.id, updatedData);
-			
-			// Try to sync right away (don't wait for response)
-			try {
-				console.log('Attempting to sync right away');
-				processLayout.setSuccess('Synchronizing data...');
-				syncService.syncTruckArrival({
-					...updatedData,
-					id: truckArrival.id,
-					status
-				})
-					.then(() => console.log('Sync successful'))
-					.catch(err => console.error('Sync error (will try again later):', err));
-			} catch (syncError) {
-				console.log('Initial sync attempt failed (will retry later):', syncError);
-			}
-			
-			// Show success before navigation
-			processLayout.setSuccess('Truck arrival recorded successfully!');
-			console.log('Navigating to verification page with ID:', truckArrival.id);
-			
-			// Small delay before navigation to ensure IndexedDB update completes
-			setTimeout(() => {
-				goto('/bosveld/processes/truck-arrival/verification?truckArrivalId=' + truckArrival.id);
-			}, 500);
+			await indexedDBService.updateRecord('truckArrivals', truckArrival.id, {
+					...truckArrival,
+					syncStatus: 'pending',
+					port_truck_arrival_timestamp: new Date(),
+					status: 'received',
+					truck_photo: photoData
+				});
+
+			goto('/bosveld/processes/truck-arrival/verification?truckArrivalId=' + truckArrival.id);
 		} catch (error) {
 			console.error('Failed to submit truck arrival:', error);
 			processLayout.setError('Failed to submit truck arrival. Please try again.');
