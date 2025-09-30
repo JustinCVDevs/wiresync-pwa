@@ -1461,7 +1461,7 @@ export const syncService = {
 			}
 		}
 		// Delete records that no longer exist on the server
-		await Promise.all([
+		/*await Promise.all([
 			this.syncDeletedRecords('assays'),
 			this.syncDeletedRecords('consignments'),
 			this.syncDeletedRecords('fleet'),
@@ -1474,7 +1474,7 @@ export const syncService = {
 			this.syncDeletedRecords('trucks'),
 			this.syncDeletedRecords('wagons'),
 			this.syncDeletedRecords('dedicatedFleetTrucks'),
-		]);
+		]);*/
 	},
 };
 
