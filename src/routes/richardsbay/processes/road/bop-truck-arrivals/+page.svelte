@@ -82,15 +82,20 @@
 			submit = true;
 			processLayout.setError('');
 
+			// Check if truck exists in Pocketbase DB
+			const trucks = (await indexedDBService.getAllRecords('trucks')).find(
+				truck => truck.registration.toLowerCase() === selectedTruck.toLowerCase()
+			);
+
+			if (!trucks) {
+				goto('/richardsbay/processes/road/bop-truck-arrivals/register?truckRegistration=' + selectedTruck);
+				return;
+			}
+
 			if (!photoData) {
 				processLayout.setError('Please take a photo of the truck.');
 				return;
 			}
-
-			// Check if truck exists in Pocketbase DB
-			const trucks = (await indexedDBService.getAllRecords('trucks')).filter(
-				truck => truck.registration.toLowerCase() === selectedTruck.toLowerCase()
-			)[0];
 
 			// Update Truck Arrival data
 			const truckArrival = (await indexedDBService.getAllRecords('truckArrivals')).filter(

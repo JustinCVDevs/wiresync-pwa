@@ -47,9 +47,9 @@
 	];
 
 	const productOptions = [
-		{ value: 'IOX', label: 'Iron Oxide' },
-		{ value: 'Mag62', label: 'Magnetite 62%' },
-		{ value: 'Mag65', label: 'Magnetite 65%' }
+		{ value: 'Iron Oxide', label: 'Iron Oxide' },
+		{ value: 'Magnetite 62%', label: 'Magnetite 62%' },
+		{ value: 'Magnetite 65%', label: 'Magnetite 65%' }
 	];
 
 	function formatTimestamp(date: Date) {
@@ -151,6 +151,7 @@
 				id: crypto.randomUUID(),
 				registration: truckRegistration,
 				syncStatus: 'pending',
+				productType: product,
 				created: new Date(),
 				loadingLocation: 'BOP'
 			};
@@ -165,7 +166,7 @@
 			// Create truck arrival record with all the manual data
 			const truckArrival: TruckArrival = {
 				id: crypto.randomUUID(),
-				truckId: linkedTrucks?.id,
+				truckId: linkedTrucks?.id || linkedTrucks?.serverId,
 				status: 'registered',
 				transporter: haulier,
 				truck_commodity: product,
@@ -177,7 +178,7 @@
 				created: new Date(),
 				updated: new Date().toISOString(),
 				syncStatus: 'pending',
-				siteLocation: 'Richards Bay',
+				siteLocation: 'BOP',
 			};
 
 			// Save truck arrival record
