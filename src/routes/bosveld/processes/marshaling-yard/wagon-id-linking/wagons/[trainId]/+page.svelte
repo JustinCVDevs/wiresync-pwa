@@ -65,14 +65,11 @@
 		try {
 			// Set the verification timestamp to current time
 			if (shuntingTrain) {
-				const updatedShuntingTrain = {
-					...shuntingTrain,
+				// Update the shunting train with verification timestamp
+				await indexedDBService.updateRecord('shuntingTrains', shuntingTrain.id, {
 					verificationTimestamp: new Date(),
 					syncStatus: 'pending' as const
-				};
-				
-				// Save the updated shunting train with verification timestamp
-				await indexedDBService.saveRecord('shuntingTrains', updatedShuntingTrain);
+				});
 				
 				// Show success message
 				success = 'Process Complete';

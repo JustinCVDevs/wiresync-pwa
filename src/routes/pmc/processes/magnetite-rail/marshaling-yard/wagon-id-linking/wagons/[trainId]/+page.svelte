@@ -65,23 +65,18 @@
 		try {
 			// Set the verification timestamp to current time
 			if (shuntingTrain) {
-				const updatedShuntingTrain = {
-					...shuntingTrain,
+				// Update the shunting train with verification timestamp
+				await indexedDBService.updateRecord('shuntingTrains', shuntingTrain.id, {
 					verificationTimestamp: new Date(),
 					syncStatus: 'pending' as const
-				};
-				
-				// Save the updated shunting train with verification timestamp
-				await indexedDBService.saveRecord('shuntingTrains', updatedShuntingTrain);
+				});
 				
 				// Update each linked wagon's dispatch timestamp and set sync status to pending
 				for (const wagon of linkedWagons) {
-					const updatedWagon = {
-						...wagon,
+					await indexedDBService.updateRecord('wagons', wagon.id, {
 						dispatchTimestamp: new Date(),
 						syncStatus: 'pending' as const
-					};
-					await indexedDBService.saveRecord('wagons', updatedWagon);
+					});
 				}
 				
 				// Show success message
