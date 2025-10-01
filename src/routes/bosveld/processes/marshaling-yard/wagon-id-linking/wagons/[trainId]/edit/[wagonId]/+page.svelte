@@ -5,7 +5,6 @@
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Wagon } from '$lib/types';
 	import type { ShuntingTrain } from '$lib/types/shuntingTrain';
-	// Removed ProcessLayout import - not being used
 	import FormField from '$lib/components/FormField.svelte';
 
 	let wagon: Wagon | null = null;
@@ -26,8 +25,6 @@
 	const steps = ['Select Shunting Train', 'Wagon ID/RFID Editing'];
 	let currentStep = 2;
 
-	$: wagonValue = !!(wagon?.wagonIdSimple && String(wagon.wagonIdSimple).trim() !== '');
-
 	// Wrap reactive statements in try-catch to prevent exceptions
 	$: {
 		try {
@@ -47,17 +44,8 @@
 		}
 	}
 
-	$: {
-		try {
-			const positionParam = $page.url.searchParams.get('position');
-			if (positionParam) {
-				wagonPosition = parseInt(positionParam, 10) || 1;
-			}
-		} catch (e) {
-			console.error('Error getting position:', e);
-			wagonPosition = 1;
-		}
-	}
+	$: wagonValue = !!(wagon?.wagonIdSimple && String(wagon.wagonIdSimple).trim() !== '');
+
 
 	async function loadWagonAndTrain() {
 		try {	
@@ -128,17 +116,29 @@
 				error = 'Wagon data not available';
 				return;
 			}
-
-			console.log('Updating wagon:', wagon.id);
 			
 			// Update wagon with new values - use updateRecord to prevent duplicates
 			await indexedDBService.updateRecord('wagons', wagon.id, {
 				wagonIdSimple: editableWagonId,
 				transcoreTag: editableTemporaryRfid,
-				syncStatus: 'pending'
+				syncStatus: 'pending',
+				updated: new Date().toISOString()
 			});
-
-			success = 'Wagon details updated successfully';
+			
+			// Try to sync immediately instead of relying on background sync
+			try {
+				const { syncService } = await import('$lib/services/syncService');
+				const updatedWagon = await indexedDBService.getRecord('wagons', wagon.id);
+				if (updatedWagon) {
+					await syncService.syncWagon(updatedWagon);
+					success = 'Wagon details updated and synced successfully';
+				} else {
+					success = 'Wagon details updated successfully (sync pending)';
+				}
+			} catch (syncError) {
+				console.warn('Sync failed, will retry in background:', syncError);
+				success = 'Wagon details updated successfully (sync will retry)';
+			}
 			
 			// Navigate back to wagon details page after a short delay
 			setTimeout(() => {

@@ -118,9 +118,24 @@
 			await indexedDBService.updateRecord('wagons', wagon.id, {
 				wagonIdSimple: editableWagonId,
 				transcoreTag: editableTemporaryRfid,
-				syncStatus: 'pending'
+				syncStatus: 'pending',
+				updated: new Date().toISOString()
 			});
-			success = 'Wagon details updated successfully';
+			
+			// Try to sync immediately instead of relying on background sync
+			try {
+				const { syncService } = await import('$lib/services/syncService');
+				const updatedWagon = await indexedDBService.getRecord('wagons', wagon.id);
+				if (updatedWagon) {
+					await syncService.syncWagon(updatedWagon);
+					success = 'Wagon details updated and synced successfully';
+				} else {
+					success = 'Wagon details updated successfully (sync pending)';
+				}
+			} catch (syncError) {
+				console.warn('Sync failed, will retry in background:', syncError);
+				success = 'Wagon details updated successfully (sync will retry)';
+			}
 			
 			// Navigate back to wagon details page after a short delay
 			setTimeout(() => {
@@ -290,7 +305,7 @@
 					type="button"
 					class="submit-button flex-1 items-center justify-center rounded-lg py-3 text-white transition hover:bg-green-700 active:bg-green-800 disabled:opacity-50"
 					on:click={handleSubmit}
-					disabled={isSubmitting || !editableWagonId.trim() || !editableTemporaryRfid.trim()}
+					disabled={isSubmitting || !editableWagonId || !editableTemporaryRfid}
 				>
 					{isSubmitting ? 'Submitting...' : 'Submit'}
 				</button>
