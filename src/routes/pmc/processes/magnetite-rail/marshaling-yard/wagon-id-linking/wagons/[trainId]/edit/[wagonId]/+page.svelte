@@ -114,16 +114,12 @@
 				return;
 			}
 			
-			// Update wagon with new values
-			const updatedWagon: Wagon = {
-				...wagon,
+			// Update wagon with new values - use updateRecord to prevent duplicates
+			await indexedDBService.updateRecord('wagons', wagon.id, {
 				wagonIdSimple: editableWagonId,
 				transcoreTag: editableTemporaryRfid,
 				syncStatus: 'pending'
-			};
-
-			// Save updated wagon to IndexedDB
-			await indexedDBService.saveRecord('wagons', updatedWagon);
+			});
 			success = 'Wagon details updated successfully';
 			
 			// Navigate back to wagon details page after a short delay
