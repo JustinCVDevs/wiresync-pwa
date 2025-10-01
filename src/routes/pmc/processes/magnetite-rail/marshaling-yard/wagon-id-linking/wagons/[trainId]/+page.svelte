@@ -13,12 +13,10 @@
 	let error = '';
 	let success = '';
 	let isLoading = true;
-	let trainId: string;
+	let trainId = $page.params.trainId;
 
 	const steps = ['Select Shunting Train', 'Wagon Linking'];
 	let currentStep = 2;
-
-	$: trainId = $page.params.trainId;
 
 	async function loadTrainAndWagons() {
 		try {

@@ -13,12 +13,10 @@
 	let error = '';
 	let success = '';
 	let isLoading = true;
-	let trainId: string;
+	let trainId = $page.params.trainId;
 
 	const steps = ['Select Shunting Train', 'Wagon Linking'];
 	let currentStep = 2;
-
-	$: trainId = $page.params.trainId;
 
 	async function loadTrainAndWagons() {
 		try {
@@ -71,13 +69,21 @@
 					syncStatus: 'pending' as const
 				});
 				
+				// Update each linked wagon's dispatch timestamp and set sync status to pending
+				for (const wagon of linkedWagons) {
+					await indexedDBService.updateRecord('wagons', wagon.id, {
+						dispatchTimestamp: new Date(),
+						syncStatus: 'pending' as const
+					});
+				}
+				
 				// Show success message
 				success = 'Process Complete';
 				
 				// Navigate back to processes screen after 1 seconds
 				setTimeout(() => {
 					goto('/bosveld/processes/marshaling-yard');
-				}, 1000);
+				}, 1500);
 			}
 		} catch (e: any) {
 			console.error(e);
