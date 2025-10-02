@@ -57,7 +57,9 @@
 		}
 	}
 
-	onMount(loadTrainAndWagons);
+	onMount(() => {
+		loadTrainAndWagons();
+	});
 
 	async function handleSubmit() {
 		try {
