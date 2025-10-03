@@ -144,7 +144,7 @@
 				} catch (e) {
 					console.error('Error navigating back:', e);
 				}
-			}, 1500);
+			}, 2000);
 		} catch (e: any) {
 			console.error('Error updating wagon:', e);
 			error = `Failed to update wagon details: ${e.message || e}`;
