@@ -37,6 +37,7 @@ function base64ToBlob(base64: string, mime: string) {
 }
 
 let runningList = false;
+let runningDeletedRecordsSync = new Set<string>();
 
 async function fetchAllFromPocketBase(collection: PBCollection, perPage = 1000) {
     let page = 1;
@@ -753,19 +754,90 @@ export const syncService = {
 	},
 
 	async syncDeletedRecords(collectionName: any) {
+		// Check if deletion sync is already running for this collection
+		if (runningDeletedRecordsSync.has(collectionName)) {
+			console.log(`⏸️ Skipping deletion sync for ${collectionName} - already running`)
+			return true
+		}
+
+		runningDeletedRecordsSync.add(collectionName)
+		
 		try {
 			const serverIds = new Set<string>()
-			const perPage = 50
+			const perPage = 1000
 			let page = 1
 			let items: { id: string }[] = []
+			let totalFetched = 0
+			let expectedTotal = 0
+			let consecutiveEmptyPages = 0
 
-			// page through PocketBase
+			console.log(`🔍 Starting deletion sync for ${collectionName}`)
+
+			// page through PocketBase with better error handling
 			do {
-				const res = await pocketbaseService.list(collectionName, { page, perPage })
-				items = res.items
-				for (const it of items) serverIds.add(it.id)
-				page++
-			} while (items.length === perPage)
+				try {
+					const res = await pocketbaseService.list(collectionName, { page, perPage })
+					items = res.items
+					
+					// Get expected total from first page response
+					if (page === 1) {
+						expectedTotal = res.totalItems || 0
+						console.log(`📊 Expected total records in ${collectionName}: ${expectedTotal}`)
+						
+						// If there are no records on the server, be very careful about deletion
+						if (expectedTotal === 0) {
+							console.warn(`⚠️ Server reports 0 records for ${collectionName}. This could be a server issue. Aborting deletion sync.`)
+							return false
+						}
+					}
+					
+					// Verify total hasn't changed on subsequent pages  
+					if (page > 1 && page <= 3 && res.totalItems !== undefined && res.totalItems !== null) {
+						const currentTotal = res.totalItems
+						if (currentTotal !== expectedTotal) {
+							console.warn(`⚠️ Server total changed during fetch for ${collectionName}: ${expectedTotal} -> ${currentTotal}. Aborting deletion sync.`)
+							return false
+						}
+					}
+					
+					for (const it of items) serverIds.add(it.id)
+					totalFetched += items.length
+					
+					if (items.length === 0) {
+						consecutiveEmptyPages++
+						// If we get empty results early in pagination, it's likely a server issue
+						if (page <= 5 && consecutiveEmptyPages >= 1) {
+							console.warn(`⚠️ Got empty page ${page} for ${collectionName} early in pagination. Likely server issue. Aborting deletion sync.`)
+							return false
+						}
+						if (consecutiveEmptyPages > 2) {
+							console.warn(`⚠️ Too many consecutive empty pages for ${collectionName}. Reached natural end or server issue.`)
+							break
+						}
+					} else {
+						consecutiveEmptyPages = 0
+					}
+					page++
+					
+					// Add small delay between pages to avoid rate limiting
+					if (items.length > 0 && page <= 10) {
+						await new Promise(resolve => setTimeout(resolve, 100))
+					}
+				} catch (pageErr) {
+					console.error(`❌ Failed to fetch page ${page} for ${collectionName}:`, pageErr)
+					return false
+				}
+			} while (items.length === perPage && totalFetched < expectedTotal && page < 1000)
+
+			const fetchDiscrepancy = Math.abs(totalFetched - expectedTotal)
+			
+			if (expectedTotal > 0 && fetchDiscrepancy > 0) {
+				const fetchPercentage = expectedTotal > 0 ? (totalFetched / expectedTotal) * 100 : 0
+				console.error(`🚨 CRITICAL: Incomplete fetch for ${collectionName}. Expected: ${expectedTotal}, Got: ${totalFetched} (${fetchPercentage.toFixed(1)}%). ZERO TOLERANCE for missing records. ABORTING deletion sync.`)
+				return false
+			}
+
+			console.log(`✅ Successfully fetched ${totalFetched}/${expectedTotal} records for ${collectionName}`)
 
 			// pull all local records that have a serverId
 			const local = await indexedDBService.getRecords(
@@ -773,20 +845,61 @@ export const syncService = {
 				(rec: { serverId?: string }) => !!rec.serverId
 			)
 
+			console.log(`📊 Local records with serverId in ${collectionName}: ${local.length}`)
+
+			// BALANCED SAFETY: Allow reasonable deletions, prevent mass data loss
+			const potentialDeleteRecords = local.filter(rec => !serverIds.has(rec.serverId!) && rec.syncStatus !== 'pending')
+			const potentialDeletes = potentialDeleteRecords.length
+			const deletePercentage = local.length > 0 ? (potentialDeletes / local.length) * 100 : 0
+			
+			// Log what would be deleted for transparency
+			if (potentialDeletes > 0) {
+				console.log(`� Found ${potentialDeletes} records to delete (${deletePercentage.toFixed(1)}% of local ${collectionName}):`)
+				potentialDeleteRecords.forEach((rec, index) => {
+					console.log(`  ${index + 1}. ID: ${rec.id}, ServerID: ${rec.serverId}, Status: ${rec.syncStatus}`)
+				})
+			}
+			
+			// Only abort if deletion percentage is suspiciously high (>30%)
+			if (deletePercentage > 30) {
+				console.error(`🚨 DANGEROUS: Would delete ${deletePercentage.toFixed(1)}% (${potentialDeletes}) of local ${collectionName} records. This seems excessive. ABORTING deletion sync.`)
+				return false
+			}
+			
+			// Allow reasonable deletions to proceed
+			if (potentialDeletes > 0) {
+				console.log(`✅ Proceeding with deletion of ${potentialDeletes} records (${deletePercentage.toFixed(1)}% - within safe threshold)`)
+			}
+
+			let deletedCount = 0
+			let preservedCount = 0
+
 			// delete any local whose serverId isn't on the server
 			for (const rec of local) {
 				if (!serverIds.has(rec.serverId!)) {
+					// Don't delete records that are pending sync
+					if (rec.syncStatus === 'pending') {
+						console.log(`🔒 Preserving pending record in ${collectionName}:`, rec.id)
+						preservedCount++
+						continue
+					}
+					
+					console.log(`🗑️ Deleting orphaned record from ${collectionName}:`, rec.id, 'serverId:', rec.serverId)
 					await indexedDBService.deleteRecord(collectionName, rec.id)
+					deletedCount++
 				}
 			}
 
+			console.log(`✅ Deletion sync complete for ${collectionName}: ${deletedCount} deleted, ${preservedCount} preserved`)
 			return true
 		} catch (err) {
 			console.warn(
-				`Failed to reconcile deletions for ${collectionName}:`,
+				`❌ Failed to reconcile deletions for ${collectionName}:`,
 				err
 			)
 			return false
+		} finally {
+			runningDeletedRecordsSync.delete(collectionName)
 		}
 	}, 
 
@@ -1430,7 +1543,6 @@ export const syncService = {
 			this.syncPendingShuntingTrains(),
 			this.syncPendingTrainArrivals(),
 			this.syncPendingTrainDispatches(),
-			//this.syncPendingTrain(), Not yet updating Trains
 			this.syncPendingTruckArrivals(),
 			this.syncPendingTruckLoads(),
 			this.syncPendingTrucks(),
@@ -1461,20 +1573,28 @@ export const syncService = {
 			}
 		}
 		// Delete records that no longer exist on the server
-		/*await Promise.all([
-			this.syncDeletedRecords('assays'),
-			this.syncDeletedRecords('consignments'),
-			this.syncDeletedRecords('fleet'),
-			this.syncDeletedRecords('shuntingTrains'),
-			this.syncDeletedRecords('trainArrivals'),
-			this.syncDeletedRecords('trainDispatches'),
-			this.syncDeletedRecords('trains'),
-			this.syncDeletedRecords('truckArrivals'),
-			this.syncDeletedRecords('truckLoads'),
-			this.syncDeletedRecords('trucks'),
-			this.syncDeletedRecords('wagons'),
-			this.syncDeletedRecords('dedicatedFleetTrucks'),
-		]);*/
+		const collections = [
+			'assays',
+			'consignments', 
+			'fleet',
+			'shuntingTrains',
+			'trainArrivals',
+			'trainDispatches',
+			'trains',
+			'truckArrivals',
+			'truckLoads',
+			'trucks',
+			'wagons',
+			'dedicatedFleetTrucks'
+		];
+
+		for (const collection of collections) {
+			try {
+				await this.syncDeletedRecords(collection);
+			} catch (error) {
+				console.warn(`⚠️ Failed to sync deleted records for ${collection}:`, error);
+			}
+		}
 	},
 };
 
