@@ -21,7 +21,6 @@
 					syncService.syncTruckList(),
 					syncService.syncTruckArrivalList(),
 					syncService.syncAllPending(),
-					syncService.deleteLocalDatabase(),
 				]);
 				lastSyncTime.set(new Date());
 			} catch (error) {
@@ -31,10 +30,26 @@
 		}
 	}
 
+	async function deleteDatabase() {
+		try {
+			await syncService.deleteLocalDatabase();
+			console.log('Local database deleted successfully.');
+		} catch (error) {
+			console.error('Error deleting local database:', error);
+		}
+	}
+
 	onMount(() => {
 		syncData();
 		const syncInterval = setInterval(syncData, 15000);
-		return () => clearInterval(syncInterval);
+
+		deleteDatabase();
+		const deleteInterval = setInterval(deleteDatabase, 20000);
+
+		return () => {
+			clearInterval(syncInterval);
+			clearInterval(deleteInterval);
+		};
 	});
 </script>
 
