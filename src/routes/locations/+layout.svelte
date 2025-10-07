@@ -22,6 +22,7 @@
 					syncService.syncTrainList(),
 					syncService.syncConsignmentList(),
 					syncService.syncAllPending(),
+					syncService.deleteLocalDatabase(),
 					syncService.syncShuntingTrainList(),
 					syncService.syncWagonList()
 				]);

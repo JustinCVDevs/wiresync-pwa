@@ -53,11 +53,188 @@ async function fetchAllFromPocketBase(collection: PBCollection, perPage = 1000) 
     return allItems;
 }
 
+async function syncDeletedRecords(collectionName: any) {
+	// Check if deletion sync is already running for this collection
+	if (runningDeletedRecordsSync.has(collectionName)) {
+		console.log(`⏸️ Skipping deletion sync for ${collectionName} - already running`)
+		return true
+	}
+
+	runningDeletedRecordsSync.add(collectionName)
+	
+	try {
+		const serverIds = new Set<string>()
+		const perPage = 1000
+		let page = 1
+		let items: { id: string }[] = []
+		let totalFetched = 0
+		let expectedTotal = 0
+		let consecutiveEmptyPages = 0
+
+		console.log(`🔍 Starting deletion sync for ${collectionName}`)
+
+		// page through PocketBase with better error handling
+		do {
+			try {
+				const res = await pocketbaseService.list(collectionName, { page, perPage })
+				items = res.items
+				
+				// Get expected total from first page response
+				if (page === 1) {
+					expectedTotal = res.totalItems || 0
+					console.log(`📊 Expected total records in ${collectionName}: ${expectedTotal}`)
+					
+					// If there are no records on the server, be very careful about deletion
+					if (expectedTotal === 0) {
+						console.warn(`⚠️ Server reports 0 records for ${collectionName}. This could be a server issue. Aborting deletion sync.`)
+						return false
+					}
+				}
+				
+				// Verify total hasn't changed on subsequent pages  
+				if (page > 1 && page <= 3 && res.totalItems !== undefined && res.totalItems !== null) {
+					const currentTotal = res.totalItems
+					if (currentTotal !== expectedTotal) {
+						console.warn(`⚠️ Server total changed during fetch for ${collectionName}: ${expectedTotal} -> ${currentTotal}. Aborting deletion sync.`)
+						return false
+					}
+				}
+				
+				for (const it of items) serverIds.add(it.id)
+				totalFetched += items.length
+				
+				if (items.length === 0) {
+					consecutiveEmptyPages++
+					// If we get empty results early in pagination, it's likely a server issue
+					if (page <= 5 && consecutiveEmptyPages >= 1) {
+						console.warn(`⚠️ Got empty page ${page} for ${collectionName} early in pagination. Likely server issue. Aborting deletion sync.`)
+						return false
+					}
+					if (consecutiveEmptyPages > 2) {
+						console.warn(`⚠️ Too many consecutive empty pages for ${collectionName}. Reached natural end or server issue.`)
+						break
+					}
+				} else {
+					consecutiveEmptyPages = 0
+				}
+				page++
+				
+				// Add small delay between pages to avoid rate limiting
+				if (items.length > 0 && page <= 10) {
+					await new Promise(resolve => setTimeout(resolve, 100))
+				}
+			} catch (pageErr) {
+				console.error(`❌ Failed to fetch page ${page} for ${collectionName}:`, pageErr)
+				return false
+			}
+		} while (items.length === perPage && totalFetched < expectedTotal && page < 1000)
+
+		const fetchDiscrepancy = Math.abs(totalFetched - expectedTotal)
+		
+		if (expectedTotal > 0 && fetchDiscrepancy > 0) {
+			const fetchPercentage = expectedTotal > 0 ? (totalFetched / expectedTotal) * 100 : 0
+			console.error(`🚨 CRITICAL: Incomplete fetch for ${collectionName}. Expected: ${expectedTotal}, Got: ${totalFetched} (${fetchPercentage.toFixed(1)}%). ZERO TOLERANCE for missing records. ABORTING deletion sync.`)
+			return false
+		}
+
+		console.log(`✅ Successfully fetched ${totalFetched}/${expectedTotal} records for ${collectionName}`)
+
+		// pull all local records that have a serverId
+		const local = await indexedDBService.getRecords(
+			collectionName,
+			(rec: { serverId?: string }) => !!rec.serverId
+		)
+
+		console.log(`📊 Local records with serverId in ${collectionName}: ${local.length}`)
+
+		// BALANCED SAFETY: Allow reasonable deletions, prevent mass data loss
+		const potentialDeleteRecords = local.filter(rec => !serverIds.has(rec.serverId!) && rec.syncStatus !== 'pending')
+		const potentialDeletes = potentialDeleteRecords.length
+		const deletePercentage = local.length > 0 ? (potentialDeletes / local.length) * 100 : 0
+		
+		// Log what would be deleted for transparency
+		if (potentialDeletes > 0) {
+			console.log(`� Found ${potentialDeletes} records to delete (${deletePercentage.toFixed(1)}% of local ${collectionName}):`)
+			potentialDeleteRecords.forEach((rec, index) => {
+				console.log(`  ${index + 1}. ID: ${rec.id}, ServerID: ${rec.serverId}, Status: ${rec.syncStatus}`)
+			})
+		}
+		
+		// Only abort if deletion percentage is suspiciously high (>30%)
+		if (deletePercentage > 30) {
+			console.error(`🚨 DANGEROUS: Would delete ${deletePercentage.toFixed(1)}% (${potentialDeletes}) of local ${collectionName} records. This seems excessive. ABORTING deletion sync.`)
+			return false
+		}
+		
+		// Allow reasonable deletions to proceed
+		if (potentialDeletes > 0) {
+			console.log(`✅ Proceeding with deletion of ${potentialDeletes} records (${deletePercentage.toFixed(1)}% - within safe threshold)`)
+		}
+
+		let deletedCount = 0
+		let preservedCount = 0
+		let oldRecordsDeleted = 0
+
+		// Calculate date threshold for old records (2 weeks ago)
+		const twoWeeksAgo = new Date()
+		twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
+
+		// delete any local whose serverId isn't on the server OR is older than 2 weeks
+		for (const rec of local) {
+			let shouldDelete = false
+			let deleteReason = ''
+
+			// Check if record is missing from server
+			if (!serverIds.has(rec.serverId!)) {
+				// Don't delete records that are pending sync
+				if (rec.syncStatus === 'pending') {
+					console.log(`🔒 Preserving pending record in ${collectionName}:`, rec.id)
+					preservedCount++
+					continue
+				}
+				shouldDelete = true
+				deleteReason = 'orphaned (not on server)'
+			}
+			// Check if record is older than 2 weeks
+			else if (rec.created) {
+				const recordDate = new Date(rec.created)
+				if (recordDate < twoWeeksAgo) {
+					shouldDelete = true
+					deleteReason = `older than 2 weeks (created: ${recordDate.toISOString().split('T')[0]})`
+					oldRecordsDeleted++
+				}
+			}
+
+			if (shouldDelete) {
+				console.log(`🗑️ Deleting ${deleteReason} record from ${collectionName}:`, rec.id, 'serverId:', rec.serverId)
+				await indexedDBService.deleteRecord(collectionName, rec.id)
+				deletedCount++
+			}
+		}
+
+		const orphanedDeleted = deletedCount - oldRecordsDeleted
+		console.log(`✅ Deletion sync complete for ${collectionName}: ${deletedCount} deleted (${orphanedDeleted} orphaned, ${oldRecordsDeleted} old records), ${preservedCount} preserved`)
+		return true
+	} catch (err) {
+		console.warn(
+			`❌ Failed to reconcile deletions for ${collectionName}:`,
+			err
+		)
+		return false
+	} finally {
+		runningDeletedRecordsSync.delete(collectionName)
+	}
+}
+
 export const syncService = {
 	async syncAssayList() {
 		try {
 			const allAssays = await fetchAllFromPocketBase('assays');
 			const allIndexedAssays = await indexedDBService.getRecords('assays');
+
+			// Calculate date threshold for old records (2 weeks ago)
+			const twoWeeksAgo = new Date()
+			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
 
 			for (const assay of allAssays) {
 				const existingAssay = allIndexedAssays.find(
@@ -89,29 +266,35 @@ export const syncService = {
 						updated: assay.updated,
 					});
 				} else {
-					// Create a new record
-					await indexedDBService.saveRecord('assays', {
-						id: assay.id,
-						process: assay.process,
-						name: assay.name,
-						materialType: assay.materialType,
-						location: assay.location,
-						linkedWagonIds: assay.linkedWagonIds,
-						linkedTruckIds: assay.linkedTruckIds,
-						linkedTruckLoadIds: assay.linkedTruckLoadIds,
-						linkedFleetIds: assay.linkedFleetIds,
-						linkedDedicatedFleetTruckIds: assay.linkedDedicatedFleetTruckIds,
-						sampleSize: assay.sampleSize,
-						commodity: assay.commodity,
-						productType: assay.productType,
-						dedicatedFleet: assay.dedicatedFleet,
-						sampleId: assay.sampleId,
-						siteLocation: assay.siteLocation,
-						syncStatus: 'synced',
-						serverId: assay.id,
-						created: assay.created,
-						updated: assay.updated,
-					});
+					// Only create new records if not older than 2 weeks
+					const recordDate = new Date(assay.created)
+					if (recordDate >= twoWeeksAgo) {
+						// Create a new record
+						await indexedDBService.saveRecord('assays', {
+							id: assay.id,
+							process: assay.process,
+							name: assay.name,
+							materialType: assay.materialType,
+							location: assay.location,
+							linkedWagonIds: assay.linkedWagonIds,
+							linkedTruckIds: assay.linkedTruckIds,
+							linkedTruckLoadIds: assay.linkedTruckLoadIds,
+							linkedFleetIds: assay.linkedFleetIds,
+							linkedDedicatedFleetTruckIds: assay.linkedDedicatedFleetTruckIds,
+							sampleSize: assay.sampleSize,
+							commodity: assay.commodity,
+							productType: assay.productType,
+							dedicatedFleet: assay.dedicatedFleet,
+							sampleId: assay.sampleId,
+							siteLocation: assay.siteLocation,
+							syncStatus: 'synced',
+							serverId: assay.id,
+							created: assay.created,
+							updated: assay.updated,
+						});
+					} else {
+						console.log(`⏰ Skipping old assay record (created: ${recordDate.toISOString().split('T')[0]}):`, assay.id)
+					}
 				}
 			}
 			return true;
@@ -306,6 +489,10 @@ export const syncService = {
 			const allTrucks = await fetchAllFromPocketBase('trucks');
 			const allIndexedTrucks = await indexedDBService.getRecords('trucks');
 
+			// Calculate date threshold for old records (2 weeks ago)
+			const twoWeeksAgo = new Date()
+			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
+
 			for (const truck of allTrucks) {
 				// Match on either serverId or local id
 				const existingTruck = allIndexedTrucks.find(
@@ -325,17 +512,23 @@ export const syncService = {
 						updated: truck.updated,
 					});
 				} else {
-					// Create a new record only if no matching record exists
-					await indexedDBService.saveRecord('trucks', {
-						id: truck.id,
-						registration: truck.registration,
-						loadingLocation: truck.loadingLocation,
-						syncStatus: 'synced',
-						productType: truck.productType,
-						serverId: truck.id,
-						created: truck.created,
-						updated: truck.updated,
-					});
+					// Only create new records if not older than 2 weeks
+					const recordDate = new Date(truck.created)
+					if (recordDate >= twoWeeksAgo) {
+						// Create a new record only if no matching record exists
+						await indexedDBService.saveRecord('trucks', {
+							id: truck.id,
+							registration: truck.registration,
+							loadingLocation: truck.loadingLocation,
+							syncStatus: 'synced',
+							productType: truck.productType,
+							serverId: truck.id,
+							created: truck.created,
+							updated: truck.updated,
+						});
+					} else {
+						console.log(`⏰ Skipping old truck record (created: ${recordDate.toISOString().split('T')[0]}):`, truck.id)
+					}
 				}
 			}
 			return true;
@@ -388,6 +581,10 @@ export const syncService = {
 			const allTrains = await fetchAllFromPocketBase('trains');
 			const allIndexedTrains = await indexedDBService.getRecords('trains');
 
+			// Calculate date threshold for old records (2 weeks ago)
+			const twoWeeksAgo = new Date()
+			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
+
 			for (const train of allTrains) {
 				const existingTrain = allIndexedTrains.find(
 					(t) => t.serverId === train.id || t.id === train.id
@@ -405,16 +602,22 @@ export const syncService = {
 						updated: train.updated,
 					});
 				} else {
-					// Create a new record
-					await indexedDBService.saveRecord('trains', {
-						id: train.id,
-						refNr: train.refNr,
-						rfidNr: train.rfidNr,
-						syncStatus: 'synced',
-						serverId: train.id,
-						created: train.created,
-						updated: train.updated,
-					});
+					// Only create new records if not older than 2 weeks
+					const recordDate = new Date(train.created)
+					if (recordDate >= twoWeeksAgo) {
+						// Create a new record
+						await indexedDBService.saveRecord('trains', {
+							id: train.id,
+							refNr: train.refNr,
+							rfidNr: train.rfidNr,
+							syncStatus: 'synced',
+							serverId: train.id,
+							created: train.created,
+							updated: train.updated,
+						});
+					} else {
+						console.log(`⏰ Skipping old train record (created: ${recordDate.toISOString().split('T')[0]}):`, train.id)
+					}
 				}
 			}
 			return true;
@@ -430,6 +633,10 @@ export const syncService = {
 		try {
 			const allConsignments = await fetchAllFromPocketBase('consignments');
 			const allIndexedConsignments = await indexedDBService.getRecords('consignments');
+
+			// Calculate date threshold for old records (2 weeks ago)
+			const twoWeeksAgo = new Date()
+			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
 
 			for (const consignment of allConsignments) {
 				const existingConsignment = allIndexedConsignments.find(
@@ -449,6 +656,13 @@ export const syncService = {
 						updated: consignment.updated,
 					});
 				} else {
+					// Check if record is too old to create locally
+					const recordDate = new Date(consignment.created)
+					if (recordDate < twoWeeksAgo) {
+						console.log(`⏰ Skipping old consignment record (created: ${recordDate.toISOString().split('T')[0]}): ${consignment.name || consignment.id}`)
+						continue
+					}
+					
 					// Create a new record
 					await indexedDBService.saveRecord('consignments', {
 						id: consignment.id,
@@ -513,6 +727,10 @@ export const syncService = {
 		const allTruckLoads = await fetchAllFromPocketBase('truckLoads');
 		const allIndexedTruckLoads = await indexedDBService.getRecords('truckLoads');
 
+		// Calculate date threshold for old records (2 weeks ago)
+		const twoWeeksAgo = new Date()
+		twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
+
 		for (const truckLoad of allTruckLoads) {
 			// Only match on serverId to avoid duplicates
 			const existingTruckLoad = allIndexedTruckLoads.find(
@@ -540,6 +758,13 @@ export const syncService = {
 					siteLocation: truckLoad.siteLocation,
 				});
 			} else {
+				// Check if record is too old to create locally
+				const recordDate = new Date(truckLoad.created)
+				if (recordDate < twoWeeksAgo) {
+					console.log(`⏰ Skipping old truck load record (created: ${recordDate.toISOString().split('T')[0]}): ${truckLoad.truckId || truckLoad.id}`)
+					continue
+				}
+				
 				// Only create new records for data from other devices/sessions
 				await indexedDBService.saveRecord('truckLoads', {
 					id: truckLoad.id, 
@@ -611,6 +836,10 @@ export const syncService = {
 			const allTrainDispatches = await fetchAllFromPocketBase('trainDispatches');
 			const allIndexedTrainDispatches = await indexedDBService.getRecords('trainDispatches');
 
+			// Calculate date threshold for old records (2 weeks ago)
+			const twoWeeksAgo = new Date()
+			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
+
 			for (const trainDispatch of allTrainDispatches) {
 				const existingTrainDispatch = allIndexedTrainDispatches.find(
 					(t) => t.serverId === trainDispatch.id || t.id === trainDispatch.id
@@ -632,6 +861,13 @@ export const syncService = {
 						updated: trainDispatch.updated,
 					});
 				} else {
+					// Check if record is too old to create locally
+					const recordDate = new Date(trainDispatch.created)
+					if (recordDate < twoWeeksAgo) {
+						console.log(`⏰ Skipping old train dispatch record (created: ${recordDate.toISOString().split('T')[0]}): ${trainDispatch.linkedTrainId || trainDispatch.id}`)
+						continue
+					}
+					
 					// Create a new record
 					await indexedDBService.saveRecord('trainDispatches', {
 						id: trainDispatch.id,
@@ -753,156 +989,6 @@ export const syncService = {
 		}
 	},
 
-	async syncDeletedRecords(collectionName: any) {
-		// Check if deletion sync is already running for this collection
-		if (runningDeletedRecordsSync.has(collectionName)) {
-			console.log(`⏸️ Skipping deletion sync for ${collectionName} - already running`)
-			return true
-		}
-
-		runningDeletedRecordsSync.add(collectionName)
-		
-		try {
-			const serverIds = new Set<string>()
-			const perPage = 1000
-			let page = 1
-			let items: { id: string }[] = []
-			let totalFetched = 0
-			let expectedTotal = 0
-			let consecutiveEmptyPages = 0
-
-			console.log(`🔍 Starting deletion sync for ${collectionName}`)
-
-			// page through PocketBase with better error handling
-			do {
-				try {
-					const res = await pocketbaseService.list(collectionName, { page, perPage })
-					items = res.items
-					
-					// Get expected total from first page response
-					if (page === 1) {
-						expectedTotal = res.totalItems || 0
-						console.log(`📊 Expected total records in ${collectionName}: ${expectedTotal}`)
-						
-						// If there are no records on the server, be very careful about deletion
-						if (expectedTotal === 0) {
-							console.warn(`⚠️ Server reports 0 records for ${collectionName}. This could be a server issue. Aborting deletion sync.`)
-							return false
-						}
-					}
-					
-					// Verify total hasn't changed on subsequent pages  
-					if (page > 1 && page <= 3 && res.totalItems !== undefined && res.totalItems !== null) {
-						const currentTotal = res.totalItems
-						if (currentTotal !== expectedTotal) {
-							console.warn(`⚠️ Server total changed during fetch for ${collectionName}: ${expectedTotal} -> ${currentTotal}. Aborting deletion sync.`)
-							return false
-						}
-					}
-					
-					for (const it of items) serverIds.add(it.id)
-					totalFetched += items.length
-					
-					if (items.length === 0) {
-						consecutiveEmptyPages++
-						// If we get empty results early in pagination, it's likely a server issue
-						if (page <= 5 && consecutiveEmptyPages >= 1) {
-							console.warn(`⚠️ Got empty page ${page} for ${collectionName} early in pagination. Likely server issue. Aborting deletion sync.`)
-							return false
-						}
-						if (consecutiveEmptyPages > 2) {
-							console.warn(`⚠️ Too many consecutive empty pages for ${collectionName}. Reached natural end or server issue.`)
-							break
-						}
-					} else {
-						consecutiveEmptyPages = 0
-					}
-					page++
-					
-					// Add small delay between pages to avoid rate limiting
-					if (items.length > 0 && page <= 10) {
-						await new Promise(resolve => setTimeout(resolve, 100))
-					}
-				} catch (pageErr) {
-					console.error(`❌ Failed to fetch page ${page} for ${collectionName}:`, pageErr)
-					return false
-				}
-			} while (items.length === perPage && totalFetched < expectedTotal && page < 1000)
-
-			const fetchDiscrepancy = Math.abs(totalFetched - expectedTotal)
-			
-			if (expectedTotal > 0 && fetchDiscrepancy > 0) {
-				const fetchPercentage = expectedTotal > 0 ? (totalFetched / expectedTotal) * 100 : 0
-				console.error(`🚨 CRITICAL: Incomplete fetch for ${collectionName}. Expected: ${expectedTotal}, Got: ${totalFetched} (${fetchPercentage.toFixed(1)}%). ZERO TOLERANCE for missing records. ABORTING deletion sync.`)
-				return false
-			}
-
-			console.log(`✅ Successfully fetched ${totalFetched}/${expectedTotal} records for ${collectionName}`)
-
-			// pull all local records that have a serverId
-			const local = await indexedDBService.getRecords(
-				collectionName,
-				(rec: { serverId?: string }) => !!rec.serverId
-			)
-
-			console.log(`📊 Local records with serverId in ${collectionName}: ${local.length}`)
-
-			// BALANCED SAFETY: Allow reasonable deletions, prevent mass data loss
-			const potentialDeleteRecords = local.filter(rec => !serverIds.has(rec.serverId!) && rec.syncStatus !== 'pending')
-			const potentialDeletes = potentialDeleteRecords.length
-			const deletePercentage = local.length > 0 ? (potentialDeletes / local.length) * 100 : 0
-			
-			// Log what would be deleted for transparency
-			if (potentialDeletes > 0) {
-				console.log(`� Found ${potentialDeletes} records to delete (${deletePercentage.toFixed(1)}% of local ${collectionName}):`)
-				potentialDeleteRecords.forEach((rec, index) => {
-					console.log(`  ${index + 1}. ID: ${rec.id}, ServerID: ${rec.serverId}, Status: ${rec.syncStatus}`)
-				})
-			}
-			
-			// Only abort if deletion percentage is suspiciously high (>30%)
-			if (deletePercentage > 30) {
-				console.error(`🚨 DANGEROUS: Would delete ${deletePercentage.toFixed(1)}% (${potentialDeletes}) of local ${collectionName} records. This seems excessive. ABORTING deletion sync.`)
-				return false
-			}
-			
-			// Allow reasonable deletions to proceed
-			if (potentialDeletes > 0) {
-				console.log(`✅ Proceeding with deletion of ${potentialDeletes} records (${deletePercentage.toFixed(1)}% - within safe threshold)`)
-			}
-
-			let deletedCount = 0
-			let preservedCount = 0
-
-			// delete any local whose serverId isn't on the server
-			for (const rec of local) {
-				if (!serverIds.has(rec.serverId!)) {
-					// Don't delete records that are pending sync
-					if (rec.syncStatus === 'pending') {
-						console.log(`🔒 Preserving pending record in ${collectionName}:`, rec.id)
-						preservedCount++
-						continue
-					}
-					
-					console.log(`🗑️ Deleting orphaned record from ${collectionName}:`, rec.id, 'serverId:', rec.serverId)
-					await indexedDBService.deleteRecord(collectionName, rec.id)
-					deletedCount++
-				}
-			}
-
-			console.log(`✅ Deletion sync complete for ${collectionName}: ${deletedCount} deleted, ${preservedCount} preserved`)
-			return true
-		} catch (err) {
-			console.warn(
-				`❌ Failed to reconcile deletions for ${collectionName}:`,
-				err
-			)
-			return false
-		} finally {
-			runningDeletedRecordsSync.delete(collectionName)
-		}
-	}, 
-
 	// ShuntingTrain sync methods
 	async syncShuntingTrain(shuntingTrain: ShuntingTrain) {
 		try {
@@ -968,6 +1054,10 @@ export const syncService = {
 			const allShuntingTrains = await fetchAllFromPocketBase('shuntingTrains');
 			const allIndexedShuntingTrains = await indexedDBService.getRecords('shuntingTrains');
 
+			// Calculate date threshold for old records (2 weeks ago)
+			const twoWeeksAgo = new Date()
+			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
+
 			for (const train of allShuntingTrains) {
 				const existingShuntingTrain = allIndexedShuntingTrains.find(
 					(t) => t.serverId === train.id || t.id === train.id
@@ -989,6 +1079,13 @@ export const syncService = {
 						updated: train.updated,
 					});
 				} else {
+					// Check if record is too old to create locally
+					const recordDate = new Date(train.created)
+					if (recordDate < twoWeeksAgo) {
+						console.log(`⏰ Skipping old shunting train record (created: ${recordDate.toISOString().split('T')[0]}): ${train.id}`)
+						continue
+					}
+					
 					// Create a new record
 					await indexedDBService.saveRecord('shuntingTrains', {
 						id: train.id,
@@ -1018,6 +1115,10 @@ export const syncService = {
 		try {
 			const allWagons = await fetchAllFromPocketBase('wagons');
 			const allIndexedWagons = await indexedDBService.getRecords('wagons');
+			
+			// Calculate date threshold for old records (2 weeks ago)
+			const twoWeeksAgo = new Date()
+			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
 			
 			for (const wagon of allWagons) {
 				const existingWagon = allIndexedWagons.find(
@@ -1050,6 +1151,13 @@ export const syncService = {
 						updated: wagon.updated
 					});
 				} else {
+					// Check if record is too old to create locally
+					const recordDate = new Date(wagon.created)
+					if (recordDate < twoWeeksAgo) {
+						console.log(`⏰ Skipping old wagon record (created: ${recordDate.toISOString().split('T')[0]}): ${wagon.wagonId || wagon.id}`)
+						continue
+					}
+					
 					// Create a new record
 					await indexedDBService.saveRecord('wagons', {
 						id: wagon.id,
@@ -1168,6 +1276,10 @@ export const syncService = {
 			const allTruckArrivals = await fetchAllFromPocketBase('truckArrivals');
 			const allIndexedTruckArrivals = await indexedDBService.getRecords('truckArrivals');
 
+			// Calculate date threshold for old records (2 weeks ago)
+			const twoWeeksAgo = new Date()
+			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
+
 			for (const arrival of allTruckArrivals) {
 				const existingTruckArrival = allIndexedTruckArrivals.find(
 					(t) => t.serverId === arrival.id || t.id === arrival.id
@@ -1196,6 +1308,13 @@ export const syncService = {
 						serverId: arrival.id
 					});
 				} else {
+					// Check if record is too old to create locally
+					const recordDate = new Date(arrival.created)
+					if (recordDate < twoWeeksAgo) {
+						console.log(`⏰ Skipping old truck arrival record (created: ${recordDate.toISOString().split('T')[0]}): ${arrival.truckId || arrival.id}`)
+						continue
+					}
+					
 					// Create a new record
 					await indexedDBService.saveRecord('truckArrivals', {
 						id: arrival.id,
@@ -1231,6 +1350,10 @@ export const syncService = {
 			const allTrainArrivals = await fetchAllFromPocketBase('trainArrivals');
 			const allIndexedTrainArrivals = await indexedDBService.getRecords('trainArrivals');
 
+			// Calculate date threshold for old records (2 weeks ago)
+			const twoWeeksAgo = new Date()
+			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
+
 			for (const trainArrival of allTrainArrivals) {
 				const existingTrainArrival = allIndexedTrainArrivals.find(
 					(t) => t.serverId === trainArrival.id || t.id === trainArrival.id
@@ -1255,6 +1378,13 @@ export const syncService = {
 						updated: trainArrival.updated,
 					});
 				} else {
+					// Check if record is too old to create locally
+					const recordDate = new Date(trainArrival.created)
+					if (recordDate < twoWeeksAgo) {
+						console.log(`⏰ Skipping old train arrival record (created: ${recordDate.toISOString().split('T')[0]}): ${trainArrival.trainId || trainArrival.id}`)
+						continue
+					}
+					
 					// Create a new record
 					await indexedDBService.saveRecord('trainArrivals', {
 						id: trainArrival.id,
@@ -1364,6 +1494,10 @@ export const syncService = {
 			const allFleets = await fetchAllFromPocketBase('fleet');
 			const allIndexedFleets = await indexedDBService.getRecords('fleet');
 
+			// Calculate date threshold for old records (2 weeks ago)
+			const twoWeeksAgo = new Date()
+			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
+
 			for (const fleet of allFleets) {
 				// Only match on serverId to avoid duplicates
 				const existingFleet = allIndexedFleets.find(
@@ -1390,6 +1524,13 @@ export const syncService = {
 						updated: fleet.updated,
 					});
 				} else {
+					// Check if record is too old to create locally
+					const recordDate = new Date(fleet.created)
+					if (recordDate < twoWeeksAgo) {
+						console.log(`⏰ Skipping old fleet record (created: ${recordDate.toISOString().split('T')[0]}): ${fleet.registration || fleet.id}`)
+						continue
+					}
+					
 					// Only create new records for data from other devices/sessions				
 					await indexedDBService.saveRecord('fleet', {
 						id: fleet.id,
@@ -1495,6 +1636,10 @@ export const syncService = {
 			const allDedicatedFleetTrucks = await fetchAllFromPocketBase('dedicatedFleetTrucks');
 			const allIndexedDedicatedFleetTrucks = await indexedDBService.getRecords('dedicatedFleetTrucks');
 
+			// Calculate date threshold for old records (2 weeks ago)
+			const twoWeeksAgo = new Date()
+			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
+
 			for (const dedicatedFleetTruck of allDedicatedFleetTrucks) {
 				// Match on either serverId or local id
 				const existingDedicatedFleetTruck = allIndexedDedicatedFleetTrucks.find(
@@ -1512,6 +1657,13 @@ export const syncService = {
 						updated: dedicatedFleetTruck.updated,
 					});
 				} else {
+					// Check if record is too old to create locally
+					const recordDate = new Date(dedicatedFleetTruck.created)
+					if (recordDate < twoWeeksAgo) {
+						console.log(`⏰ Skipping old dedicated fleet truck record (created: ${recordDate.toISOString().split('T')[0]}): ${dedicatedFleetTruck.registration || dedicatedFleetTruck.id}`)
+						continue
+					}
+					
 					// Create a new record only if no matching record exists
 					await indexedDBService.saveRecord('dedicatedFleetTrucks', {
 						id: dedicatedFleetTruck.id,
@@ -1572,6 +1724,9 @@ export const syncService = {
 				runningList = false;
 			}
 		}
+	},
+
+	async deleteLocalDatabase() {
 		// Delete records that no longer exist on the server
 		const collections = [
 			'assays',
@@ -1590,12 +1745,12 @@ export const syncService = {
 
 		for (const collection of collections) {
 			try {
-				await this.syncDeletedRecords(collection);
+				await syncDeletedRecords(collection);
 			} catch (error) {
 				console.warn(`⚠️ Failed to sync deleted records for ${collection}:`, error);
 			}
 		}
-	},
+	}
 };
 
 

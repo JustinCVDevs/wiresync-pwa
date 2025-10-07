@@ -21,6 +21,7 @@
 					syncService.syncTruckList(),
 					syncService.syncTruckArrivalList(),
 					syncService.syncAllPending(),
+					syncService.deleteLocalDatabase(),
 				]);
 				lastSyncTime.set(new Date());
 			} catch (error) {
