@@ -22,10 +22,33 @@
 
 	// Custom event listener for wagon updates
 	let wagonUpdateListener: ((event: CustomEvent) => void) | null = null;
+	let visibilityHandler: (() => Promise<void>) | null = null;
 	let isInitialLoad = true;
+	let isReloading = false; // Prevent concurrent reloads
+	let reloadDebounceTimer: ReturnType<typeof setTimeout> | undefined;
+
+	// Debounced reload to prevent redundant fetches when multiple triggers fire
+	function scheduleReload(source: string, delay: number = 100) {
+		if (reloadDebounceTimer) {
+			clearTimeout(reloadDebounceTimer);
+		}
+		
+		reloadDebounceTimer = setTimeout(async () => {
+			console.log(`Reload triggered by: ${source}`);
+			await loadTrainAndWagons();
+			reloadDebounceTimer = undefined;
+		}, delay);
+	}
 
 	async function loadTrainAndWagons() {
+		// Prevent concurrent reloads
+		if (isReloading) {
+			console.log('Reload already in progress, skipping');
+			return;
+		}
+		
 		try {
+			isReloading = true;
 			isLoading = true;
 			error = '';
 			
@@ -45,37 +68,39 @@
 				// Fetch all wagons once to minimize DB reads
 				const allWagons: Wagon[] = await indexedDBService.getAllRecords('wagons');
 				
-				// Create a fresh array to trigger reactivity
-				const wagonPromises = shuntingTrain.linkedWagons.map(async (wagonId) => {
-					try {
-						// Try to get by serverId first (as that's what's stored in linkedWagons)
-						let wagon = allWagons.find(w => w.serverId === wagonId);
-						
-						// If not found by serverId, try by id
-						if (!wagon) {
-							wagon = allWagons.find(w => w.id === wagonId);
-						}
-						
-						// Last resort: try direct lookup
-						if (!wagon) {
-							wagon = await indexedDBService.getRecord('wagons', wagonId);
-						}
-						
-						return wagon || null;
-					} catch (e) {
-						console.error(`Failed to load wagon ${wagonId}:`, e);
-						return null;
-					}
-				});
-
-				const wagonResults = await Promise.all(wagonPromises);
+				// Create lookup maps for O(1) access - much faster than repeated array searches
+				const wagonsByServerId = new Map<string, Wagon>();
+				const wagonsById = new Map<string, Wagon>();
 				
-				// Filter out null results and ensure we have valid wagon objects
-				const validWagons = wagonResults
-					.filter(wagon => wagon !== null && wagon !== undefined) as Wagon[];
+				for (const wagon of allWagons) {
+					if (wagon.serverId) {
+						wagonsByServerId.set(wagon.serverId, wagon);
+					}
+					if (wagon.id) {
+						wagonsById.set(wagon.id, wagon);
+					}
+				}
+				
+				// Look up wagons using the maps (O(1) instead of O(n))
+				const foundWagons: Wagon[] = [];
+				for (const wagonId of shuntingTrain.linkedWagons) {
+					// Try serverId first (most common case)
+					let wagon = wagonsByServerId.get(wagonId);
+					
+					// Fall back to id if not found by serverId
+					if (!wagon) {
+						wagon = wagonsById.get(wagonId);
+					}
+					
+					if (wagon) {
+						foundWagons.push(wagon);
+					} else {
+						console.warn(`Wagon not found: ${wagonId}`);
+					}
+				}
 				
 				// Sort by position
-				linkedWagons = validWagons.sort((a, b) => (a.wagonPosition ?? 0) - (b.wagonPosition ?? 0));
+				linkedWagons = foundWagons.sort((a, b) => (a.wagonPosition ?? 0) - (b.wagonPosition ?? 0));
 			} else {
 				linkedWagons = [];
 			}
@@ -87,6 +112,7 @@
 			error = 'Failed to load train and wagon data';
 		} finally {
 			isLoading = false;
+			isReloading = false;
 		}
 	}
 
@@ -99,32 +125,35 @@
 		}
 		
 		// Only reload if coming from the edit page
-		if (navigation.from?.url.pathname.includes('/edit/')) {
-			// Add longer delay to ensure IndexedDB transaction is complete
-			await new Promise(resolve => setTimeout(resolve, 400));
-			await loadTrainAndWagons();
+		// The edit page dispatches 'wagon-updated' event after transaction completes
+		// This is a backup mechanism in case the event was missed
+		// Use precise path-segment check to avoid false positives (e.g., '/edited-items/')
+		const fromPath = navigation.from?.url.pathname;
+		if (fromPath && /(^|\/)edit(\/|$)/.test(fromPath)) {
+			// Use debounce to coordinate with potential wagon-updated event
+			scheduleReload('afterNavigate', 50);
 		}
 	});
 
 	onMount(() => {
 		loadTrainAndWagons();
 		
-		// Listen for custom wagon update events
+		// Listen for custom wagon update events - PRIMARY reload mechanism
+		// This event is dispatched AFTER the IndexedDB transaction completes (tx.done resolved)
 		wagonUpdateListener = async (event: CustomEvent) => {
-			// Add longer delay to ensure database write is complete
-			// This is critical because IndexedDB writes may not be immediately visible
-			await new Promise(resolve => setTimeout(resolve, 500));
-			await loadTrainAndWagons();
+			// Use immediate reload for primary mechanism (no debounce delay)
+			scheduleReload('wagon-updated', 0);
 		};
 		
 		if (typeof window !== 'undefined') {
 			window.addEventListener('wagon-updated', wagonUpdateListener as EventListener);
 			
 			// Also listen for page visibility changes
-			const visibilityHandler = async () => {
+			// When tab becomes visible, reload to ensure fresh data
+			visibilityHandler = async () => {
 				if (document.visibilityState === 'visible') {
-					await new Promise(resolve => setTimeout(resolve, 200));
-					await loadTrainAndWagons();
+					// Use longer debounce for visibility changes (less critical)
+					scheduleReload('visibilitychange', 200);
 				}
 			};
 			document.addEventListener('visibilitychange', visibilityHandler);
@@ -132,9 +161,23 @@
 	});
 
 	onDestroy(() => {
-		// Clean up event listener
-		if (typeof window !== 'undefined' && wagonUpdateListener) {
-			window.removeEventListener('wagon-updated', wagonUpdateListener as EventListener);
+		// Cancel any pending debounced reload
+		if (reloadDebounceTimer) {
+			clearTimeout(reloadDebounceTimer);
+			reloadDebounceTimer = undefined;
+		}
+		
+		// Clean up event listeners
+		if (typeof window !== 'undefined') {
+			if (wagonUpdateListener) {
+				window.removeEventListener('wagon-updated', wagonUpdateListener as EventListener);
+			}
+		}
+		
+		if (typeof document !== 'undefined') {
+			if (visibilityHandler) {
+				document.removeEventListener('visibilitychange', visibilityHandler);
+			}
 		}
 	});
 

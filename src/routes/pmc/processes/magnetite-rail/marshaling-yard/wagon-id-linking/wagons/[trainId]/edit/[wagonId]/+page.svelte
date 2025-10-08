@@ -115,17 +115,19 @@
 			}
 			
 			// Update wagon with new values - use updateRecord to prevent duplicates
-			await indexedDBService.updateRecord('wagons', wagon.id, {
-				wagonIdSimple: editableWagonId,
-				transcoreTag: editableTemporaryRfid,
-				syncStatus: 'pending',
-				updated: new Date().toISOString()
-			});
+			try {
+				await indexedDBService.updateRecord('wagons', wagon.id, {
+					wagonIdSimple: editableWagonId,
+					transcoreTag: editableTemporaryRfid,
+					syncStatus: 'pending',
+					updated: new Date().toISOString()
+				});
+			} catch (dbError) {
+				console.error('IndexedDB transaction failed:', dbError);
+				throw new Error(`Database update failed: ${dbError instanceof Error ? dbError.message : String(dbError)}`);
+			}
 			
-			// Ensure IndexedDB transaction is fully committed
-			await new Promise(resolve => setTimeout(resolve, 100));
-			
-			// Dispatch custom event to notify other components
+			// Transaction is now complete - dispatch custom event to notify other components
 			if (typeof window !== 'undefined') {
 				const event = new CustomEvent('wagon-updated', { 
 					detail: { 
@@ -151,17 +153,10 @@
 				success = 'Wagon details updated successfully (sync will retry)';
 			}
 			
-			// Navigate back to wagon details page after a delay to ensure data is persisted
-			setTimeout(() => {
-				try {
-					goto(`/pmc/processes/magnetite-rail/marshaling-yard/wagon-id-linking/wagons/${trainId}`, {
-						// Force reload/invalidation of the page
-						invalidateAll: true
-					});
-				} catch (e) {
-					console.error('Error navigating back:', e);
-				}
-			}, 1500);
+			// Navigate back immediately - transaction is complete and event has been dispatched
+			await goto(`/pmc/processes/magnetite-rail/marshaling-yard/wagon-id-linking/wagons/${trainId}`, {
+				invalidateAll: true
+			});
 		} catch (e: any) {
 			console.error('Error updating wagon:', e);
 			error = `Failed to update wagon details: ${e.message || e}`;
