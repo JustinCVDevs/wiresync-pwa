@@ -121,7 +121,9 @@ class IndexedDBService {
 		const tx = this.db!.transaction(store, 'readwrite');
 		const existing = await tx.store.get(key);
 		if (existing) {
-			tx.store.put({ ...existing, ...updates } as AppDB[K]['value']);
+			await tx.store.put({ ...existing, ...updates } as AppDB[K]['value']);
+		} else {
+			throw new Error(`Record with key ${key} not found in store ${store}`);
 		}
 		await tx.done;
 	}

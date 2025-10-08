@@ -4,21 +4,34 @@
 	import { indexedDBService } from '$lib/services/indexedDBService';
 
 	export let wagonIdSimple = '';
-	export let tarpedStatus = false; // Add this line
-	export let linkedIds: string[] = []; // IDs (id or serverId) that should be excluded from the list
+	export let tarpedStatus = false;
+	export let linkedIds: string[] = [];
 
 	let availableWagons: any[] = [];
 
 	const dispatch = createEventDispatcher<{
-		submit: { wagonIdSimple: string; tarpedStatus: boolean }; // Add tarpedStatus to event
+		submit: { wagonIdSimple: string; tarpedStatus: boolean };
 		cancel: void;
 	}>();
 
-	function handleSubmit() {
-		dispatch('submit', { wagonIdSimple, tarpedStatus }); // Include tarpedStatus
+	function handleSubmit(e?: Event) {
+		if (e) {
+			e.preventDefault();
+			e.stopPropagation();
+		}
+		
+		if (!wagonIdSimple || wagonIdSimple.trim() === '') {
+			return;
+		}
+
+		dispatch('submit', { wagonIdSimple, tarpedStatus });
 	}
 
-	function handleCancel() {
+	function handleCancel(e?: Event) {
+		if (e) {
+			e.preventDefault();
+			e.stopPropagation();
+		}
 		dispatch('cancel');
 	}
 
@@ -58,13 +71,21 @@
 </div>
 
 <div class="flex justify-between items-center pt-8">
-	<button class="w-36 text-sm rounded-lg bg-red py-3 text-white transition hover:bg-red-700 active:bg-red-800 disabled:opacity-50 px-2" on:click={handleCancel}>Cancel</button>
-	<button
-		on:click={handleSubmit}
-		class="w-36 text-sm items-center justify-center rounded-lg bg-gray py-3 px-2  text-white transition hover:bg-green-700 active:bg-black disabled:opacity-50"
+	<button 
 		type="button"
+		class="w-36 text-sm rounded-lg bg-red py-3 text-white transition hover:bg-red-700 active:bg-red-800 disabled:opacity-50 px-2" 
+		on:click={handleCancel}
 	>
-			Submit Wagon</button>
+		Cancel
+	</button>
+	<button
+		type="button"
+		on:click={handleSubmit}
+		class="w-36 text-sm items-center justify-center rounded-lg bg-gray py-3 px-2 text-white transition hover:bg-green-700 active:bg-black disabled:opacity-50"
+		disabled={!wagonIdSimple || wagonIdSimple.trim() === ''}
+	>
+		Submit Wagon
+	</button>
 </div>
 
 <style>
