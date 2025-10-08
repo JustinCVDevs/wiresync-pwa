@@ -64,14 +64,14 @@
 		);
 		let linkedWagonIds = shuntingTrain?.linkedWagons || [];
 		const allWagons = await indexedDBService.getAllRecords('wagons');
-		const unweighedWagons = allWagons.filter(
-			w => linkedWagonIds.includes(w.id) && !w.felTimestamp
+		const unsampledWagons = allWagons.filter(
+			w => linkedWagonIds.includes(w.id) && !w.sampleTimestamp
 		);
 
-		if (unweighedWagons.length === 0) {
+		if (unsampledWagons.length === 0) {
 			showNoMoreWagons = true;
 		}else {
-			goto(`/pmc/processes/magnetite-rail/east-load-out/sampling/wagons/?wagonIdSimple=${wagonIdSimple.join(',')}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`);
+			goto(`/pmc/processes/magnetite-rail/east-load-out/sampling/wagons/?shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`);
 		}
 	}
 

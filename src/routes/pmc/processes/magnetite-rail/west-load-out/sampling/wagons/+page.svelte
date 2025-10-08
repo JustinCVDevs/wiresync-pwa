@@ -49,6 +49,9 @@
 	};
 
 	async function fetchData() {
+		// Only fetch data if wagonId is provided and not empty
+		if (!wagonId) return;
+		
 		const wagon = (await indexedDBService.getAllRecords('wagons')).find(
 			(w) => w.wagonIdSimple === wagonId
 		);
@@ -135,11 +138,11 @@
 		const linkedWagons = shuntingTrain?.linkedWagons || [];
 		
 		let allwagons = (await indexedDBService.getAllRecords('wagons')).filter(
-			wagon => !wagon.sampleTimestamp
+			wagon => linkedWagons.some(linkedWagon => linkedWagon === wagon.id)
 		);
 		
 		availableWagons = allwagons.filter(
-			wagon => linkedWagons.some(linkedWagon => linkedWagon === wagon.id)
+			wagon => !wagon.sampleTimestamp
 		);
 	});
 
