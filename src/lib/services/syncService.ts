@@ -55,10 +55,8 @@ async function fetchAllFromPocketBase(collection: PBCollection, perPage = 1000) 
 	return allItems;
 }
 
-async function syncDeletedRecords(collectionName: any) {
-	// Check if deletion sync is already running for this collection
+async function syncDeletedRecords(collectionName: string) {
 	if (runningDeletedRecordsSync.has(collectionName)) {
-		console.log(`⏸️ Skipping deletion sync for ${collectionName} - already running`);
 		return true;
 	}
 
@@ -73,63 +71,49 @@ async function syncDeletedRecords(collectionName: any) {
 		let expectedTotal = 0;
 		let consecutiveEmptyPages = 0;
 
-		console.log(`🔍 Starting deletion sync for ${collectionName}`);
-
-		// page through PocketBase with better error handling
+		// Fetch all server records with pagination
 		do {
 			try {
-				const res = await pocketbaseService.list(collectionName, { page, perPage });
+				const res = await pocketbaseService.list(collectionName as PBCollection, { page, perPage });
 				items = res.items;
 
 				// Get expected total from first page response
 				if (page === 1) {
 					expectedTotal = res.totalItems || 0;
-					console.log(`📊 Expected total records in ${collectionName}: ${expectedTotal}`);
-
-					// If there are no records on the server, be very careful about deletion
 					if (expectedTotal === 0) {
 						console.warn(
-							`⚠️ Server reports 0 records for ${collectionName}. This could be a server issue. Aborting deletion sync.`
+							`⚠️ Server reports 0 records for ${collectionName}. Aborting deletion sync.`
 						);
 						return false;
 					}
 				}
 
-				// Verify total hasn't changed on subsequent pages
-				if (page > 1 && page <= 3 && res.totalItems !== undefined && res.totalItems !== null) {
-					const currentTotal = res.totalItems;
-					if (currentTotal !== expectedTotal) {
-						console.warn(
-							`⚠️ Server total changed during fetch for ${collectionName}: ${expectedTotal} -> ${currentTotal}. Aborting deletion sync.`
-						);
-						return false;
-					}
+				// Verify total consistency on early pages
+				if (page > 1 && page <= 3 && res.totalItems !== expectedTotal) {
+					console.warn(
+						`⚠️ Server total changed for ${collectionName}: ${expectedTotal} -> ${res.totalItems}. Aborting.`
+					);
+					return false;
 				}
 
-				for (const it of items) serverIds.add(it.id);
+				items.forEach((item) => serverIds.add(item.id));
 				totalFetched += items.length;
 
 				if (items.length === 0) {
 					consecutiveEmptyPages++;
-					// If we get empty results early in pagination, it's likely a server issue
-					if (page <= 5 && consecutiveEmptyPages >= 1) {
+					if (page <= 5 || consecutiveEmptyPages > 2) {
 						console.warn(
-							`⚠️ Got empty page ${page} for ${collectionName} early in pagination. Likely server issue. Aborting deletion sync.`
+							`⚠️ Got empty page ${page} for ${collectionName}. Aborting deletion sync.`
 						);
 						return false;
-					}
-					if (consecutiveEmptyPages > 2) {
-						console.warn(
-							`⚠️ Too many consecutive empty pages for ${collectionName}. Reached natural end or server issue.`
-						);
-						break;
 					}
 				} else {
 					consecutiveEmptyPages = 0;
 				}
+
 				page++;
 
-				// Add small delay between pages to avoid rate limiting
+				// Rate limiting delay for early pages
 				if (items.length > 0 && page <= 10) {
 					await new Promise((resolve) => setTimeout(resolve, 100));
 				}
@@ -139,67 +123,37 @@ async function syncDeletedRecords(collectionName: any) {
 			}
 		} while (items.length === perPage && totalFetched < expectedTotal && page < 1000);
 
-		const fetchDiscrepancy = Math.abs(totalFetched - expectedTotal);
-
-		if (expectedTotal > 0 && fetchDiscrepancy > 0) {
-			const fetchPercentage = expectedTotal > 0 ? (totalFetched / expectedTotal) * 100 : 0;
+		// Verify complete fetch
+		if (totalFetched !== expectedTotal) {
+			const fetchPercentage = (totalFetched / expectedTotal) * 100;
 			console.error(
-				`🚨 CRITICAL: Incomplete fetch for ${collectionName}. Expected: ${expectedTotal}, Got: ${totalFetched} (${fetchPercentage.toFixed(1)}%). ZERO TOLERANCE for missing records. ABORTING deletion sync.`
+				`🚨 Incomplete fetch for ${collectionName}. Expected: ${expectedTotal}, Got: ${totalFetched} (${fetchPercentage.toFixed(1)}%). Aborting.`
 			);
 			return false;
 		}
 
-		console.log(
-			`✅ Successfully fetched ${totalFetched}/${expectedTotal} records for ${collectionName}`
+		// Get local records with serverIds
+		const localRecords = await indexedDBService.getRecords(
+			collectionName as any,
+			(rec: { serverId?: string; syncStatus?: string }) => !!rec.serverId
 		);
 
-		// pull all local records that have a serverId
-		const local = await indexedDBService.getRecords(
-			collectionName,
-			(rec: { serverId?: string }) => !!rec.serverId
+		// Calculate potential deletions (excluding pending records)
+		const recordsToDelete = localRecords.filter(
+			(rec) => rec.syncStatus !== 'pending' && !serverIds.has(rec.serverId!)
 		);
 
-		console.log(`📊 Local records with serverId in ${collectionName}: ${local.length}`);
-
-		// BALANCED SAFETY: Allow reasonable deletions, prevent mass data loss
-		const potentialDeleteRecords = local.filter(
-			(rec) => !serverIds.has(rec.serverId!) && rec.syncStatus !== 'pending'
-		);
-		const potentialDeletes = potentialDeleteRecords.length;
-		const deletePercentage = local.length > 0 ? (potentialDeletes / local.length) * 100 : 0;
-
-		// Log what would be deleted for transparency
-		if (potentialDeletes > 0) {
-			console.log(
-				`� Found ${potentialDeletes} records to delete (${deletePercentage.toFixed(1)}% of local ${collectionName}):`
-			);
-			potentialDeleteRecords.forEach((rec, index) => {
-				console.log(
-					`  ${index + 1}. ID: ${rec.id}, ServerID: ${rec.serverId}, Status: ${rec.syncStatus}`
-				);
-			});
+		// Delete records missing from server (these were deleted on server)
+		if (recordsToDelete.length > 0) {
+			for (const rec of recordsToDelete) {
+				try {
+					await indexedDBService.deleteRecord(collectionName as any, rec.id);
+				} catch (err) {
+					console.warn(`⚠️ Failed to delete record ${rec.id} from ${collectionName}:`, err);
+				}
+			}
 		}
-
-		// Only abort if deletion percentage is suspiciously high (>30%)
-		if (deletePercentage > 30) {
-			console.error(
-				`🚨 DANGEROUS: Would delete ${deletePercentage.toFixed(1)}% (${potentialDeletes}) of local ${collectionName} records. This seems excessive. ABORTING deletion sync.`
-			);
-			return false;
-		}
-
-		// Allow reasonable deletions to proceed
-		if (potentialDeletes > 0) {
-			console.log(
-				`✅ Proceeding with deletion of ${potentialDeletes} records (${deletePercentage.toFixed(1)}% - within safe threshold)`
-			);
-		}
-
-		// Calculate date threshold for old records (2 weeks ago)
-		const twoWeeksAgo = new Date();
-		twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-
-		// Only apply old record logic to specific collections
+		// Delete old records (2+ weeks) for specific collections
 		const oldRecordCollections = [
 			'assays',
 			'truckLoads',
@@ -209,27 +163,22 @@ async function syncDeletedRecords(collectionName: any) {
 			'consignments'
 		];
 
-		for (const rec of local) {
-			let shouldDelete = false;
+		if (oldRecordCollections.includes(collectionName)) {
+			const twoWeeksAgo = new Date();
+			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
 
-			// Check if record is missing from server
-			if (!serverIds.has(rec.serverId!)) {
-				// Don't delete records that are pending sync
-				if (rec.syncStatus === 'pending') {
-					continue;
-				}
-				shouldDelete = true;
-			}
-			// Check if record is older than 2 weeks (only for specified collections)
-			else if (oldRecordCollections.includes(collectionName) && rec.created) {
+			const oldRecords = localRecords.filter((rec) => {
+				if (!rec.created || !serverIds.has(rec.serverId!)) return false;
 				const recordDate = new Date(rec.created);
-				if (recordDate < twoWeeksAgo) {
-					shouldDelete = true;
-				}
-			}
+				return recordDate < twoWeeksAgo;
+			});
 
-			if (shouldDelete) {
-				await indexedDBService.deleteRecord(collectionName, rec.id);
+			for (const rec of oldRecords) {
+				try {
+					await indexedDBService.deleteRecord(collectionName as any, rec.id);
+				} catch (err) {
+					console.warn(`⚠️ Failed to delete old record ${rec.id} from ${collectionName}:`, err);
+				}
 			}
 		}
 		return true;

@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { afterNavigate } from '$app/navigation';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Wagon } from '$lib/types';
     import type { ShuntingTrain } from '$lib/types/shuntingTrain';
@@ -14,12 +15,45 @@
 	let success = '';
 	let isLoading = true;
 	let trainId = $page.params.trainId;
+	let dataRefreshKey = 0; // Force reactive updates
 
 	const steps = ['Select Shunting Train', 'Wagon Linking'];
 	let currentStep = 2;
 
+	// Custom event listener for wagon updates
+	let wagonUpdateListener: ((event: CustomEvent) => void) | null = null;
+	let visibilityHandler: (() => Promise<void>) | null = null;
+	let isInitialLoad = true;
+	let isReloading = false; // Prevent concurrent reloads
+	let reloadDebounceTimer: ReturnType<typeof setTimeout> | undefined;
+
+	// Debounced reload to prevent redundant fetches when multiple triggers fire
+	function scheduleReload(source: string, delay: number = 100) {
+		if (reloadDebounceTimer) {
+			clearTimeout(reloadDebounceTimer);
+		}
+		
+		reloadDebounceTimer = setTimeout(async () => {
+			try {
+				await loadTrainAndWagons();
+			} catch (err) {
+				console.error(`Failed to reload from ${source}:`, err);
+			}
+			reloadDebounceTimer = undefined;
+		}, delay);
+	}
 	async function loadTrainAndWagons() {
+		// Prevent concurrent reloads
+		if (isReloading) {
+			console.log('Reload already in progress, skipping');
+			return;
+		}
+		
 		try {
+			isReloading = true;
+			isLoading = true;
+			error = '';
+			
 			// Load the shunting train
 			shuntingTrain = await indexedDBService.getRecord('shuntingTrains', trainId) ?? null;
 
@@ -30,35 +64,111 @@
 
 			// Load linked wagons using the IDs from linkedWagons array
 			if (shuntingTrain.linkedWagons && shuntingTrain.linkedWagons.length > 0) {
-				//Fetch all wagons
-				const allWagons: Wagon[] = await indexedDBService.getAllRecords('wagons');
-				// Fetch each wagon by ID from the wagons collection
-				const wagonPromises = shuntingTrain.linkedWagons.map(wagonId => {
-					const wagon = allWagons.find(w => w.serverId === wagonId);
-					try {
-						return wagon;
-					} catch (e) {
-						console.warn(`Failed to load wagon ${wagonId}:`, e);
-						return null;
-					}
-				});
+				linkedWagons = [];
 				
-				const wagonResults = await Promise.all(wagonPromises);
-				// Filter out null results and ensure we have valid wagon objects
-				linkedWagons = wagonResults.filter(wagon => wagon !== null && wagon !== undefined).sort((a, b) => (a.wagonPosition ?? 0) - (b.wagonPosition ?? 0)) as Wagon[];
+				// Fetch linked wagons
+				const foundWagons: Wagon[] = [];
+				
+				for (const wagonId of shuntingTrain.linkedWagons) {
+					let wagon = await indexedDBService.getRecord('wagons', wagonId);
+					
+					if (!wagon) {
+						const allWagons = await indexedDBService.getRecords(
+							'wagons',
+							(w) => w.serverId === wagonId
+						);
+						if (allWagons.length > 0) {
+							wagon = allWagons[0];
+						}
+					}
+					
+					if (wagon) {
+						foundWagons.push(wagon);
+					} else {
+						console.warn(`Wagon not found: ${wagonId}`);
+					}
+				}
+				
+				// Sort by position
+				linkedWagons = foundWagons.sort((a, b) => (a.wagonPosition ?? 0) - (b.wagonPosition ?? 0));
 			} else {
 				linkedWagons = [];
 			}
+			
+			// Increment refresh key to force reactive updates
+			dataRefreshKey++;
 		} catch (e) {
 			console.error('Error loading train and wagons:', e);
 			error = 'Failed to load train and wagon data';
 		} finally {
 			isLoading = false;
+			isReloading = false;
 		}
 	}
 
+	// Listen for navigation events to reload data when returning from edit page
+	afterNavigate(async (navigation) => {
+		// Skip reload on initial load
+		if (isInitialLoad) {
+			isInitialLoad = false;
+			return;
+		}
+		
+		// Only reload if coming from the edit page
+		// The edit page dispatches 'wagon-updated' event after transaction completes
+		// This is a backup mechanism in case the event was missed
+		// Use precise path-segment check to avoid false positives (e.g., '/edited-items/')
+		const fromPath = navigation.from?.url.pathname;
+		if (fromPath && /(^|\/)edit(\/|$)/.test(fromPath)) {
+			// Use debounce to coordinate with potential wagon-updated event
+			scheduleReload('afterNavigate', 50);
+		}
+	});
+
 	onMount(() => {
 		loadTrainAndWagons();
+		
+		// Listen for custom wagon update events - PRIMARY reload mechanism
+		// This event is dispatched AFTER the IndexedDB transaction completes (tx.done resolved)
+		wagonUpdateListener = async (event: CustomEvent) => {
+			// Use immediate reload for primary mechanism (no debounce delay)
+			scheduleReload('wagon-updated', 0);
+		};
+		
+		if (typeof window !== 'undefined') {
+			window.addEventListener('wagon-updated', wagonUpdateListener as EventListener);
+			
+			// Also listen for page visibility changes
+			// When tab becomes visible, reload to ensure fresh data
+			visibilityHandler = async () => {
+				if (document.visibilityState === 'visible') {
+					// Use longer debounce for visibility changes (less critical)
+					scheduleReload('visibilitychange', 200);
+				}
+			};
+			document.addEventListener('visibilitychange', visibilityHandler);
+		}
+	});
+
+	onDestroy(() => {
+		// Cancel any pending debounced reload
+		if (reloadDebounceTimer) {
+			clearTimeout(reloadDebounceTimer);
+			reloadDebounceTimer = undefined;
+		}
+		
+		// Clean up event listeners
+		if (typeof window !== 'undefined') {
+			if (wagonUpdateListener) {
+				window.removeEventListener('wagon-updated', wagonUpdateListener as EventListener);
+			}
+		}
+		
+		if (typeof document !== 'undefined') {
+			if (visibilityHandler) {
+				document.removeEventListener('visibilitychange', visibilityHandler);
+			}
+		}
 	});
 
 	async function handleSubmit() {
@@ -147,8 +257,10 @@
         </div>
 
         <!-- Wagons List -->
+        <!-- Use key block to force re-render when data changes -->
+        {#key dataRefreshKey}
         <div class="space-y-4">
-            {#each linkedWagons as wagon, index}
+            {#each linkedWagons as wagon, index (wagon.id)}
                 <div class="border border-gray-300 rounded-lg p-4 bg-white">
                     <div class="mb-3">
                         <h6 class="font-semibold text-center">Position {wagon.wagonPosition}</h6>
@@ -191,6 +303,7 @@
                 </div>
             {/if}
         </div>
+        {/key}
     {:else}
         <div class="text-center py-8 text-gray-500">
             Shunting train not found.
