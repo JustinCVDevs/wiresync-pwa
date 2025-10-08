@@ -35,32 +35,42 @@
 			);
 			if (!record) {
 				error = 'Train dispatch not found';
+				isLoading = false;
 				return;
 			}
 			trainDispatch = record;
+			
 			if (trainDispatch !== undefined && trainDispatch != null) {
 				train = (await indexedDBService.getTrains()).find(
-					(t) => trainDispatch?.linkedTrainId === t.id
+					(t) => trainDispatch?.linkedTrainId === t.id || trainDispatch?.linkedTrainId === t.serverId
 				);
 				consignment = (await indexedDBService.getAllRecords('consignments')).find(
-					(t) => trainDispatch?.linkedConsignmentId === t.id
+					(t) => trainDispatch?.linkedConsignmentId === t.id || trainDispatch?.linkedConsignmentId === t.serverId
 				);
-				wagons = (await indexedDBService.getAllRecords('wagons')).filter(
-					(t) =>
-						trainDispatch?.linkedWagonIds?.includes(t?.id ?? '') ||
-						trainDispatch?.linkedWagonIds?.includes(t?.serverId ?? '')
+				
+				// Improved wagon matching - check both id and serverId
+				const allWagons = await indexedDBService.getAllRecords('wagons');
+				wagons = allWagons.filter(
+					(w) => trainDispatch?.linkedWagonIds?.some(linkedId => 
+						linkedId === w.id || linkedId === w.serverId
+					)
 				);
 			}
 		} catch (e) {
-			console.error(e);
-			error = 'Failed to load dispatch data';
+			console.error('Error loading dispatch:', e);
+			error = `Failed to load dispatch data: ${e instanceof Error ? e.message : 'Unknown error'}`;
 		} finally {
 			isLoading = false;
 		}
 	}
 
 	onMount(() => {
-		if (dispatchId) loadDispatch();
+		if (dispatchId) {
+			loadDispatch();
+		} else {
+			error = 'No dispatch ID provided';
+			isLoading = false;
+		}
 	});
 
 	async function handleWagonSubmit(event: {
@@ -69,14 +79,19 @@
 	}) {
 		event.preventDefault();
 		if (!trainDispatch || !trainDispatch.linkedWagonIds) {
+			console.error('Train dispatch not initialized:', trainDispatch);
+			error = 'Train dispatch not initialized';
 			return;
 		}
 		error = '';
+		success = '';
+		
 		try {
 			if (trainDispatch.linkedWagonIds.length >= 80) {
 				error = 'Maximum of 80 wagons can be linked to a train dispatch';
 				return;
 			}
+			
 			// Find the existing wagon by wagonIdSimple
 			const allWagons = await indexedDBService.getAllRecords('wagons');
 			const wagon = allWagons.find((w) => w.wagonIdSimple === event.detail.wagonIdSimple);
@@ -86,29 +101,49 @@
 				return;
 			}
 
+			// Check if wagon is already linked (check both id and serverId)
+			const wagonIdToUse = wagon.serverId || wagon.id;
+			if (trainDispatch.linkedWagonIds.includes(wagonIdToUse)) {
+				error = 'Wagon already linked to this dispatch';
+				return;
+			}
+			// Update wagon first and wait for completion
 			await indexedDBService.updateRecord('wagons', wagon.id, {
+				...wagon,
 				syncStatus: 'pending',
 				dispatchTimestamp: new Date(),
 				tarpedStatus: event.detail.tarpedStatus,
 				updated: new Date().toISOString()
 			});
 
-			const updatedIds = [...trainDispatch.linkedWagonIds, wagon.id];
+			// Use consistent ID (prefer serverId if available, otherwise use id)
+			const updatedIds = [...trainDispatch.linkedWagonIds, wagonIdToUse];
 
-			await indexedDBService.updateRecord('trainDispatches', dispatchId, {
+			// Update trainDispatch and wait for completion
+			await indexedDBService.updateRecord('trainDispatches', trainDispatch.id, {
 				...trainDispatch,
 				linkedWagonIds: updatedIds,
 				syncStatus: 'pending',
 				updated: new Date().toISOString()
 			});
 
-			success = 'Wagon linked';
+			// Update local trainDispatch object
+			trainDispatch = {
+				...trainDispatch,
+				linkedWagonIds: updatedIds
+			};
+
+			success = 'Wagon linked successfully';
 			currentStep = 3;
+			
+			// Reload dispatch data to ensure UI is in sync
 			await loadDispatch();
+			
+			// Close wagon input after successful update
 			showWagonInput = false;
 		} catch (e) {
-			console.error(e);
-			error = 'Failed to update wagon';
+			console.error('Error updating wagon:', e);
+			error = `Failed to update wagon: ${e instanceof Error ? e.message : 'Unknown error'}`;
 		}
 	}
 
@@ -199,19 +234,19 @@
 			<p class="text-gray mb-2 text-sm">
 				Linked Wagons: <span class="font-bold">{trainDispatch?.linkedWagonIds?.length || 0}</span>
 			</p>
-			{#if trainDispatch?.linkedWagonIds?.length}
+			{#if trainDispatch?.linkedWagonIds?.length && wagons}
 				<ul class="space-y-1">
 					{#each trainDispatch.linkedWagonIds as id, i}
+						{@const wagon = wagons?.find((w) => w.id === id || w.serverId === id)}
 						<li class="flex items-center gap-3 rounded bg-white px-3 py-2 align-middle shadow-sm">
 							<Container size={16} class="inline text-xs" />
-							<div>
+							<div class="flex-1">
 								<div class="text-gray font-medium">
-									<span class="text-sm font-light">Wagon ID</span>: {wagons?.find((w) => w.id == id)
-										?.wagonIdSimple}
+									<span class="text-sm font-light">Wagon ID</span>: {wagon?.wagonIdSimple || 'Unknown'}
 								</div>
 								<div class="text-left text-xs text-gray-400">
-									Date linked: {wagons?.find((w) => w.id == id)?.created
-										? new Date(wagons.find((w) => w.id == id)?.created!).toLocaleString('en-GB', {
+									Date linked: {wagon?.created
+										? new Date(wagon.created).toLocaleString('en-GB', {
 												day: '2-digit',
 												month: '2-digit',
 												year: 'numeric',
@@ -222,35 +257,41 @@
 										: '–'}
 								</div>
 								<!-- Label and checkbox inline -->
-								<div class="mt-1 flex items-center gap-2">
-									<label
-										for={'tarped-' + id}
-										class="mt-2 text-xs text-gray-400"
-										style="font-weight: semi-bold;"
-									>
-										Check box if wagon is tarped:
-									</label>
-									<input
-										id={'tarped-' + id}
-										type="checkbox"
-										class="mt-2 ml-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-										checked={wagons?.find((w) => w.id == id)?.tarpedStatus === true}
-										on:change={async (e) => {
-											const target = e.target as HTMLInputElement | null;
-											const wagon = wagons?.find((w) => w.id == id);
-											if (target && wagon) {
-												const isChecked = target.checked;
-												await indexedDBService.updateRecord('wagons', wagon.id, {
-													...wagon,
-													tarpedStatus: isChecked,
-													updated: new Date().toISOString(),
-													syncStatus: 'pending'
-												});
-												await loadDispatch();
-											}
-										}}
-									/>
-								</div>
+								{#if wagon}
+									<div class="mt-1 flex items-center gap-2">
+										<label
+											for={'tarped-' + id}
+											class="mt-2 text-xs text-gray-400"
+											style="font-weight: semi-bold;"
+										>
+											Check box if wagon is tarped:
+										</label>
+										<input
+											id={'tarped-' + id}
+											type="checkbox"
+											class="mt-2 ml-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+											checked={wagon.tarpedStatus === true}
+											on:change={async (e) => {
+												const target = e.target as HTMLInputElement | null;
+												if (target && wagon) {
+													const isChecked = target.checked;
+													try {
+														await indexedDBService.updateRecord('wagons', wagon.id, {
+															...wagon,
+															tarpedStatus: isChecked,
+															updated: new Date().toISOString(),
+															syncStatus: 'pending'
+														});
+														await loadDispatch();
+													} catch (err) {
+														console.error('Failed to update tarped status:', err);
+														error = 'Failed to update tarped status';
+													}
+												}
+											}}
+										/>
+									</div>
+								{/if}
 							</div>
 						</li>
 					{/each}
@@ -264,11 +305,17 @@
 		{#if showWagonInput}
 			<div
 				class="bg-opacity-40 fixed inset-0 z-10 flex items-center justify-center backdrop-blur-sm"
+				role="button"
+				tabindex="0"
+				on:click|self={() => showWagonInput = false}
+				on:keydown={(e) => e.key === 'Escape' && (showWagonInput = false)}
 			>
 				<div class="m-6 w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
-					<form on:submit|preventDefault>
-						<WagonInput linkedIds={trainDispatch?.linkedWagonIds || []} on:submit={handleWagonSubmit} on:cancel={handleWagonCancel} />
-					</form>
+					<WagonInput 
+						linkedIds={trainDispatch?.linkedWagonIds || []} 
+						on:submit={handleWagonSubmit} 
+						on:cancel={handleWagonCancel} 
+					/>
 				</div>
 			</div>
 		{:else}
