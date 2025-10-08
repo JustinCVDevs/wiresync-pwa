@@ -123,7 +123,7 @@ async function syncDeletedRecords(collectionName: string) {
 			}
 		} while (items.length === perPage && totalFetched < expectedTotal && page < 1000);
 
-		// Verify complete fetch - only abort if we got significantly less than expected
+		// Verify complete fetch
 		if (totalFetched !== expectedTotal) {
 			const fetchPercentage = (totalFetched / expectedTotal) * 100;
 			console.error(
@@ -146,10 +146,13 @@ async function syncDeletedRecords(collectionName: string) {
 		// Delete records missing from server (these were deleted on server)
 		if (recordsToDelete.length > 0) {
 			for (const rec of recordsToDelete) {
-				await indexedDBService.deleteRecord(collectionName as any, rec.id);
+				try {
+					await indexedDBService.deleteRecord(collectionName as any, rec.id);
+				} catch (err) {
+					console.warn(`⚠️ Failed to delete record ${rec.id} from ${collectionName}:`, err);
+				}
 			}
 		}
-
 		// Delete old records (2+ weeks) for specific collections
 		const oldRecordCollections = [
 			'assays',
@@ -171,14 +174,13 @@ async function syncDeletedRecords(collectionName: string) {
 			});
 
 			for (const rec of oldRecords) {
-				await indexedDBService.deleteRecord(collectionName as any, rec.id);
-			}
-
-			if (oldRecords.length > 0) {
-				console.log(`✅ Deleted ${oldRecords.length} old ${collectionName} records (2+ weeks)`);
+				try {
+					await indexedDBService.deleteRecord(collectionName as any, rec.id);
+				} catch (err) {
+					console.warn(`⚠️ Failed to delete old record ${rec.id} from ${collectionName}:`, err);
+				}
 			}
 		}
-
 		return true;
 	} catch (err) {
 		console.warn(`❌ Failed to reconcile deletions for ${collectionName}:`, err);

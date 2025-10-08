@@ -1,4 +1,4 @@
-import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
+import { openDB, type DBSchema, type IDBPDatabase, type IDBPTransaction } from 'idb';
 import type {
 	Assay,
 	Wagon,
@@ -251,6 +251,26 @@ class IndexedDBService {
 	}
 	async clearTrainArrivals(): Promise<void> {
 		await this.clearStore('trainArrivals');
+	}
+
+	/**
+	 * Execute updates to multiple stores atomically within a single transaction.
+	 * All updates succeed or all fail together.
+	 */
+	async atomicUpdate(
+		stores: StoreName[],
+		updateFn: (tx: IDBPTransaction<AppDB, StoreName[], 'readwrite'>) => Promise<void>
+	): Promise<void> {
+		await this.initDB();
+		const tx = this.db!.transaction(stores, 'readwrite');
+		
+		try {
+			await updateFn(tx);
+			await tx.done;
+		} catch (error) {
+			// Transaction will auto-abort on error
+			throw error;
+		}
 	}
 }
 

@@ -108,27 +108,42 @@
 				error = 'Wagon already linked to this dispatch';
 				return;
 			}
-			// Update wagon first and wait for completion
-			await indexedDBService.updateRecord('wagons', wagon.id, {
-				...wagon,
-				syncStatus: 'pending',
-				dispatchTimestamp: new Date(),
-				tarpedStatus: event.detail.tarpedStatus,
-				updated: new Date().toISOString()
-			});
 
 			// Use consistent ID (prefer serverId if available, otherwise use id)
 			const updatedIds = [...trainDispatch.linkedWagonIds, wagonIdToUse];
 
-			// Update trainDispatch and wait for completion
-			await indexedDBService.updateRecord('trainDispatches', trainDispatch.id, {
-				...trainDispatch,
-				linkedWagonIds: updatedIds,
-				syncStatus: 'pending',
-				updated: new Date().toISOString()
+			// Perform atomic update: both wagon and trainDispatch update in single transaction
+			// If either fails, both are rolled back automatically by IndexedDB
+			await indexedDBService.atomicUpdate(['wagons', 'trainDispatches'], async (tx) => {
+				// Update wagon (without syncStatus - set after transaction succeeds)
+				const existingWagon = await tx.objectStore('wagons').get(wagon.id);
+				if (!existingWagon) {
+					throw new Error('Wagon not found in transaction');
+				}
+				await tx.objectStore('wagons').put({
+					...existingWagon,
+					dispatchTimestamp: new Date(),
+					tarpedStatus: event.detail.tarpedStatus,
+					updated: new Date().toISOString()
+				});
+
+				// Update trainDispatch (without syncStatus - set after transaction succeeds)
+				const existingDispatch = await tx.objectStore('trainDispatches').get(trainDispatch!.id);
+				if (!existingDispatch) {
+					throw new Error('Train dispatch not found in transaction');
+				}
+				await tx.objectStore('trainDispatches').put({
+					...existingDispatch,
+					linkedWagonIds: updatedIds,
+					updated: new Date().toISOString()
+				});
 			});
 
-			// Update local trainDispatch object
+			// Transaction completed successfully - now mark for sync
+			await indexedDBService.updateRecord('wagons', wagon.id, { syncStatus: 'pending' });
+			await indexedDBService.updateRecord('trainDispatches', trainDispatch.id, { syncStatus: 'pending' });
+
+			// Update local trainDispatch object only after transaction succeeds
 			trainDispatch = {
 				...trainDispatch,
 				linkedWagonIds: updatedIds

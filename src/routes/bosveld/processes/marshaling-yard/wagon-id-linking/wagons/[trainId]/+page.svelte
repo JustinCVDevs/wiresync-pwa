@@ -34,12 +34,14 @@
 		}
 		
 		reloadDebounceTimer = setTimeout(async () => {
-			console.log(`Reload triggered by: ${source}`);
-			await loadTrainAndWagons();
+			try {
+				await loadTrainAndWagons();
+			} catch (err) {
+				console.error(`Failed to reload from ${source}:`, err);
+			}
 			reloadDebounceTimer = undefined;
 		}, delay);
 	}
-
 	async function loadTrainAndWagons() {
 		// Prevent concurrent reloads
 		if (isReloading) {
@@ -62,34 +64,22 @@
 
 			// Load linked wagons using the IDs from linkedWagons array
 			if (shuntingTrain.linkedWagons && shuntingTrain.linkedWagons.length > 0) {
-				// Clear the array first to ensure reactivity
 				linkedWagons = [];
 				
-				// Fetch all wagons once to minimize DB reads
-				const allWagons: Wagon[] = await indexedDBService.getAllRecords('wagons');
-				
-				// Create lookup maps for O(1) access - much faster than repeated array searches
-				const wagonsByServerId = new Map<string, Wagon>();
-				const wagonsById = new Map<string, Wagon>();
-				
-				for (const wagon of allWagons) {
-					if (wagon.serverId) {
-						wagonsByServerId.set(wagon.serverId, wagon);
-					}
-					if (wagon.id) {
-						wagonsById.set(wagon.id, wagon);
-					}
-				}
-				
-				// Look up wagons using the maps (O(1) instead of O(n))
+				// Fetch linked wagons
 				const foundWagons: Wagon[] = [];
+				
 				for (const wagonId of shuntingTrain.linkedWagons) {
-					// Try serverId first (most common case)
-					let wagon = wagonsByServerId.get(wagonId);
+					let wagon = await indexedDBService.getRecord('wagons', wagonId);
 					
-					// Fall back to id if not found by serverId
 					if (!wagon) {
-						wagon = wagonsById.get(wagonId);
+						const allWagons = await indexedDBService.getRecords(
+							'wagons',
+							(w) => w.serverId === wagonId
+						);
+						if (allWagons.length > 0) {
+							wagon = allWagons[0];
+						}
 					}
 					
 					if (wagon) {
