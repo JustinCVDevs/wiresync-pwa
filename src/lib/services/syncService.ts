@@ -211,7 +211,6 @@ async function syncDeletedRecords(collectionName: any) {
 
 		for (const rec of local) {
 			let shouldDelete = false;
-			let deleteReason = '';
 
 			// Check if record is missing from server
 			if (!serverIds.has(rec.serverId!)) {
@@ -220,7 +219,6 @@ async function syncDeletedRecords(collectionName: any) {
 					continue;
 				}
 				shouldDelete = true;
-				deleteReason = 'orphaned (not on server)';
 			}
 			// Check if record is older than 2 weeks (only for specified collections)
 			else if (oldRecordCollections.includes(collectionName) && rec.created) {

@@ -103,12 +103,10 @@
 
 			// Check if wagon is already linked (check both id and serverId)
 			const wagonIdToUse = wagon.serverId || wagon.id;
-			if (trainDispatch.linkedWagonIds.includes(wagon.id) || 
-			    (wagon.serverId && trainDispatch.linkedWagonIds.includes(wagon.serverId))) {
+			if (trainDispatch.linkedWagonIds.includes(wagonIdToUse)) {
 				error = 'Wagon already linked to this dispatch';
 				return;
 			}
-
 			// Update wagon first and wait for completion
 			await indexedDBService.updateRecord('wagons', wagon.id, {
 				...wagon,
