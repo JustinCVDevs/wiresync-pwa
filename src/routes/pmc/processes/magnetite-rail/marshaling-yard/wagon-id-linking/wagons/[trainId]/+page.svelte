@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { afterNavigate } from '$app/navigation';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Wagon } from '$lib/types';
     import type { ShuntingTrain } from '$lib/types/shuntingTrain';
@@ -14,12 +15,20 @@
 	let success = '';
 	let isLoading = true;
 	let trainId = $page.params.trainId;
+	let dataRefreshKey = 0; // Force reactive updates
 
 	const steps = ['Select Shunting Train', 'Wagon Linking'];
 	let currentStep = 2;
 
+	// Custom event listener for wagon updates
+	let wagonUpdateListener: ((event: CustomEvent) => void) | null = null;
+	let isInitialLoad = true;
+
 	async function loadTrainAndWagons() {
 		try {
+			isLoading = true;
+			error = '';
+			
 			// Load the shunting train
 			shuntingTrain = await indexedDBService.getRecord('shuntingTrains', trainId) ?? null;
 
@@ -30,25 +39,49 @@
 
 			// Load linked wagons using the IDs from linkedWagons array
 			if (shuntingTrain.linkedWagons && shuntingTrain.linkedWagons.length > 0) {
-				//Fetch all wagons
+				// Clear the array first to ensure reactivity
+				linkedWagons = [];
+				
+				// Fetch all wagons once to minimize DB reads
 				const allWagons: Wagon[] = await indexedDBService.getAllRecords('wagons');
-				// Fetch each wagon by ID from the wagons collection
-				const wagonPromises = shuntingTrain.linkedWagons.map(wagonId => {
-					const wagon = allWagons.find(w => w.serverId === wagonId);
+				
+				// Create a fresh array to trigger reactivity
+				const wagonPromises = shuntingTrain.linkedWagons.map(async (wagonId) => {
 					try {
-						return wagon;
+						// Try to get by serverId first (as that's what's stored in linkedWagons)
+						let wagon = allWagons.find(w => w.serverId === wagonId);
+						
+						// If not found by serverId, try by id
+						if (!wagon) {
+							wagon = allWagons.find(w => w.id === wagonId);
+						}
+						
+						// Last resort: try direct lookup
+						if (!wagon) {
+							wagon = await indexedDBService.getRecord('wagons', wagonId);
+						}
+						
+						return wagon || null;
 					} catch (e) {
-						console.warn(`Failed to load wagon ${wagonId}:`, e);
+						console.error(`Failed to load wagon ${wagonId}:`, e);
 						return null;
 					}
 				});
 
 				const wagonResults = await Promise.all(wagonPromises);
+				
 				// Filter out null results and ensure we have valid wagon objects
-				linkedWagons = wagonResults.filter(wagon => wagon !== null && wagon !== undefined).sort((a, b) => (a.wagonPosition ?? 0) - (b.wagonPosition ?? 0)) as Wagon[];
+				const validWagons = wagonResults
+					.filter(wagon => wagon !== null && wagon !== undefined) as Wagon[];
+				
+				// Sort by position
+				linkedWagons = validWagons.sort((a, b) => (a.wagonPosition ?? 0) - (b.wagonPosition ?? 0));
 			} else {
 				linkedWagons = [];
 			}
+			
+			// Increment refresh key to force reactive updates
+			dataRefreshKey++;
 		} catch (e) {
 			console.error('Error loading train and wagons:', e);
 			error = 'Failed to load train and wagon data';
@@ -57,8 +90,52 @@
 		}
 	}
 
+	// Listen for navigation events to reload data when returning from edit page
+	afterNavigate(async (navigation) => {
+		// Skip reload on initial load
+		if (isInitialLoad) {
+			isInitialLoad = false;
+			return;
+		}
+		
+		// Only reload if coming from the edit page
+		if (navigation.from?.url.pathname.includes('/edit/')) {
+			// Add longer delay to ensure IndexedDB transaction is complete
+			await new Promise(resolve => setTimeout(resolve, 400));
+			await loadTrainAndWagons();
+		}
+	});
+
 	onMount(() => {
 		loadTrainAndWagons();
+		
+		// Listen for custom wagon update events
+		wagonUpdateListener = async (event: CustomEvent) => {
+			// Add longer delay to ensure database write is complete
+			// This is critical because IndexedDB writes may not be immediately visible
+			await new Promise(resolve => setTimeout(resolve, 500));
+			await loadTrainAndWagons();
+		};
+		
+		if (typeof window !== 'undefined') {
+			window.addEventListener('wagon-updated', wagonUpdateListener as EventListener);
+			
+			// Also listen for page visibility changes
+			const visibilityHandler = async () => {
+				if (document.visibilityState === 'visible') {
+					await new Promise(resolve => setTimeout(resolve, 200));
+					await loadTrainAndWagons();
+				}
+			};
+			document.addEventListener('visibilitychange', visibilityHandler);
+		}
+	});
+
+	onDestroy(() => {
+		// Clean up event listener
+		if (typeof window !== 'undefined' && wagonUpdateListener) {
+			window.removeEventListener('wagon-updated', wagonUpdateListener as EventListener);
+		}
 	});
 
 
@@ -150,8 +227,10 @@
 		</div>
 
 		<!-- Wagons List -->
+		<!-- Use key block to force re-render when data changes -->
+		{#key dataRefreshKey}
 		<div class="space-y-4">
-			{#each linkedWagons as wagon, index}
+			{#each linkedWagons as wagon, index (wagon.id)}
 				<div class="border border-gray-300 rounded-lg p-4 bg-white">
 					<div class="mb-3">
 						<h6 class="font-semibold text-center">Position {wagon.wagonPosition}</h6>
@@ -194,6 +273,7 @@
 				</div>
 			{/if}
 		</div>
+		{/key}
 	{:else}
 		<div class="text-center py-8 text-gray-500">
 			Shunting train not found.

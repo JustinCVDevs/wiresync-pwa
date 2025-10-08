@@ -125,6 +125,20 @@
 				updated: new Date().toISOString()
 			});
 			
+			// Ensure IndexedDB transaction is fully committed
+			await new Promise(resolve => setTimeout(resolve, 300));
+			
+			// Dispatch custom event to notify other components
+			if (typeof window !== 'undefined') {
+				const event = new CustomEvent('wagon-updated', { 
+					detail: { 
+						wagonId: wagon.id,
+						trainId: trainId
+					} 
+				});
+				window.dispatchEvent(event);
+			}
+			
 			// Try to sync immediately instead of relying on background sync
 			try {
 				const { syncService } = await import('$lib/services/syncService');
@@ -140,14 +154,17 @@
 				success = 'Wagon details updated successfully (sync will retry)';
 			}
 			
-			// Navigate back to wagon details page after a short delay
+			// Navigate back to wagon details page after a delay to ensure data is persisted
 			setTimeout(() => {
 				try {
-					goto(`/bosveld/processes/marshaling-yard/wagon-id-linking/wagons/${trainId}`);
+					goto(`/bosveld/processes/marshaling-yard/wagon-id-linking/wagons/${trainId}`, {
+						// Replacestate prevents back button from returning to edit page
+						replaceState: true
+					});
 				} catch (e) {
 					console.error('Error navigating back:', e);
 				}
-			}, 2000);
+			}, 1500);
 		} catch (e: any) {
 			console.error('Error updating wagon:', e);
 			error = `Failed to update wagon details: ${e.message || e}`;
