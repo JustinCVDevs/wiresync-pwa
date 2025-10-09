@@ -6,9 +6,9 @@
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { TruckArrival } from '$lib/types/truckArrival';
-	import type { Truck } from '$lib/types/truck';
 
 	let truckRegistration = $page.url.searchParams.get('truckRegistration') || '';
+	let truckArrivalName = '';
 	let date = '';
 	let haulier = '';
 	let grossMass = '';
@@ -19,6 +19,17 @@
 	let product = '';
 	let isSubmitting = false;
 	let currentStep = 2;
+
+	// Auto-generate truck arrival name when registration or date changes
+	$: {
+		if (truckRegistration && date) {
+			const dateObj = new Date(date);
+			const yy = dateObj.getFullYear().toString().slice(-2);
+			const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+			const dd = String(dateObj.getDate()).padStart(2, '0');
+			truckArrivalName = `${yy}${mm}${dd}_${truckRegistration}`;
+		}
+	}
 
 	// Process steps
 	const processSteps = ['Registration Scanning', 'Truck Registration'];
@@ -83,7 +94,7 @@
 		};
 
 		if (!truckRegistration) {
-			formErrors.truckRegistration = 'Vehicle registration is required';
+			formErrors.truckRegistration = 'Truck registration is required';
 			isValid = false;
 		}
 
@@ -146,27 +157,11 @@
 			processLayout.setError('');
 			processLayout.setSuccess('');
 
-			// Create a new truck record first
-			const newTruck: Truck = {
-				id: crypto.randomUUID(),
-				registration: truckRegistration,
-				syncStatus: 'pending',
-				productType: product,
-				created: new Date(),
-				loadingLocation: 'BOP'
-			};
-
-			// Save the truck record
-			await indexedDBService.saveRecord('trucks', newTruck);
-
-			const trucks = await indexedDBService.getAllRecords('trucks');
-			const linkedTrucks = trucks.find(t => 
-				t.registration === truckRegistration && t.loadingLocation === 'BOP'
-			);
 			// Create truck arrival record with all the manual data
 			const truckArrival: TruckArrival = {
 				id: crypto.randomUUID(),
-				truckId: linkedTrucks?.id || linkedTrucks?.serverId,
+				name: truckArrivalName,
+				registration: truckRegistration,
 				status: 'registered',
 				transporter: haulier,
 				truck_commodity: product,
@@ -184,12 +179,12 @@
 			// Save truck arrival record
 			await indexedDBService.saveRecord('truckArrivals', truckArrival);
 
-			processLayout.setSuccess('Truck registered successfully');
+			processLayout.setSuccess('Truck arrival registered successfully');
 			setTimeout(() => {
 				goto('/richardsbay/processes/road/bop-truck-arrivals');
 			}, 1000);
 		} catch (err) {
-			processLayout.setError('Failed to register truck');
+			processLayout.setError('Failed to register truck arrival');
 			console.error(err);
 		} finally {
 			isSubmitting = false;
@@ -230,9 +225,9 @@
 
 				<FormField
 					id="truckRegistration"
-					label="Vehicle Registration:"
+					label="Truck Registration:"
 					bind:value={truckRegistration}
-					placeholder="Enter vehicle registration"
+					placeholder="Enter truck registration"
 					required={true}
 					error={formErrors.truckRegistration}
 					disabled={true}
@@ -316,9 +311,9 @@
 					disabled={!isFormValid || isSubmitting}
 				>
 					{#if isSubmitting}
-						Registering Truck...
+						Registering Truck Arrival...
 					{:else}
-						Register Truck
+						Register Truck Arrival
 					{/if}
 				</button>
 			</div>

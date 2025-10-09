@@ -1290,6 +1290,7 @@ export const syncService = {
 							truck_origin_location: arrival.truck_origin_location,
 							syncStatus: 'synced',
 							siteLocation: arrival.siteLocation,
+							name: arrival.name,
 							created: arrival.created,
 							updated: arrival.updated,
 							serverId: arrival.id
@@ -1319,6 +1320,7 @@ export const syncService = {
 						truck_origin_location: arrival.truck_origin_location,
 						syncStatus: 'synced',
 						siteLocation: arrival.siteLocation,
+						name: arrival.name,
 						created: arrival.created,
 						updated: arrival.updated,
 						serverId: arrival.id

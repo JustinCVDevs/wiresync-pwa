@@ -4,11 +4,10 @@
 	import { goto } from '$app/navigation';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
-	import type { TruckArrival, Truck } from '$lib';
+	import type { TruckArrival } from '$lib';
 
 	const truckArrivalId = $page.url.searchParams.get('truckArrivalId') || '';
 	let truckArrival: TruckArrival | null = null;
-	let truck: Truck | null = null;
 	let currentStep = 2;
 	let processLayout: ProcessLayout;
 	
@@ -25,11 +24,6 @@
 				(a) => a.id === truckArrivalId || a.serverId === truckArrivalId
 			);
 			truckArrival = result ?? null;
-
-			const linkedTruck = (await indexedDBService.getAllRecords('trucks')).find(
-				(t) => t.id === truckArrival?.truckId || t.serverId === truckArrival?.truckId
-			);
-			truck = linkedTruck ?? null;
 		}
 	}
 
@@ -70,8 +64,8 @@
 			<div class="bg-white p-4 rounded-lg shadow-sm">
 				<div class="grid grid-cols-1 gap-4">
 					<div>
-						<p class="text-sm text-gray-500 font-bold">Truck Registration Nr</p>
-						<p class="font-medium">{truck?.registration}</p>
+						<p class="text-sm text-gray-500 font-bold">Truck Registration</p>
+						<p class="font-medium">{truckArrival.registration || 'N/A'}</p>
 					</div>
 
 					<div>

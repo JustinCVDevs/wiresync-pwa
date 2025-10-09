@@ -12,10 +12,10 @@
 
 	let sampleId = '';
 	let trainNumber = '';
-	let wagonId = $page.url.searchParams.get('wagonIdSimple') || '';
+	let wagonIdSimple = $page.url.searchParams.get('wagonIdSimple') || '';
 	let shuntingTrainVerificationDate = $page.url.searchParams.get('shuntingTrainVerificationDate');
 	let productGrade = localStorage.getItem('productGrade') || '';
-	let loadingLocation = 'Bosveldt';
+	let loadingLocation = 'Bosveld';
 	let isSubmitting = false;
 	let currentStep = 2;
 
@@ -49,8 +49,11 @@
 	};
 
 	async function fetchData() {
+		// Only fetch data if wagonIdSimple is provided and not empty
+		if (!wagonIdSimple) return;
+		
 		const wagon = (await indexedDBService.getAllRecords('wagons')).find(
-			(w) => w.wagonIdSimple === wagonId
+			(w) => w.wagonIdSimple === wagonIdSimple
 		);
 
 		if (wagon) {
@@ -61,7 +64,7 @@
 		}
 	}
 
-	$: if(wagonId === '') {
+	$: if (wagonIdSimple === '') {
 		const currentDate = new Date();
 		const YYMMDD = `${currentDate.getFullYear().toString().slice(-2)}${String(currentDate.getMonth() + 1).padStart(2, '0')}${String(currentDate.getDate()).padStart(2, '0')}`;
 
@@ -72,7 +75,7 @@
 			'Magnetite 65%': 'MAG65'
 		}[productGrade];
 
-	sampleId = `${YYMMDD}${selectedWagon ? `_${selectedWagon}` : ''}${trainNumber ? `_${trainNumber}` : ''}${productCode ? `_${productCode}` : ''}`;
+		sampleId = `${YYMMDD}${selectedWagon ? `_${selectedWagon}` : ''}${trainNumber ? `_${trainNumber}` : ''}${productCode ? `_${productCode}` : ''}`;
 	} else {
 		fetchData();
 	}
@@ -116,12 +119,12 @@
 		if (!selectedWagon) {
 			formErrors.selectedWagon = 'Wagon ID is required';
 			isValid = false;
-    	}
+		}
 
-        if (!trainNumber) {
-            formErrors.trainNumber = 'Train number is required';
-            isValid = false;
-        }
+		if (!trainNumber) {
+			formErrors.trainNumber = 'Train number is required';
+			isValid = false;
+		}
 
 		return isValid;
 	}
@@ -135,11 +138,11 @@
 		const linkedWagons = shuntingTrain?.linkedWagons || [];
 		
 		let allwagons = (await indexedDBService.getAllRecords('wagons')).filter(
-			wagon => !wagon.sampleTimestamp
+			wagon => linkedWagons.some(linkedWagon => linkedWagon === wagon.id)
 		);
 		
 		availableWagons = allwagons.filter(
-			wagon => linkedWagons.some(linkedWagon => linkedWagon === wagon.id)
+			wagon => !wagon.sampleTimestamp
 		);
 	});
 
@@ -238,7 +241,7 @@
 
 <div class="container">
 	<div class="form">
-		{#if wagonId === ''}
+		{#if wagonIdSimple === ''}
 			<FormField
 				id="wagonId"
 				label="Wagon ID"
@@ -302,7 +305,7 @@
 		/>
 	</div>
 </div>
-<QRPrinting {sampleId} />
+<QRPrinting {sampleId}/>
 </ProcessLayout>
 
 <style>

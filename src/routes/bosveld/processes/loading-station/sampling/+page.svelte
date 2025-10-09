@@ -28,7 +28,7 @@
 			minute: '2-digit'
 		});
 	}
-
+	
 	onMount(async () => {
 		// Fetch all shunting trains
 		const shuntingTrains = (await indexedDBService.getAllRecords('shuntingTrains')).filter(
