@@ -39,7 +39,7 @@
 
 		// Filter trucks that match the truck arrivals' port_arrival_sample_id
 		availableTrucks = allTrucks.filter(truck =>
-			truckArrivals.some(arrival => arrival.truckId === truck.serverId)
+			truckArrivals.some(arrival => arrival.truckId === linkedTrucks.find(id => id === truck.id))
 		);
 	});
 

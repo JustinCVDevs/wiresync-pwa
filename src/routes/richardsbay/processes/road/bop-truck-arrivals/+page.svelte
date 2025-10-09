@@ -4,7 +4,7 @@
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import FormField from '$lib/components/FormField.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
-	import type { Truck } from '$lib/types/truck';
+	import type { TruckArrival } from '$lib/types/truckArrival';
 	import Camera from '$lib/components/Camera.svelte';
 
 	// Form state
@@ -15,9 +15,9 @@
 	let showSearch = false;
 	let matchFound = false;
 	let photoData = '';
-	let availableTrucks: Truck[] = [];
-	let filteredTrucks: any[] = [];
-	let selectedTruck: any = '';
+	let availableTruckArrivals: TruckArrival[] = [];
+	let filteredTruckArrivals: TruckArrival[] = [];
+	let selectedTruckRegistration: string = '';
 
 	// Process steps
 	const processSteps = ['Registration', 'Verification'];
@@ -26,34 +26,23 @@
 	let processLayout: ProcessLayout;
 
 	onMount(async () => {
-		// Fetch all truck arrivals
-		const truckArrivals = (await indexedDBService.getAllRecords('truckArrivals')).filter(
-			arrival => !arrival.port_truck_arrival_timestamp && arrival.siteLocation === 'BOP'
-		);
-
-		// Get linked trucks from truck arrivals
-		const linkedTrucks = truckArrivals.map(arrival => arrival.truckId);
-
-		// Fetch all trucks
-		const allTrucks = (await indexedDBService.getAllRecords('trucks'));
-
-		// Filter trucks that match the truck arrivals' port_arrival_sample_id
-		availableTrucks = allTrucks.filter(truck =>
-			truckArrivals.some(arrival => arrival.truckId === truck.serverId)
+		// Fetch all truck arrivals that haven't been processed yet
+		availableTruckArrivals = (await indexedDBService.getAllRecords('truckArrivals')).filter(
+			arrival => !arrival.port_truck_arrival_timestamp && arrival.siteLocation === 'BOP' && arrival.registration
 		);
 	});
 
 	$: {
-		if (selectedTruck) {
-			if (filteredTrucks.length > 0) {
-				matchFound = filteredTrucks.some(truck => truck.registration.toLowerCase() === selectedTruck.toLowerCase());
+		if (selectedTruckRegistration) {
+			if (filteredTruckArrivals.length > 0) {
+				matchFound = filteredTruckArrivals.some(arrival => arrival.registration?.toLowerCase() === selectedTruckRegistration.toLowerCase());
 			}
 		}
 	}
 
 	$: {
-		filteredTrucks = availableTrucks.filter(truck =>
-			truck.registration.toLowerCase().includes(selectedTruck?.toLowerCase() ?? '')
+		filteredTruckArrivals = availableTruckArrivals.filter(arrival =>
+			arrival.registration?.toLowerCase().includes(selectedTruckRegistration?.toLowerCase() ?? '')
 		);
 	}
 
@@ -82,13 +71,13 @@
 			submit = true;
 			processLayout.setError('');
 
-			// Check if truck exists in Pocketbase DB
-			const trucks = (await indexedDBService.getAllRecords('trucks')).find(
-				truck => truck.registration.toLowerCase() === selectedTruck.toLowerCase()
+			// Check if truck arrival exists in the database
+			const truckArrival = (await indexedDBService.getAllRecords('truckArrivals')).find(
+				arrival => arrival.registration?.toLowerCase() === selectedTruckRegistration.toLowerCase()
 			);
 
-			if (!trucks) {
-				goto('/richardsbay/processes/road/bop-truck-arrivals/register?truckRegistration=' + selectedTruck);
+			if (!truckArrival) {
+				goto('/richardsbay/processes/road/bop-truck-arrivals/register?truckRegistration=' + selectedTruckRegistration);
 				return;
 			}
 
@@ -98,11 +87,6 @@
 			}
 
 			// Update Truck Arrival data
-			const truckArrival = (await indexedDBService.getAllRecords('truckArrivals')).filter(
-				arrival => arrival.truckId === trucks.serverId
-			)[0];
-
-			// Save to IndexedDB using the generic saveRecord method
 			await indexedDBService.updateRecord('truckArrivals', truckArrival.id, {
 					...truckArrival,
 					syncStatus: 'pending',
@@ -143,12 +127,12 @@
 	<div class="space-y-6">
 		<div class="form">
 			<FormField
-				id="truckRegistration"
-				label="Truck Registration"
+				id="truckArrivalName"
+				label="Truck Arrival Name"
 				search={true}
-				options={filteredTrucks.map(truck => ({ value: truck.registration, label: truck.registration }))}
-				bind:value={selectedTruck}
-				placeholder="Select Truck Registration"
+				options={filteredTruckArrivals.map(arrival => ({ value: arrival.name || '', label: arrival.name || '' }))}
+				bind:value={selectedTruckRegistration}
+				placeholder="Select Truck Arrival"
 				required
 				on:focus={() => showSearch = true}
 				on:blur={() => setTimeout(() => (showSearch = false), 200)}

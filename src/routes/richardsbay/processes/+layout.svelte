@@ -18,8 +18,6 @@
 		if (navigator.onLine) {
 			try {
 				await Promise.all([
-					syncService.syncTruckList(),
-					syncService.syncTruckArrivalList(),
 					syncService.syncAllPending(),
 				]);
 				lastSyncTime.set(new Date());

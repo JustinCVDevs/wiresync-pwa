@@ -18,13 +18,7 @@
 		if (navigator.onLine) {
 			try {
 				await Promise.all([
-					syncService.syncTruckList(),
-					syncService.syncTrainList(),
-					syncService.syncConsignmentList(),
 					syncService.syncAllPending(),
-					syncService.deleteLocalDatabase(),
-					syncService.syncShuntingTrainList(),
-					syncService.syncWagonList()
 				]);
 				lastSyncTime.set(new Date());
 			} catch (error) {
