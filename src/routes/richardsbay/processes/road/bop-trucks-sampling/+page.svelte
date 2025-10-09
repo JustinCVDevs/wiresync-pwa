@@ -3,7 +3,7 @@
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { onMount } from 'svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
-	import type { Assay, Truck } from '$lib/types';
+	import type { Assay } from '$lib/types';
 	import FormField from '$lib/components/FormField.svelte';
 	import { syncService } from '$lib/services/syncService';
 
@@ -19,27 +19,15 @@
 	let truckOptions: { value: string; label: string }[] = [];
 
 	onMount(async () => {
-		// Fetch all truck arrivals
+		// Fetch all truck arrivals that have arrived but not been sampled yet
 		const truckArrivals = (await indexedDBService.getAllRecords('truckArrivals')).filter(
-			arrival => arrival.port_truck_arrival_timestamp && arrival.port_arrival_sample_id === ''
+			arrival => arrival.port_truck_arrival_timestamp && arrival.port_arrival_sample_id === '' && arrival.registration
 		);
 
-		// Get linked trucks from truck arrivals
-		const linkedTrucks = truckArrivals.map(arrival => arrival.truckId);
-
-		// Fetch all trucks
-		const allTrucks = (await indexedDBService.getAllRecords('trucks')).filter(
-			truck => truck.loadingLocation === 'BOP'
-		);
-
-		// Filter trucks that match the truck arrivals' port_arrival_sample_id
-		let availableTrucks = allTrucks.filter(truck =>
-			truckArrivals.some(arrival => arrival.truckId=== truck.serverId)
-		);
-
-		truckOptions = availableTrucks.map(truck => ({
-			value: truck.registration,
-			label: truck.registration
+		// Use truck arrival registrations directly
+		truckOptions = truckArrivals.map(arrival => ({
+			value: arrival.registration!,
+			label: arrival.registration!
 		}));
 	});
 
@@ -66,14 +54,19 @@
 			processLayout.setError('');
 			processLayout.setSuccess('');
 
-			let findTruck = (await indexedDBService.getAllRecords('trucks')).find(
-				(truck: Truck) => truck.registration === truckRegistration
+			// Find truck arrival by registration
+			const truckArrival = (await indexedDBService.getAllRecords('truckArrivals')).find(
+				arrival => arrival.registration === truckRegistration
 			);
+
+			if (!truckArrival) {
+				processLayout.setError('Truck arrival not found');
+				return;
+			}
 
 			const assay: Assay = {
 				id: crypto.randomUUID(),
-				name: sampleId,
-				linkedTruckIds: [findTruck?.serverId || ''],
+				name: truckArrival.name!,
 				syncStatus: 'pending',
 				location: loadingLocation,
 				created: new Date(),
@@ -87,19 +80,13 @@
 			await syncService.syncAssay(assay);
 
 			// Update truck arrival with the sample ID
-			const truckArrival = (await indexedDBService.getAllRecords('truckArrivals')).find(
-				arrival => arrival.truckId === findTruck?.serverId
-			);
+			await indexedDBService.updateRecord('truckArrivals', truckArrival.id, {
+				...truckArrival,
+				port_arrival_sample_id: sampleId,
+				syncStatus: 'pending',
+			});
 
-			if (truckArrival) {
-				await indexedDBService.updateRecord('truckArrivals', truckArrival.id, {
-					...truckArrival,
-					port_arrival_sample_id: sampleId,
-					syncStatus: 'pending',
-				});
-			}
-
-			goto(`/richardsbay/processes/road/bop-trucks-sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`);
+			goto(`/richardsbay/processes/road/bop-trucks-sampling/verification?sampleId=${encodeURIComponent(sampleId)}`);
 		} catch (err) {
 			error = 'Failed to submit data';
 			console.error(err);
