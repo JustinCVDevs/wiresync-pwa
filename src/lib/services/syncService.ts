@@ -1291,6 +1291,7 @@ export const syncService = {
 							syncStatus: 'synced',
 							siteLocation: arrival.siteLocation,
 							name: arrival.name,
+							registration: arrival.registration,
 							created: arrival.created,
 							updated: arrival.updated,
 							serverId: arrival.id
@@ -1321,6 +1322,7 @@ export const syncService = {
 						syncStatus: 'synced',
 						siteLocation: arrival.siteLocation,
 						name: arrival.name,
+						registration: arrival.registration,
 						created: arrival.created,
 						updated: arrival.updated,
 						serverId: arrival.id
