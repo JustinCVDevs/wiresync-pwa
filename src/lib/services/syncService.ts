@@ -66,70 +66,60 @@ async function syncDeletedRecords(collectionName: string) {
 		const serverIds = new Set<string>();
 		const perPage = 1000;
 		let page = 1;
-		let items: { id: string }[] = [];
-		let totalFetched = 0;
-		let expectedTotal = 0;
-		let consecutiveEmptyPages = 0;
+		let totalItems = 0;
+		let totalPages = 0;
+		let fetchedPages = 0;
 
 		// Fetch all server records with pagination
 		do {
 			try {
 				const res = await pocketbaseService.list(collectionName as PBCollection, { page, perPage });
-				items = res.items;
+				const items = res.items;
 
-				// Get expected total from first page response
+				// Get total info from first page
 				if (page === 1) {
-					expectedTotal = res.totalItems || 0;
-					if (expectedTotal === 0) {
-						console.warn(
-							`⚠️ Server reports 0 records for ${collectionName}. Aborting deletion sync.`
-						);
-						return false;
-					}
+					totalItems = res.totalItems || 0;
+					totalPages = res.totalPages || 0;
+					console.log(`📊 ${collectionName}: ${totalItems} total items across ${totalPages} pages`);
 				}
 
-				// Verify total consistency on early pages
-				if (page > 1 && page <= 3 && res.totalItems !== expectedTotal) {
-					console.warn(
-						`⚠️ Server total changed for ${collectionName}: ${expectedTotal} -> ${res.totalItems}. Aborting.`
-					);
-					return false;
-				}
-
+				// Add server IDs to set
 				items.forEach((item) => serverIds.add(item.id));
-				totalFetched += items.length;
+				fetchedPages++;
 
-				if (items.length === 0) {
-					consecutiveEmptyPages++;
-					if (page <= 5 || consecutiveEmptyPages > 2) {
-						console.warn(
-							`⚠️ Got empty page ${page} for ${collectionName}. Aborting deletion sync.`
-						);
-						return false;
-					}
-				} else {
-					consecutiveEmptyPages = 0;
+				// If we get 0 items on first page, break early (collection is empty)
+				if (page === 1 && items.length === 0) {
+					break;
 				}
 
 				page++;
 
-				// Rate limiting delay for early pages
+				// Rate limiting delay
 				if (items.length > 0 && page <= 10) {
 					await new Promise((resolve) => setTimeout(resolve, 100));
 				}
+
+				// Use totalPages from response, or fallback to checking if we got a full page
 			} catch (pageErr) {
 				console.error(`❌ Failed to fetch page ${page} for ${collectionName}:`, pageErr);
-				return false;
+				// Don't abort - we already have some data, proceed with what we have
+				break;
 			}
-		} while (items.length === perPage && totalFetched < expectedTotal && page < 1000);
+		} while (page <= totalPages && page < 1000);
 
-		// Verify complete fetch
-		if (totalFetched !== expectedTotal) {
-			const fetchPercentage = (totalFetched / expectedTotal) * 100;
-			console.error(
-				`🚨 Incomplete fetch for ${collectionName}. Expected: ${expectedTotal}, Got: ${totalFetched} (${fetchPercentage.toFixed(1)}%). Aborting.`
+		// Verify we fetched all pages (only if there are pages to fetch)
+		if (totalPages > 0 && fetchedPages < totalPages) {
+			console.warn(
+				`⚠️ Incomplete fetch for ${collectionName}. Expected ${totalPages} pages, got ${fetchedPages}. Aborting deletions to be safe.`
 			);
 			return false;
+		}
+
+		console.log(`✅ Fetched ${serverIds.size} records from ${collectionName}`);
+
+		// If server has 0 records, we should delete all local records (except pending)
+		if (totalItems === 0 && serverIds.size === 0) {
+			console.log(`🗑️ Server has 0 records for ${collectionName}. Deleting all non-pending local records.`);
 		}
 
 		// Get local records with serverIds
