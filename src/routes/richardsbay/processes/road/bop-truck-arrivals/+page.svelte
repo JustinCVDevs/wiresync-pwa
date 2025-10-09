@@ -33,17 +33,19 @@
 	});
 
 	$: {
-		if (selectedTruckRegistration) {
-			if (filteredTruckArrivals.length > 0) {
-				matchFound = filteredTruckArrivals.some(arrival => arrival.registration?.toLowerCase() === selectedTruckRegistration.toLowerCase());
-			}
-		}
-	}
-
-	$: {
 		filteredTruckArrivals = availableTruckArrivals.filter(arrival =>
 			arrival.registration?.toLowerCase().includes(selectedTruckRegistration?.toLowerCase() ?? '')
 		);
+	}
+
+	$: {
+		if (selectedTruckRegistration) {
+			matchFound = availableTruckArrivals.some(arrival => 
+				arrival.registration?.toLowerCase() === selectedTruckRegistration.toLowerCase()
+			);
+		} else {
+			matchFound = false;
+		}
 	}
 
 	function formatTimestamp(date: Date) {
@@ -128,11 +130,11 @@
 		<div class="form">
 			<FormField
 				id="truckArrivalName"
-				label="Truck Arrival Name"
+				label="Truck Registration"
 				search={true}
-				options={filteredTruckArrivals.map(arrival => ({ value: arrival.name || '', label: arrival.name || '' }))}
+				options={filteredTruckArrivals.map(arrival => ({ value: arrival.registration || '', label: arrival.registration || '' }))}
 				bind:value={selectedTruckRegistration}
-				placeholder="Select Truck Arrival"
+				placeholder="Select Truck Registration"
 				required
 				on:focus={() => showSearch = true}
 				on:blur={() => setTimeout(() => (showSearch = false), 200)}
