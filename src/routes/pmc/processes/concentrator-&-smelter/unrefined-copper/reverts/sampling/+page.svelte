@@ -35,7 +35,7 @@
     onMount(async () => {
         try {
             trucks = await indexedDBService.getAllRecords('trucks');
-            // Sort trucks alphabetically by registration
+
             trucks.sort((a, b) => a.registration.localeCompare(b.registration));
         } catch (err) {
             console.error('Failed to load trucks from IndexedDB:', err);

@@ -5,10 +5,11 @@
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import { onMount } from 'svelte';
 	import { formPersistenceService } from '$lib/services/formPersistenceService';
-  
+
 	let felWeight = '';
 	let error = '';
 	let processLayout: ProcessLayout;
+	let currentStep = 1;
 
 	let truckInput = '';
 	let availableTrucks: any[] = [];
@@ -20,26 +21,14 @@
 	]
 
 	onMount(async () => {
-		availableTrucks = await getTrucks();
+		await getTrucks();
 	});
 
 	async function getTrucks() {
 		try {
-			// Fetch all trucks
-			const allTrucks = await indexedDBService.getAllRecords('trucks');
+			availableTrucks = await indexedDBService.getAllRecords('trucks');
 
-			// Fetch all truck loads with the correct loading location
-			const truckLoads = (await indexedDBService.getAllRecords('truckLoads')).filter(
-				(load) => load.loadingLocation === 'Unrefined Copper' && load.felWeight === ''
-			);
-
-			// Filter trucks where the truckId matches the truckLoad's truckId
-			const linkedTrucks = allTrucks.filter((truck) =>
-				truckLoads.some((load) => load.truckId === truck.serverId)
-			);
-
-			// Sort the filtered trucks alphabetically by registration
-			return linkedTrucks.sort((a, b) => a.registration.localeCompare(b.registration));
+            availableTrucks.sort((a, b) => a.registration.localeCompare(b.registration));
 		} catch (error) {
 			console.error('No trucks available', error);
 			return [];
@@ -78,16 +67,10 @@
 			error = 'Failed to submit data';
 			console.error(err);
 		}
-	  }
-	  let currentStep = 1;
-	  function handleCancel() {
-		  goto('/pmc/processes/concentrator-&-smelter/unrefined-copper/reverts');
-	  }
+	}
 
-	$: if (truckInput !== '') {
-		(async () => {
-			availableTrucks = await getTrucks();
-		})();
+	function handleCancel() {
+		goto('/pmc/processes/concentrator-&-smelter/unrefined-copper/reverts');
 	}
 </script>
 	<ProcessLayout
