@@ -124,7 +124,7 @@
 			label="Truck Registration"
 			bind:value={truckRegistration}
 			placeholder="Select Truck Registration"
-			isSelect={true}
+			search={true}
 			options={truckOptions}
 			required={true}
 		/>
@@ -144,7 +144,7 @@
 
 <style>
 	.form-field {
-		width: 100%;
-		margin-bottom: 1.5rem;
+		margin-top: 1rem;
+		position: relative;
 	}
 </style>
