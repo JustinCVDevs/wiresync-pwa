@@ -135,7 +135,7 @@
 			<FormField
 				id="trainArrival"
 				label="Train Reference Number"
-				isSelect={true}
+				search={true}
 				options={availableTrains}
 				bind:value={selectedTrain}
 				placeholder="Select Train Reference Number"

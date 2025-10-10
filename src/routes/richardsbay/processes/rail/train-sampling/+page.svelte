@@ -128,7 +128,7 @@
 			<FormField
 				id="trainArrival"
 				label="Train Reference Number"
-				isSelect={true}
+				search={true}
 				options={availableTrains.map(train => ({ value: train.refNr, label: train.refNr }))}
 				bind:value={selectedTrain}
 				placeholder="Select Train Reference Number"
