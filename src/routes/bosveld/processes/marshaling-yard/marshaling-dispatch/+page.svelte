@@ -134,7 +134,7 @@
 				);
 
 				const trainDispatches = (await indexedDBService.getAllRecords('trainDispatches')).find(
-					(d) => !d.dispatchTimestamp && d.linkedTrainId === trains?.serverId
+					(d) => !d.dispatchTimestamp && d.linkedTrainId === trains?.serverId && d.siteLocation === 'Bosveld'
 				);
 
 				goto(`/bosveld/processes/marshaling-yard/marshaling-dispatch/wagon-linkage?dispatchId=${trainDispatches?.serverId}`);
