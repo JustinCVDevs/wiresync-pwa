@@ -180,14 +180,6 @@
 					syncStatus: 'pending' as const
 				});
 				
-				// Update each linked wagon's dispatch timestamp and set sync status to pending
-				for (const wagon of linkedWagons) {
-					await indexedDBService.updateRecord('wagons', wagon.id, {
-						dispatchTimestamp: new Date(),
-						syncStatus: 'pending' as const
-					});
-				}
-				
 				// Show success message
 				success = 'Process Complete';
 				
