@@ -104,14 +104,14 @@
 				dispatchTimestamp: new Date(),
 				updated: new Date().toISOString()
 			});
+
+			processLayout.setSuccess('Wagon linkage completed');
+
+			setTimeout(() => {
+				location.reload();
+			}, 1000);
 		}
 		showPopup = false;
-
-		processLayout.setSuccess('Wagon linkage completed');
-
-		setTimeout(() => {
-			location.reload();
-		}, 1000);
 	}
 
 	async function handleSubmit() {
@@ -253,7 +253,7 @@
 	{#if showPopup}
 		<div class="popup-overlay">
 			<div class="popup-content">
-				<p class="popup-message">Are you sure you are done sampling train {selectedTrainRef}?</p>
+				<p class="popup-message">Are you sure you are done with consignment {selectedConsignment}?</p>
 				<div class="popup-buttons">
 					<button
 						type="button"

@@ -359,7 +359,7 @@
 {#if showPopup}
 	<div class="popup-overlay">
 		<div class="popup-content">
-			<p class="popup-message">Are you sure you are done sampling train {train?.refNr}?</p>
+			<p class="popup-message">Are you sure you are done with consignment {consignment?.name}?</p>
 			<div class="popup-buttons">
 				<button
 					type="button"
