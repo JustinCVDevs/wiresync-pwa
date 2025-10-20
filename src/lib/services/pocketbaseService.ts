@@ -119,11 +119,14 @@ class PocketBaseService {
 			expand?: (keyof PBModelMap[K])[];
 			page?: number;
 			perPage?: number;
+			filterString?: string;
 		} = {}
 	) {
-		const { query = {}, expand = [], page = 1, perPage = 20 } = options;
+		const { query = {}, expand = [], page = 1, perPage = 20, filterString } = options;
+		// Use custom filterString if provided, otherwise build from query object
+		const filter = filterString || this.buildFilter(query);
 		return this.pb.collection<PBModelMap[K]>(collection).getList(page, perPage, {
-			filter: this.buildFilter(query),
+			filter: filter || undefined,
 			expand: expand.join(',') || undefined
 		});
 	}
