@@ -40,6 +40,7 @@ function base64ToBlob(base64: string, mime: string) {
 
 let runningList = false;
 let runningDeletedRecordsSync = new Set<string>();
+let lastSyncCompletedTime = 0;
 
 async function fetchAllFromPocketBase(
 	collection: PBCollection,
@@ -126,6 +127,7 @@ async function syncDeletedRecords(collectionName: string) {
 				if (page === 1) {
 					totalItems = res.totalItems || 0;
 					totalPages = res.totalPages || 0;
+					console.log(`📡 ${collectionName}: Server has ${totalItems} total records${filterString ? ' (filtered)' : ''}`);
 				}
 
 				// Add server IDs to set
@@ -1778,6 +1780,9 @@ export const syncService = {
 					this.syncWagonList(),
 					this.syncDedicatedFleetTrucksList()
 				]);
+				
+				// Update last sync completion time
+				lastSyncCompletedTime = Date.now();
 			} catch (err) {
 				console.error('Error during syncAllPending:', err);
 			} finally {
@@ -1787,6 +1792,27 @@ export const syncService = {
 	},
 
 	async deleteLocalDatabase() {
+		// Prevent deletion checks if sync is currently running
+		if (runningList) {
+			console.log('⏸️ Skipping deletion check - sync is currently in progress');
+			return;
+		}
+
+		// Ensure at least one sync has completed before attempting deletions
+		const timeSinceLastSync = Date.now() - lastSyncCompletedTime;
+		if (lastSyncCompletedTime === 0) {
+			console.log('⏸️ Skipping deletion check - waiting for initial sync to complete');
+			return;
+		}
+
+		// Wait at least 5 seconds after last sync completed to avoid race conditions
+		if (timeSinceLastSync < 5000) {
+			console.log(`⏸️ Skipping deletion check - last sync completed ${Math.round(timeSinceLastSync / 1000)}s ago`);
+			return;
+		}
+
+		console.log('🧹 Starting deletion check for all collections...');
+		
 		// Delete records that no longer exist on the server
 		const collections = [
 			'assays',
