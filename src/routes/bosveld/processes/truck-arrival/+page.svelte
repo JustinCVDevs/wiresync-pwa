@@ -32,38 +32,35 @@
 	let processLayout: ProcessLayout;
 
 	onMount(async () => {
-		// Use setTimeout to avoid blocking the UI thread
-		setTimeout(async () => {
-			try {
-				// Fetch data in parallel for better performance
-				const [allTruckArrivals, allTrucks] = await Promise.all([
-					indexedDBService.getAllRecords('truckArrivals'),
-					indexedDBService.getAllRecords('trucks')
-				]);
+		try {
+			// Fetch data in parallel for better performance
+			const [allTruckArrivals, allTrucks] = await Promise.all([
+				indexedDBService.getAllRecords('truckArrivals'),
+				indexedDBService.getAllRecords('trucks')
+			]);
 
-				// Filter truck arrivals - only pending arrivals for Bosveld
-				cachedTruckArrivals = allTruckArrivals.filter(
-					arrival => !arrival.port_truck_arrival_timestamp && arrival.siteLocation === 'Bosveld'
-				);
+			// Filter truck arrivals - only pending arrivals for Bosveld
+			cachedTruckArrivals = allTruckArrivals.filter(
+				arrival => !arrival.port_truck_arrival_timestamp && arrival.siteLocation === 'Bosveld'
+			);
 
-				// Create a Set for O(1) lookup performance
-				const linkedTruckIds = new Set(cachedTruckArrivals.map(arrival => arrival.truckId));
+			// Create a Set for O(1) lookup performance
+			const linkedTruckIds = new Set(cachedTruckArrivals.map(arrival => arrival.truckId));
 
-				// Filter trucks efficiently using Set lookup
-				availableTrucks = allTrucks.filter(truck => linkedTruckIds.has(truck.serverId || truck.id));
+			// Filter trucks efficiently using Set lookup
+			availableTrucks = allTrucks.filter(truck => linkedTruckIds.has(truck.serverId || truck.id));
 
-				// Cache trucks in a Map for fast lookup during submit
-				allTrucks.forEach(truck => {
-					cachedTrucks.set(truck.registration.toLowerCase(), truck);
-				});
+			// Cache trucks in a Map for fast lookup during submit
+			allTrucks.forEach(truck => {
+				cachedTrucks.set(truck.registration.toLowerCase(), truck);
+			});
 
-				isLoading = false;
-			} catch (error) {
-				console.error('Error loading data:', error);
-				processLayout?.setError('Failed to load truck data. Please refresh the page.');
-				isLoading = false;
-			}
-		}, 0);
+			isLoading = false;
+		} catch (error) {
+			console.error('Error loading data:', error);
+			processLayout?.setError('Failed to load truck data. Please refresh the page.');
+			isLoading = false;
+		}
 	});
 
 	// Optimized reactive filtering - only filter when needed
