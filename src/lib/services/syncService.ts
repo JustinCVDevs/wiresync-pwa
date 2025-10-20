@@ -41,16 +41,25 @@ function base64ToBlob(base64: string, mime: string) {
 let runningList = false;
 let runningDeletedRecordsSync = new Set<string>();
 
-async function fetchAllFromPocketBase(collection: PBCollection, perPage = 1000) {
+async function fetchAllFromPocketBase(
+	collection: PBCollection,
+	perPage = 1000,
+	filterString?: string
+) {
 	let page = 1;
 	let items: any[] = [];
 	let allItems: any[] = [];
 	let response;
 	do {
-		response = await pocketbaseService.list(collection, { page, perPage });
+		response = await pocketbaseService.list(collection, { page, perPage, filterString });
 		items = response.items;
 		allItems = allItems.concat(items);
 		page++;
+
+		// Add small delay between pages to avoid overwhelming the server
+		if (items.length === perPage) {
+			await new Promise((resolve) => setTimeout(resolve, 50));
+		}
 	} while (items.length === perPage);
 	return allItems;
 }
@@ -70,17 +79,53 @@ async function syncDeletedRecords(collectionName: string) {
 		let totalPages = 0;
 		let fetchedPages = 0;
 
-		// Fetch all server records with pagination
+		// Collections that use 2-week filtering for SYNC but keep old records locally
+		const filteredCollectionsKeepOld = [
+			'trucks',
+			'trains',
+			'consignments',
+			'dedicatedFleetTrucks'
+		];
+
+		// Collections that use 2-week filtering AND allow old records to be removed
+		const filteredCollectionsRemoveOld = [
+			'assays',
+			'wagons',
+			'fleet',
+			'truckLoads',
+			'trainDispatches',
+			'shuntingTrains',
+			'truckArrivals',
+			'trainArrivals'
+		];
+
+		const isFilteredKeepOld = filteredCollectionsKeepOld.includes(collectionName);
+		const isFilteredRemoveOld = filteredCollectionsRemoveOld.includes(collectionName);
+		const isFiltered = isFilteredKeepOld || isFilteredRemoveOld;
+
+		// Calculate 2-week threshold for filtered collections
+		let filterString: string | undefined;
+		if (isFiltered) {
+			const twoWeeksAgo = new Date();
+			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+			const twoWeeksAgoFormatted = twoWeeksAgo.toISOString().split('T')[0];
+			filterString = `created >= "${twoWeeksAgoFormatted}"`;
+		}
+
+		// Fetch all server records with pagination (with filter if applicable)
 		do {
 			try {
-				const res = await pocketbaseService.list(collectionName as PBCollection, { page, perPage });
+				const res = await pocketbaseService.list(collectionName as PBCollection, { 
+					page, 
+					perPage,
+					filterString
+				});
 				const items = res.items;
 
 				// Get total info from first page
 				if (page === 1) {
 					totalItems = res.totalItems || 0;
 					totalPages = res.totalPages || 0;
-					console.log(`📊 ${collectionName}: ${totalItems} total items across ${totalPages} pages`);
 				}
 
 				// Add server IDs to set
@@ -102,7 +147,6 @@ async function syncDeletedRecords(collectionName: string) {
 				// Use totalPages from response, or fallback to checking if we got a full page
 			} catch (pageErr) {
 				console.error(`❌ Failed to fetch page ${page} for ${collectionName}:`, pageErr);
-				// Don't abort - we already have some data, proceed with what we have
 				break;
 			}
 		} while (page <= totalPages && page < 1000);
@@ -115,18 +159,29 @@ async function syncDeletedRecords(collectionName: string) {
 			return false;
 		}
 
-		console.log(`✅ Fetched ${serverIds.size} records from ${collectionName}`);
-
 		// If server has 0 records, we should delete all local records (except pending)
 		if (totalItems === 0 && serverIds.size === 0) {
 			console.log(`🗑️ Server has 0 records for ${collectionName}. Deleting all non-pending local records.`);
 		}
 
 		// Get local records with serverIds
-		const localRecords = await indexedDBService.getRecords(
+		let localRecords = await indexedDBService.getRecords(
 			collectionName as any,
 			(rec: { serverId?: string; syncStatus?: string }) => !!rec.serverId
 		);
+
+		// For filtered collections, only check records within the date range
+		if (isFiltered) {
+			const twoWeeksAgo = new Date();
+			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+			
+			const beforeFilter = localRecords.length;
+			localRecords = localRecords.filter((rec: any) => {
+				if (!rec.created) return false;
+				const createdDate = new Date(rec.created);
+				return createdDate >= twoWeeksAgo;
+			});
+		}
 
 		// Calculate potential deletions (excluding pending records)
 		const recordsToDelete = localRecords.filter(
@@ -143,31 +198,31 @@ async function syncDeletedRecords(collectionName: string) {
 				}
 			}
 		}
-		// Delete old records (2+ weeks) for specific collections
-		const oldRecordCollections = [
-			'assays',
-			'truckLoads',
-			'fleet',
-			'trainDispatches',
-			'shuntingTrains',
-			'consignments'
-		];
-
-		if (oldRecordCollections.includes(collectionName)) {
+		
+		// For collections that allow old record removal, delete records older than 2 weeks
+		if (isFilteredRemoveOld) {
 			const twoWeeksAgo = new Date();
 			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
 
-			const oldRecords = localRecords.filter((rec) => {
-				if (!rec.created || !serverIds.has(rec.serverId!)) return false;
+			// Get ALL local records (not just the filtered ones)
+			const allLocalRecords = await indexedDBService.getRecords(
+				collectionName as any,
+				(rec: { serverId?: string; syncStatus?: string; created?: string }) => !!rec.serverId
+			);
+
+			const oldRecords = allLocalRecords.filter((rec: any) => {
+				if (!rec.created || rec.syncStatus === 'pending') return false;
 				const recordDate = new Date(rec.created);
 				return recordDate < twoWeeksAgo;
 			});
 
-			for (const rec of oldRecords) {
-				try {
-					await indexedDBService.deleteRecord(collectionName as any, rec.id);
-				} catch (err) {
-					console.warn(`⚠️ Failed to delete old record ${rec.id} from ${collectionName}:`, err);
+			if (oldRecords.length > 0) {
+				for (const rec of oldRecords) {
+					try {
+						await indexedDBService.deleteRecord(collectionName as any, rec.id);
+					} catch (err) {
+						console.warn(`⚠️ Failed to delete old record ${rec.id} from ${collectionName}:`, err);
+					}
 				}
 			}
 		}
@@ -181,14 +236,23 @@ async function syncDeletedRecords(collectionName: string) {
 }
 
 export const syncService = {
+	// ════════════════════════════════════════════════════════════════════════
+	// ASSAY SYNC METHODS
+	// ════════════════════════════════════════════════════════════════════════
 	async syncAssayList() {
 		try {
-			const allAssays = await fetchAllFromPocketBase('assays');
-			const allIndexedAssays = await indexedDBService.getRecords('assays');
-
 			// Calculate date threshold for old records (2 weeks ago)
 			const twoWeeksAgo = new Date();
 			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+			const twoWeeksAgoFormatted = twoWeeksAgo.toISOString().split('T')[0]; // yyyy-mm-dd
+
+			// Fetch only records from the last 2 weeks - server-side filtering
+			const allAssays = await fetchAllFromPocketBase(
+				'assays',
+				1000,
+				`created >= "${twoWeeksAgoFormatted}"`
+			);
+			const allIndexedAssays = await indexedDBService.getRecords('assays');
 
 			for (const assay of allAssays) {
 				const existingAssay = allIndexedAssays.find(
@@ -224,33 +288,29 @@ export const syncService = {
 						console.log(`⏸️ Skipping update for pending assay record: ${existingAssay.id}`);
 					}
 				} else {
-					// Only create new records if not older than 2 weeks
-					const recordDate = new Date(assay.created);
-					if (recordDate >= twoWeeksAgo) {
-						// Create a new record
-						await indexedDBService.saveRecord('assays', {
-							id: assay.id,
-							process: assay.process,
-							name: assay.name,
-							materialType: assay.materialType,
-							location: assay.location,
-							linkedWagonIds: assay.linkedWagonIds,
-							linkedTruckIds: assay.linkedTruckIds,
-							linkedTruckLoadIds: assay.linkedTruckLoadIds,
-							linkedFleetIds: assay.linkedFleetIds,
-							linkedDedicatedFleetTruckIds: assay.linkedDedicatedFleetTruckIds,
-							sampleSize: assay.sampleSize,
-							commodity: assay.commodity,
-							productType: assay.productType,
-							dedicatedFleet: assay.dedicatedFleet,
-							sampleId: assay.sampleId,
-							siteLocation: assay.siteLocation,
-							syncStatus: 'synced',
-							serverId: assay.id,
-							created: assay.created,
-							updated: assay.updated
-						});
-					}
+					// Create new record (already filtered by date on server)
+					await indexedDBService.saveRecord('assays', {
+						id: assay.id,
+						process: assay.process,
+						name: assay.name,
+						materialType: assay.materialType,
+						location: assay.location,
+						linkedWagonIds: assay.linkedWagonIds,
+						linkedTruckIds: assay.linkedTruckIds,
+						linkedTruckLoadIds: assay.linkedTruckLoadIds,
+						linkedFleetIds: assay.linkedFleetIds,
+						linkedDedicatedFleetTruckIds: assay.linkedDedicatedFleetTruckIds,
+						sampleSize: assay.sampleSize,
+						commodity: assay.commodity,
+						productType: assay.productType,
+						dedicatedFleet: assay.dedicatedFleet,
+						sampleId: assay.sampleId,
+						siteLocation: assay.siteLocation,
+						syncStatus: 'synced',
+						serverId: assay.id,
+						created: assay.created,
+						updated: assay.updated
+					});
 				}
 			}
 			return true;
@@ -262,7 +322,6 @@ export const syncService = {
 		}
 	},
 
-	// Assay sync methods
 	async syncAssay(assay: Assay) {
 		try {
 			const { id, syncStatus, ...payload } = assay;
@@ -392,7 +451,6 @@ export const syncService = {
 		}
 	},
 
-	// Add other sync methods as needed
 	async syncPendingAssays() {
 		const pending = await indexedDBService.getRecords(
 			'assays',
@@ -404,7 +462,9 @@ export const syncService = {
 		}
 	},
 
-	// Wagon sync methods
+	// ════════════════════════════════════════════════════════════════════════
+	// WAGON SYNC METHODS
+	// ════════════════════════════════════════════════════════════════════════
 	async syncWagon(wagon: Wagon) {
 		try {
 			const { id, syncStatus, ...payload } = wagon;
@@ -442,14 +502,106 @@ export const syncService = {
 		}
 	},
 
-	async syncTruckList() {
+	async syncWagonList() {
 		try {
-			const allTrucks = await fetchAllFromPocketBase('trucks');
-			const allIndexedTrucks = await indexedDBService.getRecords('trucks');
-
 			// Calculate date threshold for old records (2 weeks ago)
 			const twoWeeksAgo = new Date();
 			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+			const twoWeeksAgoFormatted = twoWeeksAgo.toISOString().split('T')[0]; // yyyy-mm-dd
+
+			// Fetch only records from the last 2 weeks - server-side filtering
+			const allWagons = await fetchAllFromPocketBase(
+				'wagons',
+				1000,
+				`created >= "${twoWeeksAgoFormatted}"`
+			);
+			const allIndexedWagons = await indexedDBService.getRecords('wagons');
+
+			for (const wagon of allWagons) {
+				const existingWagon = allIndexedWagons.find(
+					(w) => w.serverId === wagon.id || w.id === wagon.wagonId
+				);
+
+				if (existingWagon) {
+					// Only update if not pending
+					if (existingWagon.syncStatus !== 'pending') {
+						await indexedDBService.updateRecord('wagons', existingWagon.id, {
+							...existingWagon,
+							wagonId: wagon.wagonId,
+							sampleId: wagon.sampleId,
+							wagonIdSimple: wagon.wagonIdSimple,
+							transcoreTag: wagon.transcoreTag,
+							productType: wagon.productType,
+							wagonPhotoUrl: wagon.wagonPhotoUrl,
+							dispatchTimestamp: wagon.dispatchTimestamp,
+							sampleTimestamp: wagon.sampleTimestamp,
+							stagingTimestamp: wagon.stagingTimestamp,
+							felTimestamp: wagon.felTimestamp,
+							releaseTimestamp: wagon.releaseTimestamp,
+							trainNumber: wagon.trainNumber,
+							loadingLocation: wagon.loadingLocation,
+							wagonPosition: wagon.wagonPosition,
+							felWeight: wagon.felWeight,
+							tarpedStatus: wagon.tarpedStatus,
+							serverId: wagon.id,
+							syncStatus: 'synced',
+							created: wagon.created,
+							updated: wagon.updated
+						});
+					}
+				} else {
+					// Create new record (already filtered by date on server)
+					await indexedDBService.saveRecord('wagons', {
+						id: wagon.id,
+						wagonId: wagon.wagonId,
+						sampleId: wagon.sampleId,
+						wagonIdSimple: wagon.wagonIdSimple,
+						transcoreTag: wagon.transcoreTag,
+						productType: wagon.productType,
+						wagonPhotoUrl: wagon.wagonPhotoUrl,
+						dispatchTimestamp: wagon.dispatchTimestamp,
+						sampleTimestamp: wagon.sampleTimestamp,
+						stagingTimestamp: wagon.stagingTimestamp,
+						felTimestamp: wagon.felTimestamp,
+						releaseTimestamp: wagon.releaseTimestamp,
+						trainNumber: wagon.trainNumber,
+						loadingLocation: wagon.loadingLocation,
+						wagonPosition: wagon.wagonPosition,
+						felWeight: wagon.felWeight,
+						tarpedStatus: wagon.tarpedStatus,
+						serverId: wagon.id,
+						syncStatus: 'synced',
+						created: wagon.created,
+						updated: wagon.updated
+					});
+				}
+			}
+			return true;
+		} catch (err: any) {
+			if (!err?.message?.includes('autocancelled')) {
+				console.error('❌ Failed to sync wagon list:', err);
+			}
+			return false;
+		}
+	},
+
+	// ════════════════════════════════════════════════════════════════════════
+	// TRUCK SYNC METHODS
+	// ════════════════════════════════════════════════════════════════════════
+	async syncTruckList() {
+		try {
+			// Calculate date threshold for old records (2 weeks ago)
+			const twoWeeksAgo = new Date();
+			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+			const twoWeeksAgoFormatted = twoWeeksAgo.toISOString().split('T')[0]; // yyyy-mm-dd
+
+			// Fetch only records from the last 2 weeks - server-side filtering
+			const allTrucks = await fetchAllFromPocketBase(
+				'trucks',
+				1000,
+				`created >= "${twoWeeksAgoFormatted}"`
+			);
+			const allIndexedTrucks = await indexedDBService.getRecords('trucks');
 
 			for (const truck of allTrucks) {
 				// Match on either serverId or local id
@@ -472,20 +624,17 @@ export const syncService = {
 						});
 					}
 				} else {
-					// Only create new records if not older than 2 weeks
-					const recordDate = new Date(truck.created);
-					if (recordDate >= twoWeeksAgo) {
-						await indexedDBService.saveRecord('trucks', {
-							id: truck.id,
-							registration: truck.registration,
-							loadingLocation: truck.loadingLocation,
-							syncStatus: 'synced',
-							productType: truck.productType,
-							serverId: truck.id,
-							created: truck.created,
-							updated: truck.updated
-						});
-					}
+					// Create new record (already filtered by date on server)
+					await indexedDBService.saveRecord('trucks', {
+						id: truck.id,
+						registration: truck.registration,
+						loadingLocation: truck.loadingLocation,
+						syncStatus: 'synced',
+						productType: truck.productType,
+						serverId: truck.id,
+						created: truck.created,
+						updated: truck.updated
+					});
 				}
 			}
 			return true;
@@ -533,14 +682,23 @@ export const syncService = {
 		}
 	},
 
+	// ════════════════════════════════════════════════════════════════════════
+	// TRAIN SYNC METHODS
+	// ════════════════════════════════════════════════════════════════════════
 	async syncTrainList() {
 		try {
-			const allTrains = await fetchAllFromPocketBase('trains');
-			const allIndexedTrains = await indexedDBService.getRecords('trains');
-
 			// Calculate date threshold for old records (2 weeks ago)
 			const twoWeeksAgo = new Date();
 			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+			const twoWeeksAgoFormatted = twoWeeksAgo.toISOString().split('T')[0]; // yyyy-mm-dd
+
+			// Fetch only records from the last 2 weeks - server-side filtering
+			const allTrains = await fetchAllFromPocketBase(
+				'trains',
+				1000,
+				`created >= "${twoWeeksAgoFormatted}"`
+			);
+			const allIndexedTrains = await indexedDBService.getRecords('trains');
 
 			for (const train of allTrains) {
 				const existingTrain = allIndexedTrains.find(
@@ -561,20 +719,16 @@ export const syncService = {
 						});
 					}
 				} else {
-					// Only create new records if not older than 2 weeks
-					const recordDate = new Date(train.created);
-					if (recordDate >= twoWeeksAgo) {
-						// Create a new record
-						await indexedDBService.saveRecord('trains', {
-							id: train.id,
-							refNr: train.refNr,
-							rfidNr: train.rfidNr,
-							syncStatus: 'synced',
-							serverId: train.id,
-							created: train.created,
-							updated: train.updated
-						});
-					}
+					// Create new record (already filtered by date on server)
+					await indexedDBService.saveRecord('trains', {
+						id: train.id,
+						refNr: train.refNr,
+						rfidNr: train.rfidNr,
+						syncStatus: 'synced',
+						serverId: train.id,
+						created: train.created,
+						updated: train.updated
+					});
 				}
 			}
 			return true;
@@ -586,14 +740,23 @@ export const syncService = {
 		}
 	},
 
+	// ════════════════════════════════════════════════════════════════════════
+	// CONSIGNMENT SYNC METHODS
+	// ════════════════════════════════════════════════════════════════════════
 	async syncConsignmentList() {
 		try {
-			const allConsignments = await fetchAllFromPocketBase('consignments');
-			const allIndexedConsignments = await indexedDBService.getRecords('consignments');
-
 			// Calculate date threshold for old records (2 weeks ago)
 			const twoWeeksAgo = new Date();
 			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+			const twoWeeksAgoFormatted = twoWeeksAgo.toISOString().split('T')[0]; // yyyy-mm-dd
+
+			// Fetch only records from the last 2 weeks - server-side filtering
+			const allConsignments = await fetchAllFromPocketBase(
+				'consignments',
+				1000,
+				`created >= "${twoWeeksAgoFormatted}"`
+			);
+			const allIndexedConsignments = await indexedDBService.getRecords('consignments');
 
 			for (const consignment of allConsignments) {
 				const existingConsignment = allIndexedConsignments.find(
@@ -615,13 +778,7 @@ export const syncService = {
 						});
 					}
 				} else {
-					// Check if record is too old to create locally
-					const recordDate = new Date(consignment.created);
-					if (recordDate < twoWeeksAgo) {
-						continue;
-					}
-
-					// Create a new record
+					// Create new record (already filtered by date on server)
 					await indexedDBService.saveRecord('consignments', {
 						id: consignment.id,
 						name: consignment.name,
@@ -643,51 +800,23 @@ export const syncService = {
 		}
 	},
 
-	async syncConsignment(consignment: any) {
-		try {
-			const { id, syncStatus, ...payload } = consignment;
-
-			let created;
-			if (consignment.serverId) {
-				created = await pocketbaseService.update('consignments', consignment.serverId, payload);
-			} else {
-				created = await pocketbaseService.create('consignments', payload);
-			}
-
-			if (consignment.id) {
-				await indexedDBService.updateRecord('consignments', consignment.id, {
-					...consignment,
-					syncStatus: 'synced',
-					serverId: created.id,
-					siteLocation: consignment.siteLocation
-				});
-			}
-			return true;
-		} catch (err) {
-			console.warn('Failed to sync consignment with PocketBase:', err);
-			return false;
-		}
-	},
-
-	async syncPendingConsignment() {
-		const pending = await indexedDBService.getRecords(
-			'consignments',
-			(rec: { syncStatus: string }) => rec.syncStatus === 'pending'
-		);
-
-		for (const consignment of pending) {
-			await this.syncConsignment(consignment);
-		}
-	},
-
+	// ════════════════════════════════════════════════════════════════════════
+	// TRUCK LOAD SYNC METHODS
+	// ════════════════════════════════════════════════════════════════════════
 	async syncTruckLoadList() {
 		try {
-			const allTruckLoads = await fetchAllFromPocketBase('truckLoads');
-			const allIndexedTruckLoads = await indexedDBService.getRecords('truckLoads');
-
 			// Calculate date threshold for old records (2 weeks ago)
 			const twoWeeksAgo = new Date();
 			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+			const twoWeeksAgoFormatted = twoWeeksAgo.toISOString().split('T')[0]; // yyyy-mm-dd
+
+			// Fetch only records from the last 2 weeks - server-side filtering
+			const allTruckLoads = await fetchAllFromPocketBase(
+				'truckLoads',
+				1000,
+				`created >= "${twoWeeksAgoFormatted}"`
+			);
+			const allIndexedTruckLoads = await indexedDBService.getRecords('truckLoads');
 
 			for (const truckLoad of allTruckLoads) {
 				// Only match on serverId to avoid duplicates
@@ -718,13 +847,7 @@ export const syncService = {
 						});
 					}
 				} else {
-					// Check if record is too old to create locally
-					const recordDate = new Date(truckLoad.created);
-					if (recordDate < twoWeeksAgo) {
-						continue;
-					}
-
-					// Only create new records for data from other devices/sessions
+					// Create new record (already filtered by date on server)
 					await indexedDBService.saveRecord('truckLoads', {
 						id: truckLoad.id,
 						process: truckLoad.process,
@@ -790,14 +913,23 @@ export const syncService = {
 		}
 	},
 
+	// ════════════════════════════════════════════════════════════════════════
+	// TRAIN DISPATCH SYNC METHODS
+	// ════════════════════════════════════════════════════════════════════════
 	async syncTrainDispatchList() {
 		try {
-			const allTrainDispatches = await fetchAllFromPocketBase('trainDispatches');
-			const allIndexedTrainDispatches = await indexedDBService.getRecords('trainDispatches');
-
 			// Calculate date threshold for old records (2 weeks ago)
 			const twoWeeksAgo = new Date();
 			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+			const twoWeeksAgoFormatted = twoWeeksAgo.toISOString().split('T')[0]; // yyyy-mm-dd
+
+			// Fetch only records from the last 2 weeks - server-side filtering
+			const allTrainDispatches = await fetchAllFromPocketBase(
+				'trainDispatches',
+				1000,
+				`created >= "${twoWeeksAgoFormatted}"`
+			);
+			const allIndexedTrainDispatches = await indexedDBService.getRecords('trainDispatches');
 
 			for (const trainDispatch of allTrainDispatches) {
 				const existingTrainDispatch = allIndexedTrainDispatches.find(
@@ -822,13 +954,7 @@ export const syncService = {
 						});
 					}
 				} else {
-					// Check if record is too old to create locally
-					const recordDate = new Date(trainDispatch.created);
-					if (recordDate < twoWeeksAgo) {
-						continue;
-					}
-
-					// Create a new record
+					// Create new record (already filtered by date on server)
 					await indexedDBService.saveRecord('trainDispatches', {
 						id: trainDispatch.id,
 						linkedTrainId: trainDispatch.linkedTrainId,
@@ -955,7 +1081,9 @@ export const syncService = {
 		}
 	},
 
-	// ShuntingTrain sync methods
+	// ════════════════════════════════════════════════════════════════════════
+	// SHUNTING TRAIN SYNC METHODS
+	// ════════════════════════════════════════════════════════════════════════
 	async syncShuntingTrain(shuntingTrain: ShuntingTrain) {
 		try {
 			const { id, syncStatus, ...payload } = shuntingTrain;
@@ -1003,7 +1131,6 @@ export const syncService = {
 		}
 	},
 
-	// Add helper method for batch syncing
 	async syncPendingShuntingTrains() {
 		const pending = await indexedDBService.getRecords(
 			'shuntingTrains',
@@ -1017,12 +1144,18 @@ export const syncService = {
 
 	async syncShuntingTrainList() {
 		try {
-			const allShuntingTrains = await fetchAllFromPocketBase('shuntingTrains');
-			const allIndexedShuntingTrains = await indexedDBService.getRecords('shuntingTrains');
-
 			// Calculate date threshold for old records (2 weeks ago)
 			const twoWeeksAgo = new Date();
 			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+			const twoWeeksAgoFormatted = twoWeeksAgo.toISOString().split('T')[0]; // yyyy-mm-dd
+
+			// Fetch only records from the last 2 weeks - server-side filtering
+			const allShuntingTrains = await fetchAllFromPocketBase(
+				'shuntingTrains',
+				1000,
+				`created >= "${twoWeeksAgoFormatted}"`
+			);
+			const allIndexedShuntingTrains = await indexedDBService.getRecords('shuntingTrains');
 
 			for (const train of allShuntingTrains) {
 				const existingShuntingTrain = allIndexedShuntingTrains.find(
@@ -1047,13 +1180,7 @@ export const syncService = {
 						});
 					}
 				} else {
-					// Check if record is too old to create locally
-					const recordDate = new Date(train.created);
-					if (recordDate < twoWeeksAgo) {
-						continue;
-					}
-
-					// Create a new record
+					// Create new record (already filtered by date on server)
 					await indexedDBService.saveRecord('shuntingTrains', {
 						id: train.id,
 						postDate: train.postDate,
@@ -1078,89 +1205,11 @@ export const syncService = {
 		}
 	},
 
-	async syncWagonList() {
-		try {
-			const allWagons = await fetchAllFromPocketBase('wagons');
-			const allIndexedWagons = await indexedDBService.getRecords('wagons');
-
-			// Calculate date threshold for old records (2 weeks ago)
-			const twoWeeksAgo = new Date();
-			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-
-			for (const wagon of allWagons) {
-				const existingWagon = allIndexedWagons.find(
-					(w) => w.serverId === wagon.id || w.id === wagon.wagonId
-				);
-
-				if (existingWagon) {
-					// Only update if not pending
-					if (existingWagon.syncStatus !== 'pending') {
-						await indexedDBService.updateRecord('wagons', existingWagon.id, {
-							...existingWagon,
-							wagonId: wagon.wagonId,
-							sampleId: wagon.sampleId,
-							wagonIdSimple: wagon.wagonIdSimple,
-							transcoreTag: wagon.transcoreTag,
-							productType: wagon.productType,
-							wagonPhotoUrl: wagon.wagonPhotoUrl,
-							dispatchTimestamp: wagon.dispatchTimestamp,
-							sampleTimestamp: wagon.sampleTimestamp,
-							stagingTimestamp: wagon.stagingTimestamp,
-							felTimestamp: wagon.felTimestamp,
-							releaseTimestamp: wagon.releaseTimestamp,
-							trainNumber: wagon.trainNumber,
-							loadingLocation: wagon.loadingLocation,
-							wagonPosition: wagon.wagonPosition,
-							felWeight: wagon.felWeight,
-							tarpedStatus: wagon.tarpedStatus,
-							serverId: wagon.id,
-							syncStatus: 'synced',
-							created: wagon.created,
-							updated: wagon.updated
-						});
-					}
-				} else {
-					// Check if record is too old to create locally
-					const recordDate = new Date(wagon.created);
-					if (recordDate < twoWeeksAgo) {
-						continue;
-					}
-
-					// Create a new record
-					await indexedDBService.saveRecord('wagons', {
-						id: wagon.id,
-						wagonId: wagon.wagonId,
-						sampleId: wagon.sampleId,
-						wagonIdSimple: wagon.wagonIdSimple,
-						transcoreTag: wagon.transcoreTag,
-						productType: wagon.productType,
-						wagonPhotoUrl: wagon.wagonPhotoUrl,
-						dispatchTimestamp: wagon.dispatchTimestamp,
-						sampleTimestamp: wagon.sampleTimestamp,
-						stagingTimestamp: wagon.stagingTimestamp,
-						felTimestamp: wagon.felTimestamp,
-						releaseTimestamp: wagon.releaseTimestamp,
-						trainNumber: wagon.trainNumber,
-						loadingLocation: wagon.loadingLocation,
-						wagonPosition: wagon.wagonPosition,
-						felWeight: wagon.felWeight,
-						tarpedStatus: wagon.tarpedStatus,
-						serverId: wagon.id,
-						syncStatus: 'synced',
-						created: wagon.created,
-						updated: wagon.updated
-					});
-				}
-			}
-			return true;
-		} catch (err: any) {
-			if (!err?.message?.includes('autocancelled')) {
-				console.error('❌ Failed to sync wagon list:', err);
-			}
-			return false;
-		}
-	},
-
+	// ════════════════════════════════════════════════════════════════════════
+	// TRAIN ARRIVAL SYNC METHODS
+	// ════════════════════════════════════════════════════════════════════════
+	// TRUCK ARRIVAL SYNC METHODS
+	// ════════════════════════════════════════════════════════════════════════
 	async syncTruckArrival(truckArrival: TruckArrival) {
 		try {
 			const { id, syncStatus, ...payload } = truckArrival;
@@ -1235,7 +1284,6 @@ export const syncService = {
 		}
 	},
 
-	// Add helper method for batch syncing
 	async syncPendingTruckArrivals() {
 		const pending = await indexedDBService.getRecords(
 			'truckArrivals',
@@ -1249,12 +1297,18 @@ export const syncService = {
 
 	async syncTruckArrivalList() {
 		try {
-			const allTruckArrivals = await fetchAllFromPocketBase('truckArrivals');
-			const allIndexedTruckArrivals = await indexedDBService.getRecords('truckArrivals');
-
 			// Calculate date threshold for old records (2 weeks ago)
 			const twoWeeksAgo = new Date();
 			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+			const twoWeeksAgoFormatted = twoWeeksAgo.toISOString().split('T')[0]; // yyyy-mm-dd
+
+			// Fetch only records from the last 2 weeks - server-side filtering
+			const allTruckArrivals = await fetchAllFromPocketBase(
+				'truckArrivals',
+				1000,
+				`created >= "${twoWeeksAgoFormatted}"`
+			);
+			const allIndexedTruckArrivals = await indexedDBService.getRecords('truckArrivals');
 
 			for (const arrival of allTruckArrivals) {
 				const existingTruckArrival = allIndexedTruckArrivals.find(
@@ -1288,13 +1342,7 @@ export const syncService = {
 						});
 					}
 				} else {
-					// Check if record is too old to create locally
-					const recordDate = new Date(arrival.created);
-					if (recordDate < twoWeeksAgo) {
-						continue;
-					}
-
-					// Create a new record
+					// Create new record (already filtered by date on server)
 					await indexedDBService.saveRecord('truckArrivals', {
 						id: arrival.id,
 						truckId: arrival.truckId,
@@ -1326,14 +1374,23 @@ export const syncService = {
 		}
 	},
 
+	// ════════════════════════════════════════════════════════════════════════
+	// TRAIN ARRIVAL SYNC METHODS
+	// ════════════════════════════════════════════════════════════════════════
 	async syncTrainArrivalList() {
 		try {
-			const allTrainArrivals = await fetchAllFromPocketBase('trainArrivals');
-			const allIndexedTrainArrivals = await indexedDBService.getRecords('trainArrivals');
-
 			// Calculate date threshold for old records (2 weeks ago)
 			const twoWeeksAgo = new Date();
 			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+			const twoWeeksAgoFormatted = twoWeeksAgo.toISOString().split('T')[0]; // yyyy-mm-dd
+
+			// Fetch only records from the last 2 weeks - server-side filtering
+			const allTrainArrivals = await fetchAllFromPocketBase(
+				'trainArrivals',
+				1000,
+				`created >= "${twoWeeksAgoFormatted}"`
+			);
+			const allIndexedTrainArrivals = await indexedDBService.getRecords('trainArrivals');
 
 			for (const trainArrival of allTrainArrivals) {
 				const existingTrainArrival = allIndexedTrainArrivals.find(
@@ -1361,13 +1418,7 @@ export const syncService = {
 						});
 					}
 				} else {
-					// Check if record is too old to create locally
-					const recordDate = new Date(trainArrival.created);
-					if (recordDate < twoWeeksAgo) {
-						continue;
-					}
-
-					// Create a new record
+					// Create new record (already filtered by date on server)
 					await indexedDBService.saveRecord('trainArrivals', {
 						id: trainArrival.id,
 						portRailArrivalTimestamp: trainArrival.portRailArrivalTimestamp,
@@ -1467,7 +1518,6 @@ export const syncService = {
 		}
 	},
 
-	// Add helper method for batch syncing
 	async syncPendingTrainArrivals() {
 		const pending = await indexedDBService.getRecords(
 			'trainArrivals',
@@ -1479,14 +1529,23 @@ export const syncService = {
 		}
 	},
 
+	// ════════════════════════════════════════════════════════════════════════
+	// FLEET SYNC METHODS
+	// ════════════════════════════════════════════════════════════════════════
 	async syncFleetList() {
 		try {
-			const allFleets = await fetchAllFromPocketBase('fleet');
-			const allIndexedFleets = await indexedDBService.getRecords('fleet');
-
 			// Calculate date threshold for old records (2 weeks ago)
 			const twoWeeksAgo = new Date();
 			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+			const twoWeeksAgoFormatted = twoWeeksAgo.toISOString().split('T')[0]; // yyyy-mm-dd
+
+			// Fetch only records from the last 2 weeks - server-side filtering
+			const allFleets = await fetchAllFromPocketBase(
+				'fleet',
+				1000,
+				`created >= "${twoWeeksAgoFormatted}"`
+			);
+			const allIndexedFleets = await indexedDBService.getRecords('fleet');
 
 			for (const fleet of allFleets) {
 				// Only match on serverId to avoid duplicates
@@ -1516,13 +1575,7 @@ export const syncService = {
 						});
 					}
 				} else {
-					// Check if record is too old to create locally
-					const recordDate = new Date(fleet.created);
-					if (recordDate < twoWeeksAgo) {
-						continue;
-					}
-
-					// Only create new records for data from other devices/sessions
+					// Create new record (already filtered by date on server)
 					await indexedDBService.saveRecord('fleet', {
 						id: fleet.id,
 						sampleId: fleet.sampleId,
@@ -1536,7 +1589,7 @@ export const syncService = {
 						felMassKg: fleet.felMassKg,
 						siteLocation: fleet.siteLocation,
 						syncStatus: 'synced',
-						serverId: fleet.id, // PocketBase ID goes here
+						serverId: fleet.id,
 						created: fleet.created,
 						updated: fleet.updated
 					});
@@ -1587,6 +1640,9 @@ export const syncService = {
 		}
 	},
 
+	// ════════════════════════════════════════════════════════════════════════
+	// DEDICATED FLEET TRUCK SYNC METHODS
+	// ════════════════════════════════════════════════════════════════════════
 	async syncDedicatedFleetTrucks(dedicatedFleetTruck: DedicatedFleetTruck) {
 		const { id, syncStatus, ...payload } = dedicatedFleetTruck;
 		try {
@@ -1628,13 +1684,19 @@ export const syncService = {
 
 	async syncDedicatedFleetTrucksList() {
 		try {
-			const allDedicatedFleetTrucks = await fetchAllFromPocketBase('dedicatedFleetTrucks');
-			const allIndexedDedicatedFleetTrucks =
-				await indexedDBService.getRecords('dedicatedFleetTrucks');
-
 			// Calculate date threshold for old records (2 weeks ago)
 			const twoWeeksAgo = new Date();
 			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+			const twoWeeksAgoFormatted = twoWeeksAgo.toISOString().split('T')[0]; // yyyy-mm-dd
+
+			// Fetch only records from the last 2 weeks - server-side filtering
+			const allDedicatedFleetTrucks = await fetchAllFromPocketBase(
+				'dedicatedFleetTrucks',
+				1000,
+				`created >= "${twoWeeksAgoFormatted}"`
+			);
+			const allIndexedDedicatedFleetTrucks =
+				await indexedDBService.getRecords('dedicatedFleetTrucks');
 
 			for (const dedicatedFleetTruck of allDedicatedFleetTrucks) {
 				// Match on either serverId or local id
@@ -1659,13 +1721,7 @@ export const syncService = {
 						);
 					}
 				} else {
-					// Check if record is too old to create locally
-					const recordDate = new Date(dedicatedFleetTruck.created);
-					if (recordDate < twoWeeksAgo) {
-						continue;
-					}
-
-					// Create a new record only if no matching record exists
+					// Create new record (already filtered by date on server)
 					await indexedDBService.saveRecord('dedicatedFleetTrucks', {
 						id: dedicatedFleetTruck.id,
 						registration: dedicatedFleetTruck.registration,
@@ -1686,7 +1742,9 @@ export const syncService = {
 		}
 	},
 
-	// Update syncAllPending to include train dispatches
+	// ════════════════════════════════════════════════════════════════════════
+	// BATCH SYNC & CLEANUP METHODS
+	// ════════════════════════════════════════════════════════════════════════
 	async syncAllPending() {
 		await Promise.all([
 			// Sync all pending records
@@ -1705,19 +1763,21 @@ export const syncService = {
 		if (!runningList) {
 			runningList = true;
 			try {
-				// Sync records from PocketBase
-				await this.syncAssayList();
-				await this.syncConsignmentList();
-				await this.syncFleetList();
-				await this.syncShuntingTrainList();
-				await this.syncTrainArrivalList();
-				await this.syncTrainDispatchList();
-				await this.syncTrainList();
-				await this.syncTruckArrivalList();
-				await this.syncTruckLoadList();
-				await this.syncTruckList();
-				await this.syncWagonList();
-				await this.syncDedicatedFleetTrucksList();
+				// Sync records from PocketBase in parallel for better performance
+				await Promise.all([
+					this.syncAssayList(),
+					this.syncConsignmentList(),
+					this.syncFleetList(),
+					this.syncShuntingTrainList(),
+					this.syncTrainArrivalList(),
+					this.syncTrainDispatchList(),
+					this.syncTrainList(),
+					this.syncTruckArrivalList(),
+					this.syncTruckLoadList(),
+					this.syncTruckList(),
+					this.syncWagonList(),
+					this.syncDedicatedFleetTrucksList()
+				]);
 			} catch (err) {
 				console.error('Error during syncAllPending:', err);
 			} finally {
