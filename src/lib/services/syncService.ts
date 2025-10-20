@@ -73,13 +73,6 @@ async function syncDeletedRecords(collectionName: string) {
 	runningDeletedRecordsSync.add(collectionName);
 
 	try {
-		const serverIds = new Set<string>();
-		const perPage = 1000;
-		let page = 1;
-		let totalItems = 0;
-		let totalPages = 0;
-		let fetchedPages = 0;
-
 		// Collections that use 2-week filtering for SYNC but keep old records locally
 		const filteredCollectionsKeepOld = [
 			'trucks',
@@ -113,64 +106,121 @@ async function syncDeletedRecords(collectionName: string) {
 			filterString = `created >= "${twoWeeksAgoFormatted}"`;
 		}
 
-		// Fetch all server records with pagination (with filter if applicable)
-		do {
-			try {
-				const res = await pocketbaseService.list(collectionName as PBCollection, { 
-					page, 
-					perPage,
-					filterString
-				});
-				const items = res.items;
+		// This handles transient network issues or server hiccups
+		const serverCountChecks: number[] = [];
+		const serverIdsPerAttempt: Set<string>[] = [];
+				
+		for (let attempt = 1; attempt <= 3; attempt++) {
+			const attemptServerIds = new Set<string>();
+			const perPage = 1000;
+			let page = 1;
+			let totalItems = 0;
+			let totalPages = 0;
+			let fetchedPages = 0;
 
-				// Get total info from first page
-				if (page === 1) {
-					totalItems = res.totalItems || 0;
-					totalPages = res.totalPages || 0;
-					console.log(`📡 ${collectionName}: Server has ${totalItems} total records${filterString ? ' (filtered)' : ''}`);
-				}
+			// Fetch all server records with pagination (with filter if applicable)
+			do {
+				try {
+					const res = await pocketbaseService.list(collectionName as PBCollection, { 
+						page, 
+						perPage,
+						filterString
+					});
+					const items = res.items;
 
-				// Add server IDs to set
-				items.forEach((item) => serverIds.add(item.id));
-				fetchedPages++;
+					// Get total info from first page
+					if (page === 1) {
+						totalItems = res.totalItems || 0;
+						totalPages = res.totalPages || 0;
+					}
 
-				// If we get 0 items on first page, break early (collection is empty)
-				if (page === 1 && items.length === 0) {
+					// Add server IDs to set
+					items.forEach((item) => attemptServerIds.add(item.id));
+					fetchedPages++;
+
+					// If we get 0 items on first page, break early (collection is empty)
+					if (page === 1 && items.length === 0) {
+						break;
+					}
+
+					page++;
+
+					// Rate limiting delay
+					if (items.length > 0 && page <= 10) {
+						await new Promise((resolve) => setTimeout(resolve, 100));
+					}
+
+				} catch (pageErr) {
+					console.error(`❌ Failed to fetch page ${page} for ${collectionName} (attempt ${attempt}):`, pageErr);
 					break;
 				}
+			} while (page <= totalPages && page < 1000);
 
-				page++;
-
-				// Rate limiting delay
-				if (items.length > 0 && page <= 10) {
-					await new Promise((resolve) => setTimeout(resolve, 100));
-				}
-
-				// Use totalPages from response, or fallback to checking if we got a full page
-			} catch (pageErr) {
-				console.error(`❌ Failed to fetch page ${page} for ${collectionName}:`, pageErr);
-				break;
+			// Verify we fetched all pages (only if there are pages to fetch)
+			if (totalPages > 0 && fetchedPages < totalPages) {
+				console.warn(
+					`⚠️ Attempt ${attempt}: Incomplete fetch for ${collectionName}. Expected ${totalPages} pages, got ${fetchedPages}.`
+				);
 			}
-		} while (page <= totalPages && page < 1000);
 
-		// Verify we fetched all pages (only if there are pages to fetch)
-		if (totalPages > 0 && fetchedPages < totalPages) {
-			console.warn(
-				`⚠️ Incomplete fetch for ${collectionName}. Expected ${totalPages} pages, got ${fetchedPages}. Aborting deletions to be safe.`
-			);
-			return false;
+			serverCountChecks.push(attemptServerIds.size);
+			serverIdsPerAttempt.push(attemptServerIds);
+			console.log(`📡 Attempt ${attempt}/${3}: ${collectionName} returned ${attemptServerIds.size} records${filterString ? ' (filtered)' : ''}`);
+
+			// Small delay between attempts
+			if (attempt < 3) {
+				await new Promise((resolve) => setTimeout(resolve, 500));
+			}
 		}
 
-		// If server has 0 records, we should delete all local records (except pending)
-		if (totalItems === 0 && serverIds.size === 0) {
-			console.log(`🗑️ Server has 0 records for ${collectionName}. Deleting all non-pending local records.`);
-		}
+		// Use the attempt with the MAXIMUM count (most reliable)
+		const maxCount = Math.max(...serverCountChecks);
+		const maxIndex = serverCountChecks.indexOf(maxCount);
+		const serverIds = serverIdsPerAttempt[maxIndex];
 
 		// Get local records with serverIds
 		let localRecords = await indexedDBService.getRecords(
 			collectionName as any,
 			(rec: { serverId?: string; syncStatus?: string }) => !!rec.serverId
 		);
+
+		// SAFETY CHECK: If max count is 0 but we have many local records, this is suspicious
+		if (maxCount === 0 && localRecords.length > 10) {
+			if (isFiltered) {
+				// For filtered collections, check if we have recent records
+				const twoWeeksAgo = new Date();
+				twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+				
+				const recentLocalRecords = localRecords.filter((rec: any) => {
+					if (!rec.created) return false;
+					const createdDate = new Date(rec.created);
+					return createdDate >= twoWeeksAgo;
+				});
+				
+				if (recentLocalRecords.length > 0) {
+					console.error(
+						`🛑 SAFETY ABORT: All 3 attempts returned 0 records for ${collectionName} but we have ${recentLocalRecords.length} RECENT local records. Server/network issue. Aborting deletions.`
+					);
+					return false;
+				} else {
+					return true;
+				}
+			} else {
+				console.error(
+					`🛑 SAFETY ABORT: All 3 attempts returned 0 records for ${collectionName} but we have ${localRecords.length} local records. Server/network issue. Aborting deletions.`
+				);
+				return false;
+			}
+		}
+
+		// SAFETY CHECK: If we're about to delete more than 50% of records, abort
+		const localSyncedCount = localRecords.filter((rec: any) => rec.syncStatus === 'synced').length;
+		if (localSyncedCount > 100 && maxCount < localSyncedCount * 0.5) {
+			console.error(
+				`🛑 SAFETY ABORT: Max server count is ${maxCount} but we have ${localSyncedCount} synced local records for ${collectionName}. This looks like an incomplete fetch (< 50%). Aborting deletions.`
+			);
+			return false;
+		}
 
 		// For filtered collections, only check records within the date range
 		if (isFiltered) {
@@ -189,6 +239,17 @@ async function syncDeletedRecords(collectionName: string) {
 		const recordsToDelete = localRecords.filter(
 			(rec) => rec.syncStatus !== 'pending' && !serverIds.has(rec.serverId!)
 		);
+
+		// SAFETY CHECK: If we're about to delete more than 50% of records, abort
+		if (recordsToDelete.length > 0 && localRecords.length > 50) {
+			const deletionPercentage = (recordsToDelete.length / localRecords.length) * 100;
+			if (deletionPercentage > 50) {
+				console.error(
+					`🛑 SAFETY ABORT: Would delete ${recordsToDelete.length}/${localRecords.length} records (${deletionPercentage.toFixed(1)}%) for ${collectionName}. This is > 50% and looks unsafe. Aborting deletions.`
+				);
+				return false;
+			}
+		}
 
 		// Delete records missing from server (these were deleted on server)
 		if (recordsToDelete.length > 0) {
@@ -227,7 +288,7 @@ async function syncDeletedRecords(collectionName: string) {
 					}
 				}
 			}
-		}
+		}	
 		return true;
 	} catch (err) {
 		console.warn(`❌ Failed to reconcile deletions for ${collectionName}:`, err);
