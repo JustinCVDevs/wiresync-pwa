@@ -56,16 +56,24 @@
 		);
 		let max = 0;
 
-		for (const rec of allFleet) {
-			const createdTs = rec.created ? new Date(rec.created).getTime() : NaN;
-			if (Number.isNaN(createdTs)) continue;
-			if (createdTs < startOfDay || createdTs > endOfDay) continue;
+		for (const rec of allFleet) {			
+			// Parse the created date
+			const createdDate = rec.created ? new Date(rec.created) : null;
+			if (!createdDate || isNaN(createdDate.getTime())) continue;
 
-			const n = Number(rec.sampleNumber);
-			if (Number.isFinite(n) && n > max) max = Math.floor(n);
+			// Get timestamp for comparison
+			const createdTs = createdDate.getTime();
+
+			// Check if the record was created today (between startOfDay and endOfDay)
+			if (createdTs >= startOfDay && createdTs <= endOfDay) {
+				const n = Number(rec.sampleNumber);
+				if (Number.isFinite(n) && n > max) {
+					max = Math.floor(n);
+				}
+			}
 		}
 
-		// no fallback: always return highest found + 1 (will be 1 if none found)
+		// Return highest found + 1 (will be 1 if none found today)
 		sampleNumberGravelotte = max + 1;
 		return sampleNumberGravelotte;
 	}
