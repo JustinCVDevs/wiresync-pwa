@@ -149,6 +149,8 @@
 			processLayout.setError('');
 			processLayout.setSuccess('');
 
+			await getSampleNumberFromFleet();
+
 			// Save the selected productType to localStorage
 			localStorage.setItem('gravelotte-productType', productType);
 
