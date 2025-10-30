@@ -76,155 +76,73 @@ async function syncDeletedRecords(collectionName: string) {
 		const serverIds = new Set<string>();
 		const perPage = 1000;
 		let page = 1;
-		let totalItems = 0;
+		const perPage = 1000;
+		let allServerRecords: any[] = [];
 		let totalPages = 0;
-		let fetchedPages = 0;
-
 		// Collections that use 2-week filtering for SYNC but keep old records locally
 		const filteredCollectionsKeepOld = [
-			'trucks',
-			'trains',
-			'consignments',
-			'dedicatedFleetTrucks'
-		];
-
-		// Collections that use 2-week filtering AND allow old records to be removed
 		const filteredCollectionsRemoveOld = [
-			'assays',
-			'wagons',
-			'fleet',
-			'truckLoads',
-			'trainDispatches',
-			'shuntingTrains',
-			'truckArrivals',
-			'trainArrivals'
-		];
-
-		const isFilteredKeepOld = filteredCollectionsKeepOld.includes(collectionName);
-		const isFilteredRemoveOld = filteredCollectionsRemoveOld.includes(collectionName);
-		const isFiltered = isFilteredKeepOld || isFilteredRemoveOld;
-
-		// Calculate 2-week threshold for filtered collections
-		let filterString: string | undefined;
-		if (isFiltered) {
-			const twoWeeksAgo = new Date();
-			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-			const twoWeeksAgoFormatted = twoWeeksAgo.toISOString().split('T')[0];
-			filterString = `created >= "${twoWeeksAgoFormatted}"`;
-		}
-
-		// Fetch all server records with pagination (with filter if applicable)
 		do {
-			try {
-				const res = await pocketbaseService.list(collectionName as PBCollection, { 
-					page, 
-					perPage,
-					filterString
-				});
-				const items = res.items;
-
-				// Get total info from first page
-				if (page === 1) {
-					totalItems = res.totalItems || 0;
-					totalPages = res.totalPages || 0;
-					console.log(`📡 ${collectionName}: Server has ${totalItems} total records${filterString ? ' (filtered)' : ''}`);
-				}
-
-				// Add server IDs to set
-				items.forEach((item) => serverIds.add(item.id));
-				fetchedPages++;
-
-				// If we get 0 items on first page, break early (collection is empty)
-				if (page === 1 && items.length === 0) {
-					break;
-				}
-
-				page++;
-
-				// Rate limiting delay
-				if (items.length > 0 && page <= 10) {
-					await new Promise((resolve) => setTimeout(resolve, 100));
-				}
-
-				// Use totalPages from response, or fallback to checking if we got a full page
-			} catch (pageErr) {
-				console.error(`❌ Failed to fetch page ${page} for ${collectionName}:`, pageErr);
-				break;
+			const res = await pocketbaseService.list(collectionName as PBCollection, {
+				page,
+				perPage
+			});
+			if (page === 1) {
+				totalPages = res.totalPages || 0;
+			}
+			allServerRecords = allServerRecords.concat(res.items);
+			page++;
+			if (res.items.length > 0 && page <= 10) {
+				await new Promise((resolve) => setTimeout(resolve, 100));
 			}
 		} while (page <= totalPages && page < 1000);
 
-		// Verify we fetched all pages (only if there are pages to fetch)
-		if (totalPages > 0 && fetchedPages < totalPages) {
-			console.warn(
-				`⚠️ Incomplete fetch for ${collectionName}. Expected ${totalPages} pages, got ${fetchedPages}. Aborting deletions to be safe.`
-			);
-			return false;
-		}
+		const serverIds = new Set<string>(allServerRecords.map((item) => item.id));
 
-		// If server has 0 records, we should delete all local records (except pending)
-		if (totalItems === 0 && serverIds.size === 0) {
-			console.log(`🗑️ Server has 0 records for ${collectionName}. Deleting all non-pending local records.`);
-		}
-
-		// Get local records with serverIds
-		let localRecords = await indexedDBService.getRecords(
+		// Fetch ALL local records (no date filter)
+		const allLocalRecords = await indexedDBService.getRecords(
 			collectionName as any,
-			(rec: { serverId?: string; syncStatus?: string }) => !!rec.serverId
+			(rec: { serverId?: string }) => !!rec.serverId
 		);
 
-		// For filtered collections, only check records within the date range
-		if (isFiltered) {
-			const twoWeeksAgo = new Date();
-			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-			
-			const beforeFilter = localRecords.length;
-			localRecords = localRecords.filter((rec: any) => {
-				if (!rec.created) return false;
-				const createdDate = new Date(rec.created);
-				return createdDate >= twoWeeksAgo;
-			});
+		// 1. Remove all local records that don't exist on the server (unless syncStatus = 'pending')
+		const recordsToDelete = allLocalRecords.filter(
+			(rec: any) => rec.syncStatus !== 'pending' && !serverIds.has(rec.serverId!)
+		);
+		for (const rec of recordsToDelete) {
+			try {
+				await indexedDBService.deleteRecord(collectionName as any, rec.id);
+			} catch (err) {
+				console.warn(`⚠️ Failed to delete record ${rec.id} from ${collectionName}:`, err);
+			}
 		}
 
-		// Calculate potential deletions (excluding pending records)
-		const recordsToDelete = localRecords.filter(
-			(rec) => rec.syncStatus !== 'pending' && !serverIds.has(rec.serverId!)
+		// 2. Apply 2-week filter to server records
+		const twoWeeksAgo = new Date();
+		twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+		const filteredServerIds = new Set(
+			allServerRecords
+				.filter((item) => {
+					if (!item.created) return false;
+					const createdDate = new Date(item.created);
+					return createdDate >= twoWeeksAgo;
+				})
+				.map((item) => item.id)
 		);
 
-		// Delete records missing from server (these were deleted on server)
-		if (recordsToDelete.length > 0) {
-			for (const rec of recordsToDelete) {
+		// 3. Remove local records that match the filtered (recent) server records
+		const neverDeleteOld = ['trucks', 'trains', 'consignments', 'dedicatedFleetTrucks'];
+		if (!neverDeleteOld.includes(collectionName)) {
+			const localRecordsToDelete = allLocalRecords.filter((rec: any) => {
+				if (rec.syncStatus === 'pending') return false;
+				// If the local record's serverId is in the filtered (recent) server records, delete it
+				return filteredServerIds.has(rec.serverId!);
+			});
+			for (const rec of localRecordsToDelete) {
 				try {
 					await indexedDBService.deleteRecord(collectionName as any, rec.id);
 				} catch (err) {
-					console.warn(`⚠️ Failed to delete record ${rec.id} from ${collectionName}:`, err);
-				}
-			}
-		}
-		
-		// For collections that allow old record removal, delete records older than 2 weeks
-		if (isFilteredRemoveOld) {
-			const twoWeeksAgo = new Date();
-			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-
-			// Get ALL local records (not just the filtered ones)
-			const allLocalRecords = await indexedDBService.getRecords(
-				collectionName as any,
-				(rec: { serverId?: string; syncStatus?: string; created?: string }) => !!rec.serverId
-			);
-
-			const oldRecords = allLocalRecords.filter((rec: any) => {
-				if (!rec.created || rec.syncStatus === 'pending') return false;
-				const recordDate = new Date(rec.created);
-				return recordDate < twoWeeksAgo;
-			});
-
-			if (oldRecords.length > 0) {
-				for (const rec of oldRecords) {
-					try {
-						await indexedDBService.deleteRecord(collectionName as any, rec.id);
-					} catch (err) {
-						console.warn(`⚠️ Failed to delete old record ${rec.id} from ${collectionName}:`, err);
-					}
+					console.warn(`⚠️ Failed to delete recent record ${rec.id} from ${collectionName}:`, err);
 				}
 			}
 		}
@@ -592,17 +510,8 @@ export const syncService = {
 	// ════════════════════════════════════════════════════════════════════════
 	async syncTruckList() {
 		try {
-			// Calculate date threshold for old records (2 weeks ago)
-			const twoWeeksAgo = new Date();
-			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-			const twoWeeksAgoFormatted = twoWeeksAgo.toISOString().split('T')[0]; // yyyy-mm-dd
-
 			// Fetch only records from the last 2 weeks - server-side filtering
-			const allTrucks = await fetchAllFromPocketBase(
-				'trucks',
-				1000,
-				`created >= "${twoWeeksAgoFormatted}"`
-			);
+			const allTrucks = await fetchAllFromPocketBase('trucks', 1000);
 			const allIndexedTrucks = await indexedDBService.getRecords('trucks');
 
 			for (const truck of allTrucks) {
@@ -689,17 +598,8 @@ export const syncService = {
 	// ════════════════════════════════════════════════════════════════════════
 	async syncTrainList() {
 		try {
-			// Calculate date threshold for old records (2 weeks ago)
-			const twoWeeksAgo = new Date();
-			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-			const twoWeeksAgoFormatted = twoWeeksAgo.toISOString().split('T')[0]; // yyyy-mm-dd
-
-			// Fetch only records from the last 2 weeks - server-side filtering
-			const allTrains = await fetchAllFromPocketBase(
-				'trains',
-				1000,
-				`created >= "${twoWeeksAgoFormatted}"`
-			);
+			// Fetch all trains from Pocketbase (no date filter)
+			const allTrains = await fetchAllFromPocketBase('trains', 1000);
 			const allIndexedTrains = await indexedDBService.getRecords('trains');
 
 			for (const train of allTrains) {
@@ -747,17 +647,8 @@ export const syncService = {
 	// ════════════════════════════════════════════════════════════════════════
 	async syncConsignmentList() {
 		try {
-			// Calculate date threshold for old records (2 weeks ago)
-			const twoWeeksAgo = new Date();
-			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-			const twoWeeksAgoFormatted = twoWeeksAgo.toISOString().split('T')[0]; // yyyy-mm-dd
-
-			// Fetch only records from the last 2 weeks - server-side filtering
-			const allConsignments = await fetchAllFromPocketBase(
-				'consignments',
-				1000,
-				`created >= "${twoWeeksAgoFormatted}"`
-			);
+			// Fetch all consignments from Pocketbase (no date filter)
+			const allConsignments = await fetchAllFromPocketBase('consignments', 1000);
 			const allIndexedConsignments = await indexedDBService.getRecords('consignments');
 
 			for (const consignment of allConsignments) {
@@ -1209,8 +1100,6 @@ export const syncService = {
 
 	// ════════════════════════════════════════════════════════════════════════
 	// TRAIN ARRIVAL SYNC METHODS
-	// ════════════════════════════════════════════════════════════════════════
-	// TRUCK ARRIVAL SYNC METHODS
 	// ════════════════════════════════════════════════════════════════════════
 	async syncTruckArrival(truckArrival: TruckArrival) {
 		try {
@@ -1686,17 +1575,8 @@ export const syncService = {
 
 	async syncDedicatedFleetTrucksList() {
 		try {
-			// Calculate date threshold for old records (2 weeks ago)
-			const twoWeeksAgo = new Date();
-			twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-			const twoWeeksAgoFormatted = twoWeeksAgo.toISOString().split('T')[0]; // yyyy-mm-dd
-
-			// Fetch only records from the last 2 weeks - server-side filtering
-			const allDedicatedFleetTrucks = await fetchAllFromPocketBase(
-				'dedicatedFleetTrucks',
-				1000,
-				`created >= "${twoWeeksAgoFormatted}"`
-			);
+			// Fetch all dedicated fleet trucks from Pocketbase (no date filter)
+			const allDedicatedFleetTrucks = await fetchAllFromPocketBase('dedicatedFleetTrucks', 1000);
 			const allIndexedDedicatedFleetTrucks =
 				await indexedDBService.getRecords('dedicatedFleetTrucks');
 
@@ -1780,7 +1660,7 @@ export const syncService = {
 					this.syncWagonList(),
 					this.syncDedicatedFleetTrucksList()
 				]);
-				
+
 				// Update last sync completion time
 				lastSyncCompletedTime = Date.now();
 			} catch (err) {
@@ -1807,12 +1687,14 @@ export const syncService = {
 
 		// Wait at least 5 seconds after last sync completed to avoid race conditions
 		if (timeSinceLastSync < 5000) {
-			console.log(`⏸️ Skipping deletion check - last sync completed ${Math.round(timeSinceLastSync / 1000)}s ago`);
+			console.log(
+				`⏸️ Skipping deletion check - last sync completed ${Math.round(timeSinceLastSync / 1000)}s ago`
+			);
 			return;
 		}
 
 		console.log('🧹 Starting deletion check for all collections...');
-		
+
 		// Delete records that no longer exist on the server
 		const collections = [
 			'assays',
