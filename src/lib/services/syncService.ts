@@ -73,15 +73,11 @@ async function syncDeletedRecords(collectionName: string) {
 	runningDeletedRecordsSync.add(collectionName);
 
 	try {
-		const serverIds = new Set<string>();
-		const perPage = 1000;
+		// Fetch ALL server records (no date filter)
 		let page = 1;
 		const perPage = 1000;
 		let allServerRecords: any[] = [];
 		let totalPages = 0;
-		// Collections that use 2-week filtering for SYNC but keep old records locally
-		const filteredCollectionsKeepOld = [
-		const filteredCollectionsRemoveOld = [
 		do {
 			const res = await pocketbaseService.list(collectionName as PBCollection, {
 				page,
