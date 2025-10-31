@@ -28,55 +28,22 @@
 	let dedicatedFleetTrucks: DedicatedFleetTruck[] = [];
 	let productTypes = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite 62%', 'Magnetite 65%'];
 
-	// Function to determine today's (00:00-23:59) next sample number from the fleet table
-	async function getSampleNumberFromFleet() {
-		const now = new Date();
-		const startOfDay = new Date(
-			now.getFullYear(),
-			now.getMonth(),
-			now.getDate(),
-			0,
-			0,
-			0,
-			0
-		).getTime();
-		const endOfDay = new Date(
-			now.getFullYear(),
-			now.getMonth(),
-			now.getDate(),
-			23,
-			59,
-			59,
-			999
-		).getTime();
+		// Function to generate and fetch the next sample number locally, resetting at 00:00
+		function getSampleNumberFromFleet() {
+			const now = new Date();
+			const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+			const storedDate = localStorage.getItem('gravelotte-sampleNumber-date');
+			let sampleNumber = 1;
 
-		// load all fleet records and compute highest numeric sampleNumber for the selected loadingLocation within today
-		const allFleet = (await indexedDBService.getRecords('fleet')).filter(
-			(fleet: Fleet) => fleet.loadingLocation === 'Gravelotte'
-		);
-		let max = 0;
-
-		for (const rec of allFleet) {			
-			// Parse the created date
-			const createdDate = rec.created ? new Date(rec.created) : null;
-			if (!createdDate || isNaN(createdDate.getTime())) continue;
-
-			// Get timestamp for comparison
-			const createdTs = createdDate.getTime();
-
-			// Check if the record was created today (between startOfDay and endOfDay)
-			if (createdTs >= startOfDay && createdTs <= endOfDay) {
-				const n = Number(rec.sampleNumber);
-				if (Number.isFinite(n) && n > max) {
-					max = Math.floor(n);
-				}
+			if (storedDate === todayStr) {
+				sampleNumber = Number(localStorage.getItem('gravelotte-sampleNumber') || '1') + 1;
 			}
-		}
 
-		// Return highest found + 1 (will be 1 if none found today)
-		sampleNumberGravelotte = max + 1;
-		return sampleNumberGravelotte;
-	}
+			localStorage.setItem('gravelotte-sampleNumber', String(sampleNumber));
+			localStorage.setItem('gravelotte-sampleNumber-date', todayStr);
+			sampleNumberGravelotte = sampleNumber;
+			return sampleNumberGravelotte;
+		}
 
 	async function getTrucks() {
 		trucks = await indexedDBService.getAllRecords('trucks');
@@ -95,7 +62,7 @@
 		try {
 			await getTrucks();
 			await getDedicatedFleetTruck();
-			await getSampleNumberFromFleet();
+			getSampleNumberFromFleet();
 		} catch (err) {
 			console.error('Failed to load trucks from IndexedDB or initialize sample number:', err);
 			error = 'Failed to load truck records or sample number';
@@ -149,7 +116,7 @@
 			processLayout.setError('');
 			processLayout.setSuccess('');
 
-			await getSampleNumberFromFleet();
+			getSampleNumberFromFleet();
 
 			// Save the selected productType to localStorage
 			localStorage.setItem('gravelotte-productType', productType);
