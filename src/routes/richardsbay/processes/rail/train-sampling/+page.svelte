@@ -53,7 +53,6 @@
 		try {
 			if (!selectedTrain) {
 				processLayout.setError('Please select a train reference number.');
-				isSubmitting = false;
 				return;
 			}
 			let train = (await indexedDBService.getAllRecords('trains')).find(

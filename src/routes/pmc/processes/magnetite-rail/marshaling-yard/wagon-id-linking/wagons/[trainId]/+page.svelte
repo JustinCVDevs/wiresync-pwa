@@ -16,6 +16,7 @@
 	let isLoading = true;
 	let trainId = $page.params.trainId;
 	let dataRefreshKey = 0;
+	let isSubmitting = false;
 
 	const steps = ['Select Shunting Train', 'Wagon Linking'];
 	let currentStep = 2;
@@ -165,6 +166,8 @@
 	// Complete verification and navigate back to processes
 	async function handleSubmit() {
 		try {
+			isSubmitting = true;
+
 			if (shuntingTrain) {
 				// Update the shunting train with verification timestamp
 				await indexedDBService.updateRecord('shuntingTrains', shuntingTrain.id, {
@@ -181,6 +184,8 @@
 		} catch (e: any) {
 			console.error(e);
 			error = 'Failed to complete process';
+		} finally {
+			isSubmitting = false;
 		}
 	}
 
@@ -200,7 +205,7 @@
 	title="Wagon Details"
 	{steps}
 	{currentStep}
-	isSubmitting={isLoading}
+	{isSubmitting}
 	cancelPath="/pmc/processes/magnetite-rail/marshaling-yard/wagon-id-linking"
 	on:cancel={() => goto('/pmc/processes/magnetite-rail/marshaling-yard/wagon-id-linking')}
 	on:submit={handleSubmit}

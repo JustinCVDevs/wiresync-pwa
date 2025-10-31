@@ -10,6 +10,7 @@
 	let error = '';
 	let processLayout: ProcessLayout;
 	let currentStep = 1;
+	let isSubmitting = false;
 
 	let truckInput = '';
 	let availableTrucks: any[] = [];
@@ -39,6 +40,8 @@
 		try {
 			processLayout.setError('');
 			processLayout.setSuccess('');
+			isSubmitting = true;
+
 			if (selectedTruck) {
 				const truck = availableTrucks.find(truck => truck.registration === selectedTruck);
 
@@ -66,6 +69,9 @@
 		} catch (err) {
 			error = 'Failed to submit data';
 			console.error(err);
+			processLayout.setError(error);
+		} finally {
+			isSubmitting = false;
 		}
 	}
 
@@ -77,7 +83,7 @@
     title="Copper Concentrate"
     {steps}
     {currentStep}
-    isSubmitting={false}
+    {isSubmitting}
     bind:this={processLayout}
     cancelPath="/pmc/processes/concentrator-&-smelter/unrefined-copper/reverts"
     on:cancel={handleCancel}
