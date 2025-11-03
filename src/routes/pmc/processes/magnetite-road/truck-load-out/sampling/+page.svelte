@@ -236,8 +236,6 @@
 
 				// Save truckLoad
 				await indexedDBService.saveRecord('truckLoads', truckLoad);
-				// Sync in background
-				syncService.syncTruckLoad(truckLoad).catch(console.warn);
 
 				const assay: Assay = {
 					id: crypto.randomUUID(),
