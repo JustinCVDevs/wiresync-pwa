@@ -71,7 +71,6 @@
 		try {
 			if (!selectedTrain) {
 				processLayout.setError('Please select a train reference number.');
-				isSubmitting = false;
 				return;
 			}
 			const train = (await indexedDBService.getAllRecords('trains')).find(
@@ -83,7 +82,6 @@
 			);
 			if (!trainArrival) {
 				processLayout.setError('Train arrival not found.');
-				isSubmitting = false;
 				return;
 			}
 

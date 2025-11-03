@@ -50,7 +50,6 @@
 		try {
 			if (!selectedTrain) {
 				processLayout.setError('Please select a train reference number.');
-				isSubmitting = false;
 				return;
 			}
 			let shuntingTrain = (await indexedDBService.getAllRecords('shuntingTrains')).find(
@@ -59,7 +58,6 @@
 
 			if (!shuntingTrain) {
 				processLayout.setError(`No shunting train found.`);
-				isSubmitting = false;
 				return;
 			}
 
@@ -72,7 +70,6 @@
 
 				if (wagon?.sampleTimestamp) {
 					goto(`/pmc/processes/magnetite-rail/east-load-out/sampling/wagons/review?shuntingTrainVerificationDate=${selectedTrain}`);
-					isSubmitting = false;
 					return;
 				}
 			}

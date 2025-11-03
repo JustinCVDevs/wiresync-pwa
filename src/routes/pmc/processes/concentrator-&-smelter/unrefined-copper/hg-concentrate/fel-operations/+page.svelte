@@ -10,6 +10,7 @@
 	let error = '';
 	let processLayout: ProcessLayout;
 	let currentStep = 1;
+	let isSubmitting = false;
 
 	let truckInput = '';
 	let availableTrucks: any[] = [];
@@ -34,6 +35,7 @@
 
 	async function handleSubmit() {
 		try {
+			isSubmitting = true;
 			processLayout.setError('');
 			processLayout.setSuccess('');
 			if (selectedTruck) {
@@ -63,6 +65,9 @@
 		} catch (err) {
 			error = 'Failed to submit data';
 			console.error(err);
+			processLayout.setError(error);
+		} finally {
+			isSubmitting = false;
 		}
 	}
 
@@ -74,7 +79,7 @@
     title="Copper Concentrate"
     {steps}
     {currentStep}
-    isSubmitting={false}
+    {isSubmitting}
     bind:this={processLayout}
     cancelPath="/pmc/processes/concentrator-&-smelter/unrefined-copper/hg-concentrate"
     on:cancel={handleCancel}

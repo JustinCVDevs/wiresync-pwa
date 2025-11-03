@@ -16,6 +16,7 @@
 	let isLoading = true;
 	let trainId = $page.params.trainId;
 	let dataRefreshKey = 0;
+	let isSubmitting = false;
 
 	const steps = ['Select Shunting Train', 'Wagon Linking'];
 	let currentStep = 2;
@@ -114,6 +115,7 @@
 			}
 		} finally {
 			isLoading = false;
+			isSubmitting = false;
 			isReloading = false;
 		}
 	}
@@ -195,7 +197,7 @@
 	title="Wagon Details"
 	{steps}
 	{currentStep}
-	isSubmitting={isLoading}
+	{isSubmitting}
 	cancelPath="/bosveld/processes/marshaling-yard"
 	on:cancel={() => goto('/bosveld/processes/marshaling-yard')}
 	on:submit={handleSubmit}

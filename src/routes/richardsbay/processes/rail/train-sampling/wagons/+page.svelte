@@ -105,7 +105,6 @@
 
 			if (!wagonToUse) {
 				processLayout.setError('Wagon Not in Pre-Registration List');
-				isSubmitting = false;
 				return;
 			}
 

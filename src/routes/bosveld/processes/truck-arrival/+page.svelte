@@ -104,7 +104,6 @@
 
 			if (!photoData) {
 				processLayout.setError('Please take a photo of the truck.');
-				isSubmitting = false;
 				return;
 			}
 
@@ -114,7 +113,6 @@
 
 			if (!trucks) {
 				processLayout.setError('Truck not found. Please select a valid truck.');
-				isSubmitting = false;
 				return;
 			}
 
@@ -125,7 +123,6 @@
 
 			if (!truckArrival) {
 				processLayout.setError('No matching truck arrivals found for this registration.');
-				isSubmitting = false;
 				return;
 			}
 

@@ -11,6 +11,7 @@
 	let error = '';
 	let success = '';
 	let isLoading = true;
+	let isSubmitting = false;
 
 	const steps = ['Select Shunting Train', 'Wagon Linking'];
 	let currentStep = 1;
@@ -46,6 +47,8 @@
 		}
 
 		try {
+			isSubmitting = true;
+
 			// Find the selected train object
 			const selectedTrainObj = shuntingTrains.find(train => 
 				train.postDate ? new Date(train.postDate).toISOString() === selectedTrain : false
@@ -61,7 +64,9 @@
 		} catch (e: any) {
 			console.error(e);
 			error = 'Failed to process selection';
-		}
+		} finally {
+			isSubmitting = false;
+		}	
 	}
 
 	function formatDate(date: Date | undefined): string {
@@ -84,7 +89,7 @@
 	title="Wagon ID Linking"
 	{steps}
 	{currentStep}
-	isSubmitting={isLoading}
+	{isSubmitting}
 	cancelPath="/bosveld/processes/marshaling-yard"
 	on:cancel={handleCancel}
 	on:submit={handleSubmit}
