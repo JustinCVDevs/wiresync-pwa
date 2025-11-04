@@ -166,6 +166,13 @@
 				);
 				const linkedTruck = linkedTrucks[0];
 
+				// Format current date as yyyy/mm/dd
+				const now = new Date();
+				const yyyy = now.getFullYear();
+				const mm = String(now.getMonth() + 1).padStart(2, '0');
+				const dd = String(now.getDate()).padStart(2, '0');
+				const formattedDate = `${yyyy}/${mm}/${dd}`;
+
 				// Create fleet object
 				const fleet: Fleet = {
 					id: crypto.randomUUID(),
@@ -176,7 +183,7 @@
 					felMassKg: 0,
 					sampleNumber: sampleNumberTruck,
 					loadingLocation: loadingLocation,
-					loadingHour: loadingTime,
+					loadingHour: `${formattedDate} ${loadingTime}`,
 					syncStatus: 'pending',
 					siteLocation: 'PMC',
 					created: new Date()

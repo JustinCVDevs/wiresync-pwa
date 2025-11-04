@@ -28,22 +28,22 @@
 	let dedicatedFleetTrucks: DedicatedFleetTruck[] = [];
 	let productTypes = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite 62%', 'Magnetite 65%'];
 
-		// Function to generate and fetch the next sample number locally, resetting at 00:00
-		function getSampleNumberFromFleet() {
-			const now = new Date();
-			const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-			const storedDate = localStorage.getItem('gravelotte-sampleNumber-date');
-			let sampleNumber = 1;
+	// Function to generate and fetch the next sample number locally, resetting at 00:00
+	function getSampleNumberFromFleet() {
+		const now = new Date();
+		const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+		const storedDate = localStorage.getItem('gravelotte-sampleNumber-date');
+		let sampleNumber = 1;
 
-			if (storedDate === todayStr) {
-				sampleNumber = Number(localStorage.getItem('gravelotte-sampleNumber') || '1') + 1;
-			}
-
-			localStorage.setItem('gravelotte-sampleNumber', String(sampleNumber));
-			localStorage.setItem('gravelotte-sampleNumber-date', todayStr);
-			sampleNumberGravelotte = sampleNumber;
-			return sampleNumberGravelotte;
+		if (storedDate === todayStr) {
+			sampleNumber = Number(localStorage.getItem('gravelotte-sampleNumber') || '1') + 1;
 		}
+
+		localStorage.setItem('gravelotte-sampleNumber', String(sampleNumber));
+		localStorage.setItem('gravelotte-sampleNumber-date', todayStr);
+		sampleNumberGravelotte = sampleNumber;
+		return sampleNumberGravelotte;
+	}
 
 	async function getTrucks() {
 		trucks = await indexedDBService.getAllRecords('trucks');
@@ -131,6 +131,13 @@
 				);
 				const linkedTruck = linkedTrucks[0];
 
+				// Format current date as yyyy/mm/dd
+				const now = new Date();
+				const yyyy = now.getFullYear();
+				const mm = String(now.getMonth() + 1).padStart(2, '0');
+				const dd = String(now.getDate()).padStart(2, '0');
+				const formattedDate = `${yyyy}/${mm}/${dd}`;
+
 				// Create fleet object
 				const fleet: Fleet = {
 					id: crypto.randomUUID(),
@@ -141,7 +148,7 @@
 					felMassKg: 0,
 					sampleNumber: sampleNumberGravelotte,
 					loadingLocation: loadingLocation,
-					loadingHour: loadingTime,
+					loadingHour: `${formattedDate} ${loadingTime}`,
 					syncStatus: 'pending',
 					siteLocation: 'PMC',
 					created: new Date()
@@ -243,7 +250,7 @@
 	title="Gravelotte"
 	{steps}
 	{currentStep}
-	isSubmitting={isSubmitting}
+	{isSubmitting}
 	bind:this={processLayout}
 	cancelPath="/pmc/processes/magnetite-road/gravelotte"
 	on:cancel={handleCancel}
