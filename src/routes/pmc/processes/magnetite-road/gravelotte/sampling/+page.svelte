@@ -28,21 +28,36 @@
 	let dedicatedFleetTrucks: DedicatedFleetTruck[] = [];
 	let productTypes = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite 62%', 'Magnetite 65%'];
 
-	// Function to generate and fetch the next sample number locally, resetting at 00:00
-	function getSampleNumberFromFleet() {
+	// Get the current sample number from localStorage, reset at 00:00 if needed, but do NOT increment
+	function getSampleNumberFromLocalStorage() {
 		const now = new Date();
 		const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 		const storedDate = localStorage.getItem('gravelotte-sampleNumber-date');
 		let sampleNumber = 1;
 
 		if (storedDate === todayStr) {
+			sampleNumber = Number(localStorage.getItem('gravelotte-sampleNumber') || '1');
+		} else {
+			// New day, reset sample number
+			localStorage.setItem('gravelotte-sampleNumber', '1');
+			localStorage.setItem('gravelotte-sampleNumber-date', todayStr);
+			sampleNumber = 1;
+		}
+		sampleNumberGravelotte = sampleNumber + 1;
+		return sampleNumberGravelotte;
+	}
+
+	// Increment the sample number in localStorage (call this only on submit)
+	function incrementSampleNumberInLocalStorage() {
+		const now = new Date();
+		const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+		const storedDate = localStorage.getItem('gravelotte-sampleNumber-date');
+		let sampleNumber = 1;
+		if (storedDate === todayStr) {
 			sampleNumber = Number(localStorage.getItem('gravelotte-sampleNumber') || '1') + 1;
 		}
-
 		localStorage.setItem('gravelotte-sampleNumber', String(sampleNumber));
 		localStorage.setItem('gravelotte-sampleNumber-date', todayStr);
-		sampleNumberGravelotte = sampleNumber;
-		return sampleNumberGravelotte;
 	}
 
 	async function getTrucks() {
@@ -62,7 +77,7 @@
 		try {
 			await getTrucks();
 			await getDedicatedFleetTruck();
-			getSampleNumberFromFleet();
+			getSampleNumberFromLocalStorage();
 		} catch (err) {
 			console.error('Failed to load trucks from IndexedDB or initialize sample number:', err);
 			error = 'Failed to load truck records or sample number';
@@ -116,7 +131,7 @@
 			processLayout.setError('');
 			processLayout.setSuccess('');
 
-			getSampleNumberFromFleet();
+			incrementSampleNumberInLocalStorage();
 
 			// Save the selected productType to localStorage
 			localStorage.setItem('gravelotte-productType', productType);
