@@ -33,15 +33,15 @@
 		const now = new Date();
 		const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 		const storedDate = localStorage.getItem('gravelotte-sampleNumber-date');
-		let sampleNumber = 1;
+		let sampleNumber = 0;
 
 		if (storedDate === todayStr) {
-			sampleNumber = Number(localStorage.getItem('gravelotte-sampleNumber') || '1');
+			sampleNumber = Number(localStorage.getItem('gravelotte-sampleNumber') || '0');
 		} else {
-			// New day, reset sample number
-			localStorage.setItem('gravelotte-sampleNumber', '1');
+			// New day, reset sample number to 0
+			localStorage.setItem('gravelotte-sampleNumber', '0');
 			localStorage.setItem('gravelotte-sampleNumber-date', todayStr);
-			sampleNumber = 1;
+			sampleNumber = 0;
 		}
 		sampleNumberGravelotte = sampleNumber + 1;
 		return sampleNumberGravelotte;
@@ -52,9 +52,9 @@
 		const now = new Date();
 		const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 		const storedDate = localStorage.getItem('gravelotte-sampleNumber-date');
-		let sampleNumber = 1;
+		let sampleNumber = 0;
 		if (storedDate === todayStr) {
-			sampleNumber = Number(localStorage.getItem('gravelotte-sampleNumber') || '1') + 1;
+			sampleNumber = Number(localStorage.getItem('gravelotte-sampleNumber') || '0') + 1;
 		}
 		localStorage.setItem('gravelotte-sampleNumber', String(sampleNumber));
 		localStorage.setItem('gravelotte-sampleNumber-date', todayStr);
