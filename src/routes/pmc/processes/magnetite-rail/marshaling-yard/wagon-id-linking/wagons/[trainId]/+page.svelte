@@ -17,6 +17,7 @@
 	let trainId = $page.params.trainId;
 	let dataRefreshKey = 0;
 	let isSubmitting = false;
+	let disableSubmit = false;
 
 	const steps = ['Select Shunting Train', 'Wagon Linking'];
 	let currentStep = 2;
@@ -36,6 +37,10 @@
 			await loadTrainAndWagons();
 			reloadDebounceTimer = undefined;
 		}, delay);
+	}
+
+	$: if (shuntingTrain?.linkedWagons?.length === 0) {
+		disableSubmit = true;
 	}
 
 	// Load train and linked wagons from IndexedDB
@@ -206,13 +211,13 @@
 	{steps}
 	{currentStep}
 	{isSubmitting}
+	disableSubmit={disableSubmit}
 	cancelPath="/pmc/processes/magnetite-rail/marshaling-yard/wagon-id-linking"
 	on:cancel={() => goto('/pmc/processes/magnetite-rail/marshaling-yard/wagon-id-linking')}
 	on:submit={handleSubmit}
 	on:error={({ detail }) => (error = detail)}
 	on:success={({ detail }) => (success = detail)}
 >
-	
 
 	{#if error}
 		<div class="mb-4 rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">
