@@ -39,10 +39,8 @@
 		}, delay);
 	}
 
-	$: if (shuntingTrain?.linkedWagons?.length === 0) {
-		disableSubmit = true;
-	}
-
+	$: disableSubmit = linkedWagons.length === 0;
+	
 	// Load train and linked wagons from IndexedDB
 	async function loadTrainAndWagons() {
 		if (isReloading) {
