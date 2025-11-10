@@ -213,7 +213,7 @@
 						})
 						.map(({ truck, arrival }) => ({
 							value: `${truck.registration}|${arrival.id}`,
-							label: `${truck.registration} - ${arrival.gross_timestamp ? formatGrossTimestamp(new Date(arrival.gross_timestamp)) : ''}`
+							label: `${truck.registration} - ${arrival.gross_timestamp ? formatGrossTimestamp(new Date(arrival.gross_timestamp)).split(', ')[1] : ''}`
 						}))}
 					bind:value={selectedTruck}
 					placeholder="Select Truck Registration"
