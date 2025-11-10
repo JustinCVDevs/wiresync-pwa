@@ -105,10 +105,13 @@
 	}
 
 	function formatGrossTimestamp(date: Date) {
-		const hh = String(date.getHours()).padStart(2, '0');
-		const min = String(date.getMinutes()).padStart(2, '0');
-		const ss = String(date.getSeconds()).padStart(2, '0');
-		return `${hh}:${min}:${ss}`;
+		return new Date(date).toLocaleDateString('en-US', {
+			hour: '2-digit',
+			minute: '2-digit',
+			second: '2-digit',
+			hour12: false,
+			timeZone: 'UTC'
+		});
 	}
 
 	function handlePhotoSelected(file: File) {
@@ -211,7 +214,7 @@
 						})
 						.map(({ truck, arrival }) => ({
 							value: `${truck.registration}|${arrival.id}`,
-							label: `${truck.registration} - ${arrival.gross_timestamp ? formatGrossTimestamp(new Date(arrival.gross_timestamp)) : ''}`
+							label: `${truck.registration} - ${arrival.gross_timestamp ? formatGrossTimestamp(new Date(arrival.gross_timestamp)).split(', ')[1] : ''}`
 						}))}
 					bind:value={selectedTruck}
 					placeholder="Select Truck Registration"
