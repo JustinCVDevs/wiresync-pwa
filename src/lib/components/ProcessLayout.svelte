@@ -10,6 +10,7 @@
 	export let steps: string[] = [];
 	export let currentStep: number = 1;
 	export let isSubmitting: boolean = false;
+	export let disableSubmit: boolean = false;
 	export let cancelPath: string;
 
 	// State variables
@@ -134,7 +135,7 @@
 				<button
 					class="submit-button flex-1 items-center justify-center rounded-lg py-3 text-white transition hover:bg-green-700 active:bg-green-800 disabled:opacity-50"
 					type="submit"
-					disabled={isSubmitting}
+					disabled={isSubmitting || disableSubmit}
 				>
 					{#if isSubmitting}
 						<div class="flex items-center justify-center gap-2">
