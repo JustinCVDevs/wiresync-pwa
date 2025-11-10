@@ -37,16 +37,45 @@
 		}
 	}
 
+
+	function hasRunDeleteToday() {
+		const lastRun = localStorage.getItem('lastDeleteRun');
+		if (!lastRun) return false;
+		const lastDate = new Date(lastRun);
+		const now = new Date();
+		return lastDate.getFullYear() === now.getFullYear() &&
+			lastDate.getMonth() === now.getMonth() &&
+			lastDate.getDate() === now.getDate();
+	}
+
+	function setDeleteRunToday() {
+		localStorage.setItem('lastDeleteRun', new Date().toISOString());
+	}
+
+	async function syncAndMaybeDelete() {
+		await syncData();
+		if (!hasRunDeleteToday()) {
+			await deleteDatabase();
+			setDeleteRunToday();
+		}
+	}
+
 	onMount(() => {
-		syncData();
+		// Run on mount if online
+		if (navigator.onLine) {
+			syncAndMaybeDelete();
+		}
 		const syncInterval = setInterval(syncData, 15000);
 
-		deleteDatabase();
-		const deleteInterval = setInterval(deleteDatabase, 20000);
+		// Listen for going online
+		function handleOnline() {
+			syncAndMaybeDelete();
+		}
+		window.addEventListener('online', handleOnline);
 
 		return () => {
 			clearInterval(syncInterval);
-			clearInterval(deleteInterval);
+			window.removeEventListener('online', handleOnline);
 		};
 	});
 
