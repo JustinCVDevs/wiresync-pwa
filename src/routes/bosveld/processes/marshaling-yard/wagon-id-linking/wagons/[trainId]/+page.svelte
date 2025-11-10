@@ -17,6 +17,7 @@
 	let trainId = $page.params.trainId;
 	let dataRefreshKey = 0;
 	let isSubmitting = false;
+	let disableSubmit = false;
 
 	const steps = ['Select Shunting Train', 'Wagon Linking'];
 	let currentStep = 2;
@@ -38,6 +39,8 @@
 		}, delay);
 	}
 
+	$: disableSubmit = linkedWagons.length === 0;
+	
 	// Load train and linked wagons from IndexedDB
 	async function loadTrainAndWagons() {
 		if (isReloading) {
@@ -198,6 +201,7 @@
 	{steps}
 	{currentStep}
 	{isSubmitting}
+	disableSubmit={disableSubmit}
 	cancelPath="/bosveld/processes/marshaling-yard"
 	on:cancel={() => goto('/bosveld/processes/marshaling-yard')}
 	on:submit={handleSubmit}
