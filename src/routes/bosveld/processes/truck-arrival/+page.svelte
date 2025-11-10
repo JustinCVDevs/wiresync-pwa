@@ -16,7 +16,7 @@
 	let showSearch = false;
 	let matchFound = false;
 	let photoData = '';
-	let availableTrucks: Truck[] = [];
+	let availableTrucks: any[] = [];
 	let filteredTrucks: any[] = [];
 	let selectedTruck: any = '';
 	let isLoading = true;
@@ -44,11 +44,29 @@
 				arrival => !arrival.port_truck_arrival_timestamp && arrival.siteLocation === 'Bosveld'
 			);
 
-			// Create a Set for O(1) lookup performance
-			const linkedTruckIds = new Set(cachedTruckArrivals.map(arrival => arrival.truckId));
+			// Show only truck arrivals for today (with duplicates, each with its timestamp)
+			const today = new Date();
+			const yyyy = today.getFullYear();
+			const mm = String(today.getMonth() + 1).padStart(2, '0');
+			const dd = String(today.getDate()).padStart(2, '0');
+			const todayStr = `${yyyy}-${mm}-${dd}`;
 
-			// Filter trucks efficiently using Set lookup
-			availableTrucks = allTrucks.filter(truck => linkedTruckIds.has(truck.serverId || truck.id));
+			availableTrucks = cachedTruckArrivals
+				.filter(arrival => {
+					if (!arrival.gross_timestamp) return false;
+					const arrivalDate = new Date(arrival.gross_timestamp);
+					const arrivalY = arrivalDate.getFullYear();
+					const arrivalM = String(arrivalDate.getMonth() + 1).padStart(2, '0');
+					const arrivalD = String(arrivalDate.getDate()).padStart(2, '0');
+					const arrivalStr = `${arrivalY}-${arrivalM}-${arrivalD}`;
+					return arrivalStr === todayStr;
+				})
+				.map(arrival => {
+					const truck = allTrucks.find(truck => (truck.serverId || truck.id) === arrival.truckId);
+					if (!truck) return undefined;
+					return { truck, arrival };
+				})
+				.filter((t): t is { truck: Truck; arrival: TruckArrival } => t !== undefined);
 
 			// Cache trucks in a Map for fast lookup during submit
 			allTrucks.forEach(truck => {
@@ -67,10 +85,10 @@
 	$: {
 		if (selectedTruck && availableTrucks.length > 0) {
 			const searchTerm = selectedTruck.toLowerCase();
-			filteredTrucks = availableTrucks.filter(truck =>
-				truck.registration.toLowerCase().includes(searchTerm)
+			filteredTrucks = availableTrucks.filter(({ truck, arrival }) =>
+				(`${truck.registration}|${arrival.id}`).toLowerCase().includes(searchTerm)
 			);
-			matchFound = filteredTrucks.some(truck => truck.registration.toLowerCase() === searchTerm);
+			matchFound = filteredTrucks.some(({ truck, arrival }) => `${truck.registration}|${arrival.id}`.toLowerCase() === searchTerm);
 		} else {
 			filteredTrucks = availableTrucks;
 			matchFound = false;
@@ -84,6 +102,13 @@
 		const hh = String(date.getHours()).padStart(2, '0');
 		const min = String(date.getMinutes()).padStart(2, '0');
 		return `${yyyy}/${mm}/${dd} ${hh}:${min}`;
+	}
+
+	function formatGrossTimestamp(date: Date) {
+		const hh = String(date.getHours()).padStart(2, '0');
+		const min = String(date.getMinutes()).padStart(2, '0');
+		const ss = String(date.getSeconds()).padStart(2, '0');
+		return `${hh}:${min}:${ss}`;
 	}
 
 	function handlePhotoSelected(file: File) {
@@ -107,9 +132,10 @@
 				return;
 			}
 
-			// Use cached data instead of re-fetching
-			const selectedTruckLower = selectedTruck.toLowerCase();
-			const trucks = cachedTrucks.get(selectedTruckLower);
+
+			// Extract registration from selectedTruck value (registration|arrival.id)
+			const selectedTruckRegistration = selectedTruck.split('|')[0].toLowerCase();
+			const trucks = cachedTrucks.get(selectedTruckRegistration);
 
 			if (!trucks) {
 				processLayout.setError('Truck not found. Please select a valid truck.');
@@ -176,7 +202,17 @@
 					id="truckRegistration"
 					label="Truck Registration"
 					search={true}
-					options={filteredTrucks.map(truck => ({ value: truck.registration, label: truck.registration }))}
+					options={filteredTrucks
+						.slice()
+						.sort((a, b) => {
+							const aTime = a.arrival.gross_timestamp ? new Date(a.arrival.gross_timestamp).getTime() : 0;
+							const bTime = b.arrival.gross_timestamp ? new Date(b.arrival.gross_timestamp).getTime() : 0;
+							return bTime - aTime;
+						})
+						.map(({ truck, arrival }) => ({
+							value: `${truck.registration}|${arrival.id}`,
+							label: `${truck.registration} - ${arrival.gross_timestamp ? formatGrossTimestamp(new Date(arrival.gross_timestamp)) : ''}`
+						}))}
 					bind:value={selectedTruck}
 					placeholder="Select Truck Registration"
 					required
