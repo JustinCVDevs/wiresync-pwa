@@ -96,6 +96,8 @@
 		}
 	}
 
+	$: selectedArrivalId = selectedTruck?.includes('|') ? selectedTruck.split('|')[1] : null;
+
 	function formatTimestamp(date: Date) {
 		const yyyy = date.getFullYear();
 		const mm = String(date.getMonth() + 1).padStart(2, '0');
@@ -146,21 +148,15 @@
 				return;
 			}
 
-			// Find matching truck arrival from cached data
-			const truckArrival = cachedTruckArrivals.find(
-				arrival => arrival.truckId === trucks.serverId && arrival.status !== 'received'
-			);
-
 			// Save to IndexedDB using the generic saveRecord method
-			await indexedDBService.updateRecord('truckArrivals', truckArrival.id, {
-					...truckArrival,
+			await indexedDBService.updateRecord('truckArrivals', selectedArrivalId, {
 					syncStatus: 'pending',
 					port_truck_arrival_timestamp: new Date(),
 					status: 'received',
 					truck_photo: photoData
 				});
 
-			goto('/richardsbay/processes/road/pmc-truck-arrivals/verification?truckArrivalId=' + truckArrival.id);
+			goto('/richardsbay/processes/road/pmc-truck-arrivals/verification?truckArrivalId=' + selectedArrivalId);
 		} catch (error) {
 			console.error('Failed to submit truck arrival:', error);
 			processLayout.setError('Failed to submit truck arrival. Please try again.');
