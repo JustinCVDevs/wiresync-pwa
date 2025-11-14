@@ -35,7 +35,9 @@
 	// Fetch truck records from IndexedDB on component mount
 	onMount(async () => {
 		try {
-			trucks = await indexedDBService.getAllRecords('trucks');
+			trucks = (await indexedDBService.getAllRecords('trucks')).filter(
+			(truck: Truck) => truck.productType === 'LG'
+		);
 
 			trucks.sort((a, b) => a.registration.localeCompare(b.registration));
 		} catch (err) {

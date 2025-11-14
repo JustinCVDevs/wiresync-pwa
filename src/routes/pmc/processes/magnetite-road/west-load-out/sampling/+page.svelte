@@ -80,7 +80,9 @@
 	}
 
 	async function getTrucks() {
-		trucks = await indexedDBService.getAllRecords('trucks');
+		trucks = (await indexedDBService.getAllRecords('trucks')).filter(
+			(truck: Truck) => truck.productType === 'Magnetite - DMS'
+		);
 
 		trucks.sort((a, b) => a.registration.localeCompare(b.registration));
 	}
