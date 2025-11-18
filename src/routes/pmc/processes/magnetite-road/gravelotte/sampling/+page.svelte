@@ -28,36 +28,41 @@
 	let dedicatedFleetTrucks: DedicatedFleetTruck[] = [];
 	let productTypes = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite 62%', 'Magnetite 65%'];
 
-	// Get the current sample number from localStorage, reset at 00:00 if needed, but do NOT increment
-	function getSampleNumberFromLocalStorage() {
+	// Determine today's next sample number from fleet records for Gravelotte
+	async function getSampleNumberFromFleet() {
 		const now = new Date();
-		const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-		const storedDate = localStorage.getItem('gravelotte-sampleNumber-date');
-		let sampleNumber = 0;
+		const startOfDay = new Date(
+			now.getFullYear(),
+			now.getMonth(),
+			now.getDate(),
+			0, 0, 0, 0
+		).getTime();
+		const endOfDay = new Date(
+			now.getFullYear(),
+			now.getMonth(),
+			now.getDate(),
+			23, 59, 59, 999
+		).getTime();
 
-		if (storedDate === todayStr) {
-			sampleNumber = Number(localStorage.getItem('gravelotte-sampleNumber') || '0');
-		} else {
-			// New day, reset sample number to 0
-			localStorage.setItem('gravelotte-sampleNumber', '0');
-			localStorage.setItem('gravelotte-sampleNumber-date', todayStr);
-			sampleNumber = 0;
+		const allFleet = (await indexedDBService.getRecords('fleet')).filter(
+			(fleet: Fleet) => fleet.loadingLocation === 'Gravelotte'
+		);
+		let max = 0;
+
+		for (const rec of allFleet) {
+			const createdDate = rec.created instanceof Date ? rec.created : (rec.created ? new Date(rec.created) : null);
+			if (!createdDate || isNaN(createdDate.getTime())) continue;
+			const createdTs = createdDate.getTime();
+			if (createdTs >= startOfDay && createdTs <= endOfDay) {
+				const n = Number(rec.sampleNumber);
+				if (Number.isFinite(n) && n > max) {
+					max = Math.floor(n);
+				}
+			}
 		}
-		sampleNumberGravelotte = sampleNumber + 1;
+
+		sampleNumberGravelotte = max + 1;
 		return sampleNumberGravelotte;
-	}
-
-	// Increment the sample number in localStorage (call this only on submit)
-	function incrementSampleNumberInLocalStorage() {
-		const now = new Date();
-		const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-		const storedDate = localStorage.getItem('gravelotte-sampleNumber-date');
-		let sampleNumber = 0;
-		if (storedDate === todayStr) {
-			sampleNumber = Number(localStorage.getItem('gravelotte-sampleNumber') || '0') + 1;
-		}
-		localStorage.setItem('gravelotte-sampleNumber', String(sampleNumber));
-		localStorage.setItem('gravelotte-sampleNumber-date', todayStr);
 	}
 
 	async function getTrucks() {
@@ -79,7 +84,7 @@
 		try {
 			await getTrucks();
 			await getDedicatedFleetTruck();
-			getSampleNumberFromLocalStorage();
+			await getSampleNumberFromFleet();
 		} catch (err) {
 			console.error('Failed to load trucks from IndexedDB or initialize sample number:', err);
 			error = 'Failed to load truck records or sample number';
@@ -128,12 +133,13 @@
 	}
 
 	async function handleSubmit() {
+		if (isSubmitting) return;
 		isSubmitting = true;
 		try {
 			processLayout.setError('');
 			processLayout.setSuccess('');
 
-			incrementSampleNumberInLocalStorage();
+			await getSampleNumberFromFleet();
 
 			// Save the selected productType to localStorage
 			localStorage.setItem('gravelotte-productType', productType);
@@ -171,12 +177,9 @@
 					created: new Date()
 				};
 
-				// Save fleet and create assay in parallel
-				const [savedFleet] = await Promise.all([
-					indexedDBService.saveRecord('fleet', fleet),
-					// Don't wait for sync - do it in background
-					syncService.syncFleet(fleet).catch(console.warn)
-				]);
+				// Save fleet and fire-and-forget sync
+				await indexedDBService.saveRecord('fleet', fleet);
+				syncService.syncFleet(fleet).catch(console.warn);
 
 				const assay: Assay = {
 					id: crypto.randomUUID(),

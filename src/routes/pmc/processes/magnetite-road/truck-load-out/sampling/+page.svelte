@@ -59,8 +59,8 @@
 		let max = 0;
 
 		for (const rec of allFleet) {			
-			// Parse the created date
-			const createdDate = rec.created ? new Date(rec.created) : null;
+			// Parse the created date (normalize Date or ISO string)
+			const createdDate = rec.created instanceof Date ? rec.created : (rec.created ? new Date(rec.created) : null);
 			if (!createdDate || isNaN(createdDate.getTime())) continue;
 
 			// Get timestamp for comparison

@@ -113,32 +113,24 @@ async function syncDeletedRecords(collectionName: string) {
 			}
 		}
 
-		// 2. Apply 2-week filter to server records
+		// 2. Identify records older than 2 weeks
 		const twoWeeksAgo = new Date();
 		twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-		const filteredServerIds = new Set(
-			allServerRecords
-				.filter((item) => {
-					if (!item.created) return false;
-					const createdDate = new Date(item.created);
-					return createdDate >= twoWeeksAgo;
-				})
-				.map((item) => item.id)
-		);
 
-		// 3. Remove local records that match the filtered (recent) server records
+		// 3. Remove only local records older than 2 weeks (never pending)
 		const neverDeleteOld = ['trucks', 'trains', 'consignments', 'dedicatedFleetTrucks'];
 		if (!neverDeleteOld.includes(collectionName)) {
 			const localRecordsToDelete = allLocalRecords.filter((rec: any) => {
 				if (rec.syncStatus === 'pending') return false;
-				// If the local record's serverId is in the filtered (recent) server records, delete it
-				return filteredServerIds.has(rec.serverId!);
+				if (!rec.created) return false;
+				const createdDate = new Date(rec.created);
+				return !isNaN(createdDate.getTime()) && createdDate < twoWeeksAgo;
 			});
 			for (const rec of localRecordsToDelete) {
 				try {
 					await indexedDBService.deleteRecord(collectionName as any, rec.id);
 				} catch (err) {
-					console.warn(`⚠️ Failed to delete recent record ${rec.id} from ${collectionName}:`, err);
+					console.warn(`⚠️ Failed to delete old record ${rec.id} from ${collectionName}:`, err);
 				}
 			}
 		}
@@ -1457,7 +1449,7 @@ export const syncService = {
 							siteLocation: fleet.siteLocation,
 							syncStatus: 'synced',
 							serverId: fleet.id,
-							created: fleet.created,
+							created: fleet.created ? new Date(fleet.created) : undefined,
 							updated: fleet.updated
 						});
 					}
@@ -1477,8 +1469,8 @@ export const syncService = {
 						siteLocation: fleet.siteLocation,
 						syncStatus: 'synced',
 						serverId: fleet.id,
-						created: fleet.created,
-						updated: fleet.updated
+						created: fleet.created ? new Date(fleet.created) : undefined,
+							updated: fleet.updated
 					});
 				}
 			}
