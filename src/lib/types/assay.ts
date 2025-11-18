@@ -20,4 +20,5 @@ export interface Assay extends BaseRecord {
 	dedicatedFleet?: boolean; // e.g. true / false
 	sampleId?: string;
 	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"
+	user: string;
 }

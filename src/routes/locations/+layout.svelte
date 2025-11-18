@@ -14,8 +14,8 @@
 	const lastSyncTime = writable<Date | null>(null);
 
 	async function syncData() {
-		console.log('Syncing Data');
 		if (navigator.onLine) {
+			console.log('Syncing Data');
 			try {
 				await Promise.all([
 					syncService.syncAllPending(),
