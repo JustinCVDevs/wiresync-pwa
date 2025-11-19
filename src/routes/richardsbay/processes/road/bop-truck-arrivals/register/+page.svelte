@@ -6,6 +6,7 @@
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { TruckArrival } from '$lib/types/truckArrival';
+	import { pocketbaseService } from '$lib/services/pocketbaseService';
 
 	let truckRegistration = $page.url.searchParams.get('truckRegistration') || '';
 	let truckArrivalName = '';
@@ -173,6 +174,7 @@
 				created: new Date(),
 				updated: new Date().toISOString(),
 				syncStatus: 'pending',
+				user: pocketbaseService.currentUser?.id || '',
 				siteLocation: 'BOP',
 			};
 

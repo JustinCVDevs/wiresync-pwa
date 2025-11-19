@@ -9,6 +9,7 @@
 	import { syncService } from '$lib/services/syncService';
 	import { page } from '$app/stores';
 	import QRPrinting from '$lib/components/QRPrinting.svelte';
+	import { pocketbaseService } from '$lib/services/pocketbaseService';
 
 	let sampleId = '';
 	let trainNumber = '';
@@ -196,6 +197,7 @@
 					updated: new Date().toISOString(),
 					linkedWagonIds: [wagon?.serverId || ''],
 					syncStatus: 'pending',
+					user: pocketbaseService.currentUser?.id || '',
 					siteLocation: 'PMC',
 				};
 

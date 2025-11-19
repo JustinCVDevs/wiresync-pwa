@@ -8,6 +8,7 @@
 	import { syncService } from '$lib/services/syncService';
 	import { onMount } from 'svelte';
 	import type { DedicatedFleetTruck } from '$lib';
+	import { pocketbaseService } from '$lib/services/pocketbaseService';
 
 	let dedicatedFleet = '';
 	let isDedicatedFleet = false;
@@ -168,6 +169,7 @@
 					loadingHour: `${formattedDate} ${loadingTime}`,
 					syncStatus: 'pending',
 					siteLocation: 'PMC',
+					user: pocketbaseService.currentUser?.id || '',
 					created: new Date()
 				};
 
@@ -190,6 +192,7 @@
 					created: new Date(),
 					updated: new Date().toISOString(),
 					sampleId: sampleId,
+					user: pocketbaseService.currentUser?.id || '',
 					siteLocation: 'PMC'
 				};
 
@@ -220,6 +223,7 @@
 					syncStatus: 'pending',
 					created: new Date(),
 					loadingLocation: loadingLocation,
+					user: pocketbaseService.currentUser?.id || '',
 					siteLocation: 'PMC'
 				};
 
@@ -231,13 +235,14 @@
 					name: sampleId,
 					productType: productType,
 					dedicatedFleet: isDedicatedFleet,
-					linkedTruckLoadIds: [truckLoad.id], // Use the truckLoad ID directly
+					linkedTruckLoadIds: [truckLoad.id],
 					linkedTruckIds: [linkedTruck?.serverId || ''],
 					syncStatus: 'pending',
 					location: loadingLocation,
 					created: new Date(),
 					updated: new Date().toISOString(),
 					sampleId: sampleId,
+					user: pocketbaseService.currentUser?.id || '',
 					siteLocation: 'PMC'
 				};
 

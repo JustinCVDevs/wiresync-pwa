@@ -7,6 +7,7 @@
 	import { syncService } from '$lib/services/syncService';
 	import { onMount } from 'svelte';
 	import QRPrinting from '$lib/components/QRPrinting.svelte';
+	import { pocketbaseService } from '$lib/services/pocketbaseService';
 
 	let truckRegistration = '';
 	let materialType = 'HG';
@@ -74,6 +75,7 @@
 				created: new Date(),
 				updated: new Date().toISOString(),
 				siteLocation: 'PMC',
+				user: pocketbaseService.currentUser?.id || '',
 				syncStatus: 'pending'
 			};
 
@@ -94,6 +96,7 @@
 				created: new Date(),
 				updated: new Date().toISOString(),
 				sampleId: sampleId,
+				user: pocketbaseService.currentUser?.id || '',
 				siteLocation: 'PMC'
 			};
 

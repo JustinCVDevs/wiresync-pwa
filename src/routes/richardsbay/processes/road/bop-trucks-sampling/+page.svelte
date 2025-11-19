@@ -6,6 +6,7 @@
 	import type { Assay } from '$lib/types';
 	import FormField from '$lib/components/FormField.svelte';
 	import { syncService } from '$lib/services/syncService';
+	import { pocketbaseService } from '$lib/services/pocketbaseService';
 
 	let truckRegistration = '';
 	let sampleId = '';
@@ -74,6 +75,7 @@
 				created: new Date(),
 				updated: new Date().toISOString(),
 				sampleId: sampleId,
+				user: pocketbaseService.currentUser?.id || '',
 				siteLocation: 'Richards Bay',
 			};
 

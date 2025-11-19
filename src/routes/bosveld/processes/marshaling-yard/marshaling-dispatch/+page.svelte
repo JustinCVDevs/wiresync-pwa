@@ -6,6 +6,7 @@
 	import type { TrainDispatch } from '$lib';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import FormField from '$lib/components/FormField.svelte';
+	import { pocketbaseService } from '$lib/services/pocketbaseService';
 
 	let trains: Train[] = [];
 	let consignments: Consignment[] = [];
@@ -182,6 +183,7 @@
 					syncStatus: 'pending',
 					created: new Date(),
 					updated: new Date().toISOString(),
+					user: pocketbaseService.currentUser?.id || '',
 					siteLocation: 'Bosveld',
 				};
 
