@@ -107,6 +107,7 @@
 	}
 
 	async function handleSubmit() {
+		if (isSubmitting) return;
 		isSubmitting = true;
 		try {
 			processLayout.setError('');
