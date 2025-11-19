@@ -24,4 +24,5 @@ export interface TruckArrival extends BaseRecord{
 	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"
 	name?: string;
 	registration?: string;
+	user: string;
 }

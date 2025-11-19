@@ -216,6 +216,7 @@ export const syncService = {
 						siteLocation: assay.siteLocation,
 						syncStatus: 'synced',
 						serverId: assay.id,
+						user: pocketbaseService.currentUser?.id || '',
 						created: assay.created,
 						updated: assay.updated
 					});
@@ -333,7 +334,7 @@ export const syncService = {
 			}
 
 			if (assay.serverId) {
-				const created = await pocketbaseService.update('assays', assay.serverId, payload);
+				const created = await pocketbaseService.update('assays', assay.serverId, { ...payload, user: pocketbaseService.currentUser?.id || '' });
 				if (assay.id) {
 					await indexedDBService.updateRecord('assays', assay.id, {
 						...assay,
@@ -343,7 +344,7 @@ export const syncService = {
 					});
 				}
 			} else {
-				const created = await pocketbaseService.create('assays', payload);
+				const created = await pocketbaseService.create('assays', { ...payload, user: pocketbaseService.currentUser?.id || '' });
 				if (assay.id) {
 					await indexedDBService.updateRecord('assays', assay.id, {
 						...assay,
@@ -379,10 +380,10 @@ export const syncService = {
 			let created;
 			if (wagon.serverId) {
 				// Update existing record in PocketBase
-				created = await pocketbaseService.update('wagons', wagon.serverId, payload);
+				created = await pocketbaseService.update('wagons', wagon.serverId, { ...payload, user: pocketbaseService.currentUser?.id || '' });
 			} else {
 				// Create new record in PocketBase
-				created = await pocketbaseService.create('wagons', payload);
+				created = await pocketbaseService.create('wagons', { ...payload, user: pocketbaseService.currentUser?.id || '' });
 			}
 
 			if (wagon.id) {
@@ -479,6 +480,7 @@ export const syncService = {
 						tarpedStatus: wagon.tarpedStatus,
 						serverId: wagon.id,
 						syncStatus: 'synced',
+						user: pocketbaseService.currentUser?.id || '',
 						created: wagon.created,
 						updated: wagon.updated
 					});
@@ -745,6 +747,7 @@ export const syncService = {
 						updated: truckLoad.updated,
 						syncStatus: 'synced',
 						serverId: truckLoad.id,
+						user: pocketbaseService.currentUser?.id || '',
 						siteLocation: truckLoad.siteLocation
 					});
 				}
@@ -764,9 +767,9 @@ export const syncService = {
 
 			let created;
 			if (truckLoad.serverId) {
-				created = await pocketbaseService.update('truckLoads', truckLoad.serverId, payload);
+				created = await pocketbaseService.update('truckLoads', truckLoad.serverId, { ...payload, user: pocketbaseService.currentUser?.id || '' });
 			} else {
-				created = await pocketbaseService.create('truckLoads', payload);
+				created = await pocketbaseService.create('truckLoads', { ...payload, user: pocketbaseService.currentUser?.id || '' });
 			}
 
 			if (truckLoad.id) {
@@ -846,6 +849,7 @@ export const syncService = {
 						dispatchTimestamp: trainDispatch.dispatchTimestamp,
 						syncStatus: 'synced',
 						serverId: trainDispatch.id,
+						user: pocketbaseService.currentUser?.id || '',
 						created: trainDispatch.created,
 						updated: trainDispatch.updated
 					});
@@ -906,7 +910,7 @@ export const syncService = {
 				created = await pocketbaseService.update(
 					'trainDispatches',
 					trainDispatch.serverId,
-					payload
+					{ ...payload, user: pocketbaseService.currentUser?.id || '' }
 				);
 			} else {
 				if (payload.linkedWagonIds?.length) {
@@ -934,7 +938,7 @@ export const syncService = {
 						payload.linkedConsignmentId = consignment.serverId;
 					}
 				}
-				created = await pocketbaseService.create('trainDispatches', payload);
+				created = await pocketbaseService.create('trainDispatches', { ...payload, user: pocketbaseService.currentUser?.id || '' });
 			}
 
 			if (trainDispatch.id) {
@@ -991,7 +995,7 @@ export const syncService = {
 				}
 
 				// Update existing record in PocketBase
-				const updated = await pocketbaseService.update('shuntingTrains', shuntingTrain.id, payload);
+				const updated = await pocketbaseService.update('shuntingTrains', shuntingTrain.id, { ...payload, user: pocketbaseService.currentUser?.id || '' });
 
 				if (shuntingTrain.id) {
 					await indexedDBService.updateRecord('shuntingTrains', shuntingTrain.id, {
@@ -1072,6 +1076,7 @@ export const syncService = {
 						siteLocation: train.siteLocation,
 						serverId: train.id,
 						syncStatus: 'synced',
+						user: pocketbaseService.currentUser?.id || '',
 						created: train.created,
 						updated: train.updated
 					});
@@ -1128,7 +1133,7 @@ export const syncService = {
 				created = await pocketbaseService.update(
 					'truckArrivals',
 					truckArrival.serverId,
-					apiPayload
+					{ ...apiPayload, user: pocketbaseService.currentUser?.id || '' }
 				);
 			} else {
 				if (apiPayload.truckId?.length) {
@@ -1146,7 +1151,7 @@ export const syncService = {
 						apiPayload.truckId = trucks.serverId;
 					}
 				}
-				created = await pocketbaseService.create('truckArrivals', apiPayload);
+				created = await pocketbaseService.create('truckArrivals', { ...apiPayload, user: pocketbaseService.currentUser?.id || '' });
 			}
 
 			if (truckArrival.id) {
@@ -1242,7 +1247,8 @@ export const syncService = {
 						registration: arrival.registration,
 						created: arrival.created,
 						updated: arrival.updated,
-						serverId: arrival.id
+						serverId: arrival.id,
+						user: pocketbaseService.currentUser?.id || ''
 					});
 				}
 			}
@@ -1311,6 +1317,7 @@ export const syncService = {
 						comment: trainArrival.comment,
 						syncStatus: 'synced',
 						serverId: trainArrival.id,
+						user: pocketbaseService.currentUser?.id || '',
 						created: trainArrival.created,
 						updated: trainArrival.updated
 					});
@@ -1363,7 +1370,7 @@ export const syncService = {
 				created = await pocketbaseService.update(
 					'trainArrivals',
 					trainArrival.serverId,
-					apiPayload
+					{ ...apiPayload, user: pocketbaseService.currentUser?.id || '' }
 				);
 			} else {
 				if (apiPayload.trainId?.length) {
@@ -1380,7 +1387,7 @@ export const syncService = {
 						apiPayload.trainId = trains.serverId;
 					}
 				}
-				created = await pocketbaseService.create('trainArrivals', apiPayload);
+				created = await pocketbaseService.create('trainArrivals', { ...apiPayload, user: pocketbaseService.currentUser?.id || '' });
 			}
 
 			if (trainArrival.id) {
@@ -1469,8 +1476,9 @@ export const syncService = {
 						siteLocation: fleet.siteLocation,
 						syncStatus: 'synced',
 						serverId: fleet.id,
-						created: fleet.created ? new Date(fleet.created) : undefined,
-							updated: fleet.updated
+						user: pocketbaseService.currentUser?.id || '',
+						created: fleet.created,
+						updated: fleet.updated
 					});
 				}
 			}
@@ -1489,9 +1497,9 @@ export const syncService = {
 
 			let created;
 			if (fleet.serverId) {
-				created = await pocketbaseService.update('fleet', fleet.serverId, payload);
+				created = await pocketbaseService.update('fleet', fleet.serverId, { ...payload, user: pocketbaseService.currentUser?.id || '' });
 			} else {
-				created = await pocketbaseService.create('fleet', payload);
+				created = await pocketbaseService.create('fleet', { ...payload, user: pocketbaseService.currentUser?.id || '' });
 			}
 
 			if (fleet.id) {

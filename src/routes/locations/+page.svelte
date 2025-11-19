@@ -20,8 +20,7 @@
 	);
 
 	onMount(async () => {
-		let users = (await pocketbaseService.list('users')).items;
-		allowedLocations = users.find(user => user.id === pocketbaseService.currentUser?.id)?.allowedLocations ?? [];
+		allowedLocations = pocketbaseService.currentUser?.allowedLocations || [];
 	});
 </script>
 

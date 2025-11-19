@@ -11,4 +11,5 @@ export interface TrainDispatch extends BaseRecord {
 	syncStatus: 'pending' | 'synced';
 	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"
 	dispatchTimestamp?: Date;
+	user: string;
 }

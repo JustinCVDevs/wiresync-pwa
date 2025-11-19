@@ -10,6 +10,7 @@
 	import type { Truck } from '$lib/types/truck';
 	import { syncService } from '$lib/services/syncService';
 	import QRPrinting from '$lib/components/QRPrinting.svelte';
+	import { pocketbaseService } from '$lib/services/pocketbaseService';
 
 	let truckRegistration = '';
 	let availableTrucks: { id: string; registration: string }[] = [];
@@ -126,6 +127,7 @@
 				updated: new Date().toISOString(),
 				siteLocation: 'PMC',
 				syncStatus: 'pending',
+				user: pocketbaseService.currentUser?.id || '',
 				samplingStatus: samplingStatus
 			}
 
@@ -146,6 +148,7 @@
 				created: new Date(),
 				updated: new Date().toISOString(),
 				sampleId: sampleId,
+				user: pocketbaseService.currentUser?.id || '',
 				siteLocation: 'PMC',
 			};
 

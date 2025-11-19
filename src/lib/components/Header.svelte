@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { pocketbaseService } from '$lib/services/pocketbaseService';
-
+    import { onMount, onDestroy } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	export let lastSyncTime: Writable<Date | null>;
 
@@ -12,20 +12,25 @@
 	$: isAuthenticated = pocketbaseService.isAuthenticated;
 	let showLoginForm = false;
 
-	// Update online status based on network connectivity
-	let online = true;
-	let status = 'Online';
 
-	function updateOnlineStatus() {
-		online = navigator.onLine;
-		status = online ? 'Online' : 'Offline';
-	}
+    // Online status, only set in browser
+    let online = true;
+    let status = 'Online';
 
-	// Add event listeners for online/offline status
-	if (typeof window !== 'undefined') {
-		window.addEventListener('online', updateOnlineStatus);
-		window.addEventListener('offline', updateOnlineStatus);
-	}
+    onMount(() => {
+        function updateOnlineStatus() {
+            online = navigator.onLine;
+            status = online ? 'Online' : 'Offline';
+        }
+        updateOnlineStatus();
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        // Clean up listeners on destroy
+        onDestroy(() => {
+            window.removeEventListener('online', updateOnlineStatus);
+            window.removeEventListener('offline', updateOnlineStatus);
+        });
+    });
 
 	function handleLogout() {
 		pocketbaseService.logout();
