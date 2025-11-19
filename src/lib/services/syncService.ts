@@ -113,18 +113,26 @@ async function syncDeletedRecords(collectionName: string) {
 			}
 		}
 
-		// 2. Identify records older than 2 weeks
+		// 2. Apply 2-week filter to server records
 		const twoWeeksAgo = new Date();
 		twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+		const filteredServerIds = new Set(
+			allServerRecords
+				.filter((item) => {
+					if (!item.created) return false;
+					const createdDate = new Date(item.created);
+					return createdDate >= twoWeeksAgo;
+				})
+				.map((item) => item.id)
+		);
 
-		// 3. Remove only local records older than 2 weeks (never pending)
+		// 3. Remove local records that match the filtered (recent) server records
 		const neverDeleteOld = ['trucks', 'trains', 'consignments', 'dedicatedFleetTrucks'];
 		if (!neverDeleteOld.includes(collectionName)) {
 			const localRecordsToDelete = allLocalRecords.filter((rec: any) => {
 				if (rec.syncStatus === 'pending') return false;
-				if (!rec.created) return false;
-				const createdDate = new Date(rec.created);
-				return !isNaN(createdDate.getTime()) && createdDate < twoWeeksAgo;
+				// If the local record's serverId is in the filtered (recent) server records, delete it
+				return filteredServerIds.has(rec.serverId!);
 			});
 			for (const rec of localRecordsToDelete) {
 				try {
@@ -1447,6 +1455,7 @@ export const syncService = {
 							sampleId: fleet.sampleId,
 							sampleNumber: fleet.sampleNumber,
 							commodity: fleet.commodity,
+							truckDestination: fleet.truckDestination,
 							materialType: fleet.materialType,
 							loadingLocation: fleet.loadingLocation,
 							loadingHour: fleet.loadingHour,
@@ -1456,7 +1465,7 @@ export const syncService = {
 							siteLocation: fleet.siteLocation,
 							syncStatus: 'synced',
 							serverId: fleet.id,
-							created: fleet.created ? new Date(fleet.created) : undefined,
+							created: fleet.created,
 							updated: fleet.updated
 						});
 					}
@@ -1467,6 +1476,7 @@ export const syncService = {
 						sampleId: fleet.sampleId,
 						sampleNumber: fleet.sampleNumber,
 						commodity: fleet.commodity,
+						truckDestination: fleet.truckDestination,
 						materialType: fleet.materialType,
 						loadingLocation: fleet.loadingLocation,
 						loadingHour: fleet.loadingHour,

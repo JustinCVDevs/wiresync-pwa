@@ -16,6 +16,7 @@
 
 	let truckRegistration = '';
 	let productType = localStorage.getItem('gravelotte-productType') || '';
+	let truckDestination = localStorage.getItem('gravelotte-truckDestination') || '';
 	let sampleId = '';
 	let loadingLocation = 'Gravelotte';
 	let loadingTime = '';
@@ -28,15 +29,60 @@
 	let trucks: Truck[] = [];
 	let dedicatedFleetTrucks: DedicatedFleetTruck[] = [];
 	let productTypes = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite 62%', 'Magnetite 65%'];
+	let truckDestinations = ['Bosveld', 'Crosscon', 'CPAL'];
 
 	// Determine today's next sample number from fleet records for Gravelotte
 	async function getSampleNumberFromFleet() {
 		const now = new Date();
-		const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-		const id = `counter:${loadingLocation}:${todayStr}`;
-		const existing = await indexedDBService.getRecord('deviceCounters', id);
-		sampleNumberGravelotte = ((existing?.lastNumber as number) || 0) + 1;
+		const startOfDay = new Date(
+			now.getFullYear(),
+			now.getMonth(),
+			now.getDate(),
+			0,
+			0,
+			0,
+			0
+		).getTime();
+		const endOfDay = new Date(
+			now.getFullYear(),
+			now.getMonth(),
+			now.getDate(),
+			23,
+			59,
+			59,
+			999
+		).getTime();
+
+		// load all fleet records and compute highest numeric sampleNumber for the selected loadingLocation within today
+		const allFleet = (await indexedDBService.getRecords('fleet')).filter(
+			(fleet: Fleet) => fleet.loadingLocation === 'Gravelotte' && fleet.truckDestination === truckDestination
+		);
+		let max = 0;
+		
+		for (const rec of allFleet) {			
+			/// Parse the created date
+			const createdDate = rec.created ? new Date(rec.created) : null;
+			if (!createdDate || isNaN(createdDate.getTime())) continue;
+
+			// Get timestamp for comparison
+			const createdTs = createdDate.getTime();
+
+			// Check if the record was created today (between startOfDay and endOfDay)
+			if (createdTs >= startOfDay && createdTs <= endOfDay) {
+				const n = Number(rec.sampleNumber);
+				if (Number.isFinite(n) && n > max) {
+					max = Math.floor(n);
+				}
+			}
+		}
+
+		// no fallback: always return highest found + 1 (will be 1 if none found)
+		sampleNumberGravelotte = max + 1;
 		return sampleNumberGravelotte;
+	}
+
+	$: if (truckDestination) {
+		getSampleNumberFromFleet();
 	}
 
 	async function getTrucks() {
@@ -58,7 +104,6 @@
 		try {
 			await getTrucks();
 			await getDedicatedFleetTruck();
-			await getSampleNumberFromFleet();
 		} catch (err) {
 			console.error('Failed to load trucks from IndexedDB or initialize sample number:', err);
 			error = 'Failed to load truck records or sample number';
@@ -76,8 +121,14 @@
 			'Magnetite 65%': 'MAG65'
 		}[productType];
 
+		const suffix = {
+			'Bosveld': 'BV',
+			'Crosscon': 'CR',
+			'CPAL': 'CPAL'
+		}[truckDestination];
+
 		if (dedicatedFleet === 'Yes') {
-			sampleId = `${YYMMDD}${truckRegistration ? `_${truckRegistration}` : ''}${sampleNumberGravelotte ? `_#${sampleNumberGravelotte}` : ''}${productCode ? `_${productCode}` : ''}`;
+			sampleId = `${YYMMDD}${truckRegistration ? `_${truckRegistration}` : ''}${sampleNumberGravelotte ? `_#${sampleNumberGravelotte}` : ''}${productCode ? `_${productCode}` : ''}${suffix ? `_${suffix}` : ''}`;
 		} else {
 			sampleId = `${YYMMDD}${truckRegistration ? `_${truckRegistration}` : ''}${productCode ? `_${productCode}` : ''}`;
 		}
@@ -117,6 +168,7 @@
 
 			// Save the selected productType to localStorage
 			localStorage.setItem('gravelotte-productType', productType);
+			localStorage.setItem('gravelotte-truckDestination', truckDestination);
 
 			if (dedicatedFleet === 'Yes') {
 				isDedicatedFleet = true;
@@ -140,6 +192,7 @@
 					id: crypto.randomUUID(),
 					sampleId,
 					commodity: productType,
+					truckDestination: truckDestination,
 					materialType: 'Coarse',
 					registration: truckRegistration,
 					felMassKg: 0,
@@ -153,16 +206,11 @@
 				};
 
 				// Save fleet and fire-and-forget sync
-				await indexedDBService.saveRecord('fleet', fleet);
-				syncService.syncFleet(fleet).catch(console.warn);
-				const t = new Date();
-				const todayStr = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
-				await indexedDBService.saveRecord('deviceCounters', {
-					id: `counter:${loadingLocation}:${todayStr}`,
-					date: todayStr,
-					location: loadingLocation,
-					lastNumber: sampleNumberGravelotte
-				});
+				const [savedFleet] = await Promise.all([
+					indexedDBService.saveRecord('fleet', fleet),
+					// Don't wait for sync - do it in background
+					syncService.syncFleet(fleet).catch(console.warn)
+				]);
 
 				const assay: Assay = {
 					id: crypto.randomUUID(),
@@ -170,7 +218,7 @@
 					productType: productType,
 					dedicatedFleet: isDedicatedFleet,
 					linkedDedicatedFleetTruckIds: [linkedTruck?.serverId || ''],
-					linkedFleetIds: [fleet.id], // Use the fleet ID directly
+					linkedFleetIds: [fleet.id],
 					syncStatus: 'pending',
 					location: loadingLocation,
 					created: new Date(),
@@ -349,6 +397,16 @@
 				options={productTypes.map((type) => ({ value: type, label: type }))}
 				bind:value={productType}
 				placeholder="Select Product Type"
+				required
+			/>
+
+			<FormField
+				id="truckDestination"
+				label="Truck Destination"
+				isSelect={true}
+				options={truckDestinations.map((type) => ({ value: type, label: type }))}
+				bind:value={truckDestination}
+				placeholder="Select Truck Destination"
 				required
 			/>
 

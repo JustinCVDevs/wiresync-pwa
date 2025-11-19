@@ -15,4 +15,5 @@ export interface Fleet extends BaseRecord {
 	syncStatus: 'pending' | 'synced';
 	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"
 	user: string;
+	truckDestination?: string; // FLEET_TRUCK_DESTINATION
 }
