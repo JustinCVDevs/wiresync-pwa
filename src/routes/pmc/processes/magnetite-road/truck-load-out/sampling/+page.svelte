@@ -33,10 +33,50 @@
 	// Function to determine today's (00:00-23:59) next sample number from the fleet table
 	async function getSampleNumberFromFleet() {
 		const now = new Date();
-		const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-		const id = `counter:${loadingLocation}:${todayStr}`;
-		const existing = await indexedDBService.getRecord('deviceCounters', id);
-		sampleNumberTruck = ((existing?.lastNumber as number) || 0) + 1;
+		const startOfDay = new Date(
+			now.getFullYear(),
+			now.getMonth(),
+			now.getDate(),
+			0,
+			0,
+			0,
+			0
+		).getTime();
+		const endOfDay = new Date(
+			now.getFullYear(),
+			now.getMonth(),
+			now.getDate(),
+			23,
+			59,
+			59,
+			999
+		).getTime();
+
+		// load all fleet records and compute highest numeric sampleNumber for the selected loadingLocation within today
+		const allFleet = (await indexedDBService.getRecords('fleet')).filter(
+			(fleet: Fleet) => fleet.loadingLocation === 'Truck Load Out'
+		);
+		let max = 0;
+
+		for (const rec of allFleet) {			
+			// Parse the created date (normalize Date or ISO string)
+			const createdDate = rec.created instanceof Date ? rec.created : (rec.created ? new Date(rec.created) : null);
+			if (!createdDate || isNaN(createdDate.getTime())) continue;
+
+			// Get timestamp for comparison
+			const createdTs = createdDate.getTime();
+
+			// Check if the record was created today (between startOfDay and endOfDay)
+			if (createdTs >= startOfDay && createdTs <= endOfDay) {
+				const n = Number(rec.sampleNumber);
+				if (Number.isFinite(n) && n > max) {
+					max = Math.floor(n);
+				}
+			}
+		}
+
+		// no fallback: always return highest found + 1 (will be 1 if none found)
+		sampleNumberTruck = max + 1;
 		return sampleNumberTruck;
 	}
 
@@ -151,11 +191,12 @@
 					created: new Date()
 				};
 
-				await indexedDBService.saveRecord('fleet', fleet);
-				syncService.syncFleet(fleet).catch(console.warn);
-				const t = new Date();
-				const todayStr = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
-				await indexedDBService.saveRecord('deviceCounters', { id: `counter:${loadingLocation}:${todayStr}`, date: todayStr, location: loadingLocation, lastNumber: sampleNumberTruck });
+				// Save fleet and create assay in parallel
+				const [savedFleet] = await Promise.all([
+					indexedDBService.saveRecord('fleet', fleet),
+					// Don't wait for sync - do it in background
+					syncService.syncFleet(fleet).catch(console.warn)
+				]);
 
 				const assay: Assay = {
 					id: crypto.randomUUID(),

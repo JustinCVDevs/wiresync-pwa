@@ -31,10 +31,37 @@
 	// Determine today's next sample number from fleet records for Gravelotte
 	async function getSampleNumberFromFleet() {
 		const now = new Date();
-		const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-		const id = `counter:${loadingLocation}:${todayStr}`;
-		const existing = await indexedDBService.getRecord('deviceCounters', id);
-		sampleNumberGravelotte = ((existing?.lastNumber as number) || 0) + 1;
+		const startOfDay = new Date(
+			now.getFullYear(),
+			now.getMonth(),
+			now.getDate(),
+			0, 0, 0, 0
+		).getTime();
+		const endOfDay = new Date(
+			now.getFullYear(),
+			now.getMonth(),
+			now.getDate(),
+			23, 59, 59, 999
+		).getTime();
+
+		const allFleet = (await indexedDBService.getRecords('fleet')).filter(
+			(fleet: Fleet) => fleet.loadingLocation === 'Gravelotte'
+		);
+		let max = 0;
+
+		for (const rec of allFleet) {
+			const createdDate = rec.created instanceof Date ? rec.created : (rec.created ? new Date(rec.created) : null);
+			if (!createdDate || isNaN(createdDate.getTime())) continue;
+			const createdTs = createdDate.getTime();
+			if (createdTs >= startOfDay && createdTs <= endOfDay) {
+				const n = Number(rec.sampleNumber);
+				if (Number.isFinite(n) && n > max) {
+					max = Math.floor(n);
+				}
+			}
+		}
+
+		sampleNumberGravelotte = max + 1;
 		return sampleNumberGravelotte;
 	}
 
@@ -153,9 +180,6 @@
 				// Save fleet and fire-and-forget sync
 				await indexedDBService.saveRecord('fleet', fleet);
 				syncService.syncFleet(fleet).catch(console.warn);
-				const t = new Date();
-				const todayStr = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
-				await indexedDBService.saveRecord('deviceCounters', { id: `counter:${loadingLocation}:${todayStr}`, date: todayStr, location: loadingLocation, lastNumber: sampleNumberGravelotte });
 
 				const assay: Assay = {
 					id: crypto.randomUUID(),

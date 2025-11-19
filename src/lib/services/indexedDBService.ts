@@ -32,8 +32,7 @@ const STORE_NAMES = [
 	'truckArrivals',
 	'trainArrivals',
 	'fleet',
-	'dedicatedFleetTrucks',
-	'deviceCounters'
+	'dedicatedFleetTrucks'
 ] as const;
 type StoreName = (typeof STORE_NAMES)[number];
 
@@ -53,21 +52,14 @@ interface AppDB extends DBSchema {
 	trainArrivals: { key: string; value: TrainArrival };
 	fleet: { key: string; value: Fleet };
 	dedicatedFleetTrucks: { key: string; value: DedicatedFleetTruck };
-	deviceCounters: { key: string; value: DeviceCounter };
 }
 interface Tag extends BaseRecord {
 	id: string;
 	asset_name: string;
 }
-interface DeviceCounter extends BaseRecord {
-	id: string;
-	date: string;
-	location: string;
-	lastNumber: number;
-}
 class IndexedDBService {
 	private dbName = 'wiresync-db';
-	private version = 13; // Increment version to trigger upgrade
+	private version = 12; // Increment version to trigger upgrade
 	private db: IDBPDatabase<AppDB> | null = null;
 
 	private async initDB(): Promise<void> {
