@@ -126,19 +126,19 @@ async function syncDeletedRecords(collectionName: string) {
 				.map((item) => item.id)
 		);
 
-		// 3. Remove local records that match the filtered (recent) server records
+		// 3. Remove local records whose server counterpart is older than 2 weeks or no longer exists on the server
 		const neverDeleteOld = ['trucks', 'trains', 'consignments', 'dedicatedFleetTrucks'];
 		if (!neverDeleteOld.includes(collectionName)) {
 			const localRecordsToDelete = allLocalRecords.filter((rec: any) => {
 				if (rec.syncStatus === 'pending') return false;
-				// If the local record's serverId is in the filtered (recent) server records, delete it
-				return filteredServerIds.has(rec.serverId!);
+				// If the local record's serverId is NOT in the filtered (recent) server records, delete it
+				return !filteredServerIds.has(rec.serverId!);
 			});
 			for (const rec of localRecordsToDelete) {
 				try {
 					await indexedDBService.deleteRecord(collectionName as any, rec.id);
 				} catch (err) {
-					console.warn(`⚠️ Failed to delete recent record ${rec.id} from ${collectionName}:`, err);
+					console.warn(`⚠️ Failed to delete old record ${rec.id} from ${collectionName}:`, err);
 				}
 			}
 		}

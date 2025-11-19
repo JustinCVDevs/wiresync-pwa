@@ -29,36 +29,14 @@
 	let dedicatedFleetTrucks: DedicatedFleetTruck[] = [];
 	let productTypes = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite 62%', 'Magnetite 65%'];
 
-	// Get the current sample number from localStorage, reset at 00:00 if needed, but do NOT increment
-	function getSampleNumberFromLocalStorage() {
+	// Determine today's next sample number from fleet records for Gravelotte
+	async function getSampleNumberFromFleet() {
 		const now = new Date();
 		const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-		const storedDate = localStorage.getItem('gravelotte-sampleNumber-date');
-		let sampleNumber = 0;
-
-		if (storedDate === todayStr) {
-			sampleNumber = Number(localStorage.getItem('gravelotte-sampleNumber') || '0');
-		} else {
-			// New day, reset sample number to 0
-			localStorage.setItem('gravelotte-sampleNumber', '0');
-			localStorage.setItem('gravelotte-sampleNumber-date', todayStr);
-			sampleNumber = 0;
-		}
-		sampleNumberGravelotte = sampleNumber + 1;
+		const id = `counter:${loadingLocation}:${todayStr}`;
+		const existing = await indexedDBService.getRecord('deviceCounters', id);
+		sampleNumberGravelotte = ((existing?.lastNumber as number) || 0) + 1;
 		return sampleNumberGravelotte;
-	}
-
-	// Increment the sample number in localStorage (call this only on submit)
-	function incrementSampleNumberInLocalStorage() {
-		const now = new Date();
-		const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-		const storedDate = localStorage.getItem('gravelotte-sampleNumber-date');
-		let sampleNumber = 0;
-		if (storedDate === todayStr) {
-			sampleNumber = Number(localStorage.getItem('gravelotte-sampleNumber') || '0') + 1;
-		}
-		localStorage.setItem('gravelotte-sampleNumber', String(sampleNumber));
-		localStorage.setItem('gravelotte-sampleNumber-date', todayStr);
 	}
 
 	async function getTrucks() {
@@ -80,7 +58,7 @@
 		try {
 			await getTrucks();
 			await getDedicatedFleetTruck();
-			getSampleNumberFromLocalStorage();
+			await getSampleNumberFromFleet();
 		} catch (err) {
 			console.error('Failed to load trucks from IndexedDB or initialize sample number:', err);
 			error = 'Failed to load truck records or sample number';
@@ -134,7 +112,7 @@
 			processLayout.setError('');
 			processLayout.setSuccess('');
 
-			incrementSampleNumberInLocalStorage();
+			await getSampleNumberFromFleet();
 
 			// Save the selected productType to localStorage
 			localStorage.setItem('gravelotte-productType', productType);
@@ -173,12 +151,17 @@
 					created: new Date()
 				};
 
-				// Save fleet and create assay in parallel
-				const [savedFleet] = await Promise.all([
-					indexedDBService.saveRecord('fleet', fleet),
-					// Don't wait for sync - do it in background
-					syncService.syncFleet(fleet).catch(console.warn)
-				]);
+				// Save fleet and fire-and-forget sync
+				await indexedDBService.saveRecord('fleet', fleet);
+				syncService.syncFleet(fleet).catch(console.warn);
+				const t = new Date();
+				const todayStr = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+				await indexedDBService.saveRecord('deviceCounters', {
+					id: `counter:${loadingLocation}:${todayStr}`,
+					date: todayStr,
+					location: loadingLocation,
+					lastNumber: sampleNumberGravelotte
+				});
 
 				const assay: Assay = {
 					id: crypto.randomUUID(),
