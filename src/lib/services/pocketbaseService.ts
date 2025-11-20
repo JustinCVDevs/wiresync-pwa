@@ -4,6 +4,7 @@ import PocketBase, {
 	type RecordSubscription
 } from 'pocketbase';
 import { indexedDBService } from './indexedDBService';
+import { preventDuplicatePost } from '../utils/preventDuplicatePost.js';
 import type { Train, Wagon, Sample, Assay, Consignment, TrainDispatch, TruckLoad, ShuntingTrain, TruckArrival, TrainArrival, Fleet, DedicatedFleetTruck, User } from '$lib';
 
 const POCKETBASE_URL = "https://pb.claervolker.com";
@@ -140,15 +141,25 @@ class PocketBaseService {
 	}
 
 	async create<K extends PBCollection>(collection: K, data: Partial<PBModelMap[K]>) {
-		return this.pb.collection<PBModelMap[K]>(collection).create(data as Record<string, any>);
+		// Use a key based on collection and a unique field in data (try id, sampleId, or JSON string)
+		const key = `${collection}:create:${data?.id}`;
+		return preventDuplicatePost(key, () =>
+			this.pb.collection<PBModelMap[K]>(collection).create(data as Record<string, any>)
+		);
 	}
 
 	async update<K extends PBCollection>(collection: K, id: string, data: Partial<PBModelMap[K]>) {
-		return this.pb.collection<PBModelMap[K]>(collection).update(id, data as Record<string, any>);
+		const key = `${collection}:update:${id}`;
+		return preventDuplicatePost(key, () =>
+			this.pb.collection<PBModelMap[K]>(collection).update(id, data as Record<string, any>)
+		);
 	}
 
 	async delete<K extends PBCollection>(collection: K, id: string) {
-		return this.pb.collection(collection).delete(id);
+		const key = `${collection}:delete:${id}`;
+		return preventDuplicatePost(key, () =>
+			this.pb.collection(collection).delete(id)
+		);
 	}
 
 	/** Subscribe to real-time changes */
