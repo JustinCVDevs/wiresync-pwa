@@ -159,6 +159,14 @@
 
 	async function handleSubmit() {
 		if (isSubmitting) return;
+		if (!truckRegistration) {
+			processLayout.setError('Please select a truck registration.');
+			return;
+		}
+		if (!productType) {
+			processLayout.setError('Please select a product type.');
+			return;
+		}
 		isSubmitting = true;
 		try {
 			processLayout.setError('');
@@ -171,6 +179,10 @@
 			localStorage.setItem('gravelotte-truckDestination', truckDestination);
 
 			if (dedicatedFleet === 'Yes') {
+				if (!truckDestination) {
+					processLayout.setError('Please select a truck destination.');
+					return;
+				}
 				isDedicatedFleet = true;
 
 				// Find linked truck using getRecords with filter (more efficient)

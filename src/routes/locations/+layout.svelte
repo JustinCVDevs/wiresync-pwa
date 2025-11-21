@@ -20,6 +20,7 @@
 				await Promise.all([
 					syncService.syncAllPending(),
 				]);
+				await syncService.fetchAll();
 				lastSyncTime.set(new Date());
 			} catch (error) {
 				goto(`/locations?error=Sync failed: Unable to sync`);

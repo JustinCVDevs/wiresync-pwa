@@ -1635,7 +1635,9 @@ export const syncService = {
 			this.syncPendingDedicatedFleetTrucks(),
 			this.syncPendingWagons()
 		]);
+	},
 
+	async fetchAll() {
 		if (!runningList) {
 			runningList = true;
 			try {
