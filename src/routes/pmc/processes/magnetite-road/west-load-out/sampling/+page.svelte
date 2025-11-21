@@ -221,7 +221,7 @@
 					name: sampleId,
 					productType: productType,
 					dedicatedFleet: isDedicatedFleet,
-					linkedDedicatedFleetTruckIds: [linkedTruck?.serverId || ''],
+					linkedDedicatedFleetTruckIds: linkedTruck?.serverId ? [linkedTruck.serverId] : [],
 					linkedFleetIds: [fleet.id],
 					syncStatus: 'pending',
 					location: loadingLocation,
@@ -272,7 +272,7 @@
 					productType: productType,
 					dedicatedFleet: isDedicatedFleet,
 					linkedTruckLoadIds: [truckLoad.id], // Use the truckLoad ID directly
-					linkedTruckIds: [linkedTruck?.serverId || ''],
+					linkedTruckIds: linkedTruck?.serverId ? [linkedTruck.serverId] : [],
 					syncStatus: 'pending',
 					location: loadingLocation,
 					created: new Date(),
