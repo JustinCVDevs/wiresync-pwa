@@ -245,100 +245,88 @@ export const syncService = {
 
 			// Ensure all linked items are synced before syncing the assay
 			if (assay.linkedWagonIds?.length) {
-				const wagons = await Promise.all(
-					assay.linkedWagonIds.map((id) => indexedDBService.getRecord('wagons', id))
-				);
+				const ids = assay.linkedWagonIds.filter((v): v is string => !!v);
+				let wagons = await Promise.all(ids.map((wid) => indexedDBService.getRecord('wagons', wid)));
 				for (const wagon of wagons) {
 					if (wagon && wagon.syncStatus !== 'synced') {
 						await syncService.syncWagon(wagon);
 					}
 				}
-				const allWagonsHaveServerId = wagons.every((wagon) => wagon?.serverId);
-				if (!allWagonsHaveServerId) {
+				wagons = await Promise.all(ids.map((wid) => indexedDBService.getRecord('wagons', wid)));
+				const serverIds = wagons.map((w) => w?.serverId).filter((sid): sid is string => !!sid);
+				if (serverIds.length !== wagons.length) {
 					console.warn('Waiting for all wagons to sync before updating assay');
 					return false;
 				}
-				payload.linkedWagonIds = wagons
-					.map((wagon) => wagon?.serverId)
-					.filter((id): id is string => id !== undefined);
+				payload.linkedWagonIds = serverIds;
 			}
 
 			if (assay.linkedTruckLoadIds?.length) {
-				const truckLoads = await Promise.all(
-					assay.linkedTruckLoadIds.map((id) => indexedDBService.getRecord('truckLoads', id))
-				);
-				for (const load of truckLoads) {
+				const ids = assay.linkedTruckLoadIds.filter((v): v is string => !!v);
+				let loads = await Promise.all(ids.map((tid) => indexedDBService.getRecord('truckLoads', tid)));
+				for (const load of loads) {
 					if (load && load.syncStatus !== 'synced') {
 						await syncService.syncTruckLoad(load);
 					}
 				}
-				const allTruckLoadsHaveServerId = truckLoads.every((load) => load?.serverId);
-				if (!allTruckLoadsHaveServerId) {
+				loads = await Promise.all(ids.map((tid) => indexedDBService.getRecord('truckLoads', tid)));
+				const serverIds = loads.map((l) => l?.serverId).filter((sid): sid is string => !!sid);
+				if (serverIds.length !== loads.length) {
 					console.warn('Waiting for all truck loads to sync before updating assay');
 					return false;
 				}
-				payload.linkedTruckLoadIds = truckLoads
-					.map((load) => load?.serverId)
-					.filter((id): id is string => id !== undefined);
+				payload.linkedTruckLoadIds = serverIds;
 			}
 
 			if (assay.linkedTruckIds?.length) {
-				const trucks = await Promise.all(
-					assay.linkedTruckIds.map((id) => indexedDBService.getRecord('trucks', id))
-				);
+				const ids = assay.linkedTruckIds.filter((v): v is string => !!v);
+				let trucks = await Promise.all(ids.map((tid) => indexedDBService.getRecord('trucks', tid)));
 				for (const truck of trucks) {
 					if (truck && truck.syncStatus !== 'synced') {
 						await syncService.syncTruck(truck);
 					}
 				}
-				const allTrucksHaveServerId = trucks.every((truck) => truck?.serverId);
-				if (!allTrucksHaveServerId) {
+				trucks = await Promise.all(ids.map((tid) => indexedDBService.getRecord('trucks', tid)));
+				const serverIds = trucks.map((t) => t?.serverId).filter((sid): sid is string => !!sid);
+				if (serverIds.length !== trucks.length) {
 					console.warn('Waiting for all trucks to sync before updating assay');
 					return false;
 				}
-				payload.linkedTruckIds = trucks
-					.map((truck) => truck?.serverId)
-					.filter((id): id is string => id !== undefined);
+				payload.linkedTruckIds = serverIds;
 			}
 
 			if (assay.linkedDedicatedFleetTruckIds?.length) {
-				const dedicatedFleetTrucks = await Promise.all(
-					assay.linkedDedicatedFleetTruckIds.map((id) =>
-						indexedDBService.getRecord('dedicatedFleetTrucks', id)
-					)
-				);
-				for (const dft of dedicatedFleetTrucks) {
+				const ids = assay.linkedDedicatedFleetTruckIds.filter((v): v is string => !!v);
+				let dfts = await Promise.all(ids.map((did) => indexedDBService.getRecord('dedicatedFleetTrucks', did)));
+				for (const dft of dfts) {
 					if (dft && dft.syncStatus !== 'synced') {
 						await syncService.syncDedicatedFleetTrucks(dft);
 					}
 				}
-				const allDFTrucksHaveServerId = dedicatedFleetTrucks.every((dft) => dft?.serverId);
-				if (!allDFTrucksHaveServerId) {
+				dfts = await Promise.all(ids.map((did) => indexedDBService.getRecord('dedicatedFleetTrucks', did)));
+				const serverIds = dfts.map((d) => d?.serverId).filter((sid): sid is string => !!sid);
+				if (serverIds.length !== dfts.length) {
 					console.warn('Waiting for all dedicated fleet trucks to sync before updating assay');
 					return false;
 				}
-				payload.linkedDedicatedFleetTruckIds = dedicatedFleetTrucks
-					.map((dft) => dft?.serverId)
-					.filter((id): id is string => id !== undefined);
+				payload.linkedDedicatedFleetTruckIds = serverIds;
 			}
 
 			if (assay.linkedFleetIds?.length) {
-				const fleets = await Promise.all(
-					assay.linkedFleetIds.map((id) => indexedDBService.getRecord('fleet', id))
-				);
+				const ids = assay.linkedFleetIds.filter((v): v is string => !!v);
+				let fleets = await Promise.all(ids.map((fid) => indexedDBService.getRecord('fleet', fid)));
 				for (const fleet of fleets) {
 					if (fleet && fleet.syncStatus !== 'synced') {
 						await syncService.syncFleet(fleet);
 					}
 				}
-				const allFleetsHaveServerId = fleets.every((fleet) => fleet?.serverId);
-				if (!allFleetsHaveServerId) {
+				fleets = await Promise.all(ids.map((fid) => indexedDBService.getRecord('fleet', fid)));
+				const serverIds = fleets.map((f) => f?.serverId).filter((sid): sid is string => !!sid);
+				if (serverIds.length !== fleets.length) {
 					console.warn('Waiting for all fleets to sync before updating assay');
 					return false;
 				}
-				payload.linkedFleetIds = fleets
-					.map((fleet) => fleet?.serverId)
-					.filter((id): id is string => id !== undefined);
+				payload.linkedFleetIds = serverIds;
 			}
 
 			if (assay.serverId) {
