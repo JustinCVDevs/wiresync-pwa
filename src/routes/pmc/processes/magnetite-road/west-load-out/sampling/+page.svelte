@@ -82,7 +82,7 @@
 
 	async function getTrucks() {
 		trucks = (await indexedDBService.getAllRecords('trucks')).filter(
-			(truck: Truck) => truck.productType === 'Magnetite - DMS'
+			(truck: Truck) => truck.productType === 'Magnetite - DMS' && !truck.dispatchTimestamp
 		);
 
 		trucks.sort((a, b) => a.registration.localeCompare(b.registration));
@@ -249,6 +249,10 @@
 					(truck: Truck) => truck.registration === truckRegistration
 				);
 				const linkedTruck = linkedTrucks[0];
+
+				await indexedDBService.updateRecord('trucks', linkedTruck.id, {
+					dispatchTimestamp: new Date()
+				});
 
 				// Create truckLoad object
 				const truckLoad: TruckLoad = {

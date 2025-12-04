@@ -516,6 +516,7 @@ export const syncService = {
 							syncStatus: 'synced',
 							productType: truck.productType,
 							serverId: truck.id,
+							dispatchTimestamp: truck.dispatchTimestamp,
 							created: truck.created,
 							updated: truck.updated
 						});
@@ -529,6 +530,7 @@ export const syncService = {
 						syncStatus: 'synced',
 						productType: truck.productType,
 						serverId: truck.id,
+						dispatchTimestamp: truck.dispatchTimestamp,
 						created: truck.created,
 						updated: truck.updated
 					});

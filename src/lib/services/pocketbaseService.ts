@@ -35,7 +35,11 @@ type PBModelMap = {
 		loadingHour: number | undefined;
 		dedicatedFleet: boolean | undefined;
 		linkedFleetId: string | undefined;
-		felWeight: number | undefined; id: string; registration: string 
+		felWeight: number | undefined; 
+		id: string; 
+		registration: string;
+		transRef?: string;
+		dispatchTimestamp?: Date;
 	};
 	consignments: Consignment;
 	trainDispatches: TrainDispatch;

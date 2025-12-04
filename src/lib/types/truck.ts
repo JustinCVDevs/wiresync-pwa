@@ -7,4 +7,6 @@ export interface Truck extends BaseRecord {
 	serverId?: string;
 	loadingLocation?: string;
 	productType?: string;
+	transRef?: string;
+	dispatchTimestamp?: Date;
 }
