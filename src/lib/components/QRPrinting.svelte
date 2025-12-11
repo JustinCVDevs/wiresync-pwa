@@ -13,31 +13,42 @@
 
     // Generate a combined image with Sample ID above QR code
     async function generateQRCode() {
+        // Label size: 3x2 inches at 300 DPI
+        const LABEL_WIDTH = 900; // px
+        const LABEL_HEIGHT = 600; // px
+        const QR_SIZE = 500; // px (centered, with margin)
+        const TEXT_HEIGHT = 60; // px
+        const MARGIN_TOP = 40; // px
+        const MARGIN_BOTTOM = 40; // px
+
+        // Generate QR code canvas
         const qrCanvas = document.createElement('canvas');
-        await QRCode.toCanvas(qrCanvas, sampleId, { errorCorrectionLevel: 'H', width: 384 });
+        await QRCode.toCanvas(qrCanvas, sampleId, { errorCorrectionLevel: 'H', width: QR_SIZE });
 
-        // Set up combined canvas
-        const width = qrCanvas.width;
-        const textHeight = 36;
-        const height = qrCanvas.height + textHeight + 10; 
-
+        // Create label canvas
         const combinedCanvas = document.createElement('canvas');
-        combinedCanvas.width = width;
-        combinedCanvas.height = height;
+        combinedCanvas.width = LABEL_WIDTH;
+        combinedCanvas.height = LABEL_HEIGHT;
         const ctx = combinedCanvas.getContext('2d');
 
         if (ctx) {
+            // Fill background
             ctx.fillStyle = '#fff';
-            ctx.fillRect(0, 0, width, height);
+            ctx.fillRect(0, 0, LABEL_WIDTH, LABEL_HEIGHT);
 
-            // Draw Sample ID text
-            ctx.font = 'bold 20px sans-serif';
+            // Draw Sample ID text (centered at top)
+            ctx.font = 'bold 48px sans-serif';
             ctx.textAlign = 'center';
             ctx.fillStyle = '#000';
-            ctx.fillText(sampleId, width / 2, textHeight);
+            ctx.fillText(sampleId, LABEL_WIDTH / 2, MARGIN_TOP + TEXT_HEIGHT / 2);
 
-            // Draw QR code below the text
-            ctx.drawImage(qrCanvas, 0, textHeight + 5);
+            // Draw QR code (centered below text)
+            const qrX = (LABEL_WIDTH - QR_SIZE) / 2;
+            const qrY = MARGIN_TOP + TEXT_HEIGHT + 20;
+            ctx.drawImage(qrCanvas, qrX, qrY, QR_SIZE, QR_SIZE);
+
+            // Optionally, add more info or footer here
+
             qrImageUrl = combinedCanvas.toDataURL();
             return qrImageUrl;
         }
@@ -59,7 +70,7 @@
                                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
                                     <style>
                                         body { text-align: center; margin: 20px; background: #fff; }
-                                        img { max-width: 100%; width: 384px; }
+                                        img { max-width: 100%; width: 900px; height: 600px; }
                                         button { margin-top: 24px; padding: 12px 24px; font-size: 16px; border: none; border-radius: 6px; background: #e53e3e; color: #fff; }
                                         @media print {
                                             .no-print {
@@ -89,7 +100,7 @@
                                 <head>
                                     <style>
                                         body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #fff; }
-                                        img { max-width: 100%; width: 384px; }
+                                        img { max-width: 100%; width: 900px; height: 600px; }
                                     </style>
                                 </head>
                                 <body>
@@ -115,7 +126,7 @@
         <img
             src={qrImageUrl}
             alt="QR Code"
-            style="max-width: 100%; width: 384px;"
+            style="max-width: 100%; width: 900px; height: 600px;"
             on:load={() => {
                 if (printPending) {
                     window.print();
