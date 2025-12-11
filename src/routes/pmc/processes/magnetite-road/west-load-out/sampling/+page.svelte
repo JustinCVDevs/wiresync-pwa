@@ -81,8 +81,18 @@
 	}
 
 	async function getTrucks() {
+		const today = new Date();
+		const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+		const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+
 		trucks = (await indexedDBService.getAllRecords('trucks')).filter(
-			(truck: Truck) => truck.productType === 'Magnetite - DMS' && !truck.dispatchTimestamp
+			(truck: Truck) => {
+				const matchesProduct = truck.productType === 'Magnetite - DMS';
+				if (!truck.tareTimestamp) return false;
+				const ts = new Date(truck.tareTimestamp).getTime();
+				const isToday = ts >= startOfDay.getTime() && ts <= endOfDay.getTime();
+				return matchesProduct && isToday;
+			}
 		);
 
 		trucks.sort((a, b) => a.registration.localeCompare(b.registration));
@@ -249,10 +259,6 @@
 					(truck: Truck) => truck.registration === truckRegistration
 				);
 				const linkedTruck = linkedTrucks[0];
-
-				await indexedDBService.updateRecord('trucks', linkedTruck.id, {
-					dispatchTimestamp: new Date()
-				});
 
 				// Create truckLoad object
 				const truckLoad: TruckLoad = {

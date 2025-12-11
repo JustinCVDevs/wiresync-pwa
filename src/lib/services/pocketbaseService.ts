@@ -39,7 +39,7 @@ type PBModelMap = {
 		id: string; 
 		registration: string;
 		transRef?: string;
-		dispatchTimestamp?: Date;
+		tareTimestamp?: Date;
 	};
 	consignments: Consignment;
 	trainDispatches: TrainDispatch;
