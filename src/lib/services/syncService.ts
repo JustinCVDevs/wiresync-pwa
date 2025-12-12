@@ -1090,7 +1090,7 @@ export const syncService = {
 	},
 
 	// ════════════════════════════════════════════════════════════════════════
-	// TRAIN ARRIVAL SYNC METHODS
+	// TRUCK ARRIVAL SYNC METHODS
 	// ════════════════════════════════════════════════════════════════════════
 	async syncTruckArrival(truckArrival: TruckArrival) {
 		try {
@@ -1128,6 +1128,22 @@ export const syncService = {
 						apiPayload.truckId = trucks.serverId;
 					}
 				}
+
+				if (truckArrival.dedicatedTruckId) {
+					const dedicatedLinkedTruck = await indexedDBService.getRecord('dedicatedFleetTrucks', truckArrival.dedicatedTruckId);
+					// Check if linked truck has serverId
+					if (!dedicatedLinkedTruck?.serverId) {
+						console.warn(`Waiting for truck to sync before updating truck arrival`);
+					}
+					apiPayload.dedicatedTruckId = dedicatedLinkedTruck?.serverId;
+				}
+				if (apiPayload.dedicatedTruckId) {
+					const trucks = await indexedDBService.getRecord('dedicatedFleetTrucks', apiPayload.dedicatedTruckId);
+					if (trucks?.serverId) {
+						apiPayload.dedicatedTruckId = trucks.serverId;
+					}
+				}
+
 				created = await pocketbaseService.update(
 					'truckArrivals',
 					truckArrival.serverId,
@@ -1149,6 +1165,22 @@ export const syncService = {
 						apiPayload.truckId = trucks.serverId;
 					}
 				}
+
+				if (truckArrival.dedicatedTruckId) {
+					const dedicatedLinkedTruck = await indexedDBService.getRecord('dedicatedFleetTrucks', truckArrival.dedicatedTruckId);
+					// Check if linked truck has serverId
+					if (!dedicatedLinkedTruck?.serverId) {
+						console.warn(`Waiting for truck to sync before updating truck arrival`);
+					}
+					apiPayload.dedicatedTruckId = dedicatedLinkedTruck?.serverId;
+				}
+				if (apiPayload.dedicatedTruckId) {
+					const trucks = await indexedDBService.getRecord('dedicatedFleetTrucks', apiPayload.dedicatedTruckId);
+					if (trucks?.serverId) {
+						apiPayload.dedicatedTruckId = trucks.serverId;
+					}
+				}
+
 				created = await pocketbaseService.create('truckArrivals', { ...apiPayload, user: pocketbaseService.currentUser?.id || '' });
 			}
 
@@ -1203,6 +1235,7 @@ export const syncService = {
 						await indexedDBService.updateRecord('truckArrivals', existingTruckArrival.id, {
 							...existingTruckArrival,
 							truckId: arrival.truckId,
+							dedicatedTruckId: arrival.dedicatedTruckId,
 							port_arrival_sample_id: arrival.port_arrival_sample_id,
 							truck_photo: arrival.truck_photo,
 							port_truck_arrival_timestamp: arrival.port_truck_arrival_timestamp,
@@ -1228,6 +1261,7 @@ export const syncService = {
 					await indexedDBService.saveRecord('truckArrivals', {
 						id: arrival.id,
 						truckId: arrival.truckId,
+						dedicatedTruckId: arrival.dedicatedTruckId,
 						port_arrival_sample_id: arrival.port_arrival_sample_id,
 						truck_photo: arrival.truck_photo,
 						port_truck_arrival_timestamp: arrival.port_truck_arrival_timestamp,
