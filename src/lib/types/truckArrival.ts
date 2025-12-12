@@ -6,6 +6,7 @@ export interface TruckArrival extends BaseRecord{
 
 	/** Core arrival data */
 	truckId?: string;                // relation ID or plate number
+	dedicatedTruckId?: string;        // relation ID
 	port_arrival_sample_id?: string;
 	truck_photo?: string;                     // filenames as returned by PocketBase
 	port_truck_arrival_timestamp?: Date;      // ISO datetime

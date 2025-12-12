@@ -34,9 +34,10 @@
 	onMount(async () => {
 		try {
 			// Fetch data in parallel for better performance
-			const [allTruckArrivals, allTrucks] = await Promise.all([
+			const [allTruckArrivals, allTrucks, allDedicatedTrucks] = await Promise.all([
 				indexedDBService.getAllRecords('truckArrivals'),
-				indexedDBService.getAllRecords('trucks')
+				indexedDBService.getAllRecords('trucks'),
+				indexedDBService.getAllRecords('dedicatedFleetTrucks')
 			]);
 
 			// Filter truck arrivals - only pending arrivals for Bosveld
@@ -62,11 +63,19 @@
 					return arrivalStr === todayStr;
 				})
 				.map(arrival => {
+					// Try to find a normal truck first
 					const truck = allTrucks.find(truck => (truck.serverId || truck.id) === arrival.truckId);
-					if (!truck) return undefined;
-					return { truck, arrival };
+					if (truck) {
+						return { truck, arrival };
+					}
+					// Otherwise, try to find a dedicated fleet truck
+					const dedicatedTruck = allDedicatedTrucks.find(dTruck => (dTruck.serverId || dTruck.id) === arrival.dedicatedTruckId);
+					if (dedicatedTruck) {
+						return { truck: dedicatedTruck, arrival };
+					}
+					return undefined;
 				})
-				.filter((t): t is { truck: Truck; arrival: TruckArrival } => t !== undefined);
+				.filter((t): t is { truck: Truck; arrival: TruckArrival } | { truck: any; arrival: TruckArrival } => t !== undefined);
 
 			// Cache trucks in a Map for fast lookup during submit
 			allTrucks.forEach(truck => {
