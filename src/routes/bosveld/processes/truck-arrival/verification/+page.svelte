@@ -26,9 +26,16 @@
 			);
 			truckArrival = result ?? null;
 
-			const linkedTruck = (await indexedDBService.getAllRecords('trucks')).find(
+			let linkedTruck = (await indexedDBService.getAllRecords('trucks')).find(
 				(t) => t.id === truckArrival?.truckId || t.serverId === truckArrival?.truckId
 			);
+			
+			if (!linkedTruck) {
+				linkedTruck = (await indexedDBService.getAllRecords('dedicatedFleetTrucks')).find(
+					(t) => t.id === truckArrival?.dedicatedTruckId || t.serverId === truckArrival?.dedicatedTruckId
+				);
+			}
+
 			truck = linkedTruck ?? null;
 		}
 	}
