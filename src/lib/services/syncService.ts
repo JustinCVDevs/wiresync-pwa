@@ -517,6 +517,7 @@ export const syncService = {
 							productType: truck.productType,
 							serverId: truck.id,
 							tareTimestamp: truck.tareTimestamp,
+							transRef: truck.transRef,
 							created: truck.created,
 							updated: truck.updated
 						});
@@ -531,6 +532,7 @@ export const syncService = {
 						productType: truck.productType,
 						serverId: truck.id,
 						tareTimestamp: truck.tareTimestamp,
+						transRef: truck.transRef,
 						created: truck.created,
 						updated: truck.updated
 					});

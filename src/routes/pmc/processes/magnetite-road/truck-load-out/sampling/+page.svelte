@@ -15,6 +15,7 @@
 	let isSubmitting = false;
 
 	let truckRegistration = '';
+	let transRef = '';
 	let productType = localStorage.getItem('truck-productType') || '';
 	let sampleId = '';
 	let loadingLocation = 'Truck Load Out';
@@ -158,6 +159,11 @@
 		}
 	}
 
+	$: if (transRef) {
+		const selectedTruck = trucks.find(t => t.transRef === transRef);
+		truckRegistration = selectedTruck ? selectedTruck.registration : '';
+	}
+
 	async function handleSubmit() {
 		isSubmitting = true;
 		try {
@@ -240,7 +246,7 @@
 				// Find linked truck using getRecords with filter (more efficient)
 				const linkedTrucks = await indexedDBService.getRecords(
 					'trucks',
-					(truck: Truck) => truck.registration === truckRegistration
+					(truck: Truck) => truck.transRef === transRef
 				);
 				const linkedTruck = linkedTrucks[0];
 
@@ -332,10 +338,10 @@
 					label="Select the Truck Registration"
 					search={true}
 					options={trucks.map((truck) => ({
-						value: truck.registration,
+						value: truck.transRef ?? '',
 						label: truck.registration
 					}))}
-					bind:value={truckRegistration}
+					bind:value={transRef}
 					placeholder="Select Truck Registration"
 					required
 				/>
