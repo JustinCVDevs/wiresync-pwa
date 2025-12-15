@@ -77,9 +77,15 @@
 				})
 				.filter((t): t is { truck: Truck; arrival: TruckArrival } | { truck: any; arrival: TruckArrival } => t !== undefined);
 
-			// Cache trucks in a Map for fast lookup during submit
+
+			// Cache both normal and dedicated fleet trucks in a Map for fast lookup during submit
 			allTrucks.forEach(truck => {
 				cachedTrucks.set(truck.registration.toLowerCase(), truck);
+			});
+			allDedicatedTrucks.forEach(dTruck => {
+				if (dTruck.registration) {
+					cachedTrucks.set(dTruck.registration.toLowerCase(), dTruck);
+				}
 			});
 
 			isLoading = false;
