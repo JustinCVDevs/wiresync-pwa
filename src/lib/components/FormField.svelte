@@ -76,6 +76,7 @@
                         : ''}"
 					type="text"
 					placeholder={placeholder}
+                    {required}
 					bind:value={searchQuery}
                     on:input={() => {
                         value = searchQuery;
