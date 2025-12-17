@@ -380,6 +380,7 @@
 				bind:value={sampleId}
 				placeholder="Enter Sample ID"
 				required
+				disabled={true}
 			/>
 
 			<FormField
