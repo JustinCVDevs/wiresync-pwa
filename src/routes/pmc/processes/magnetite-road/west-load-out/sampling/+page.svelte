@@ -81,6 +81,18 @@
 		return sampleNumberWest;
 	}
 
+	function formatTareTimestamp(date: Date) {
+		return new Date(date).toLocaleString('en-GB', {
+			day: '2-digit',
+			month: '2-digit',
+			year: '2-digit',
+			hour: '2-digit',
+			minute: '2-digit',
+			hour12: false,
+			timeZone: 'UTC'
+		});
+	}
+
 	async function getTrucks() {
 		const today = new Date();
 		const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
@@ -355,7 +367,7 @@
 					search={true}
 					options={trucks.map((truck) => ({
 						value: truck.transRef ?? '',
-						label: truck.registration
+						label: `${truck.registration} - ${truck.tareTimestamp ? formatTareTimestamp(new Date(truck.tareTimestamp)) : ''}`
 					}))}
 					bind:value={transRef}
 					placeholder="Select Truck Registration"
@@ -380,7 +392,6 @@
 				bind:value={sampleId}
 				placeholder="Enter Sample ID"
 				required
-				disabled={true}
 			/>
 
 			<FormField

@@ -127,7 +127,7 @@ async function syncDeletedRecords(collectionName: string) {
 		);
 
 		// 3. Remove local records that match the filtered (recent) server records
-		const neverDeleteOld = ['trucks', 'trains', 'consignments', 'dedicatedFleetTrucks'];
+		const neverDeleteOld = ['dedicatedFleetTrucks'];
 		if (!neverDeleteOld.includes(collectionName)) {
 			const localRecordsToDelete = allLocalRecords.filter((rec: any) => {
 				if (rec.syncStatus === 'pending') return false;
