@@ -5,7 +5,6 @@
 
 	export let wagonIdSimple = '';
 	export let tarpedStatus = false;
-	export let linkedIds: string[] = [];
 
 	let availableWagons: any[] = [];
 
@@ -36,13 +35,19 @@
 	}
 
 	onMount(async () => {
+		// Fetch all dispatches to get all linked wagon IDs
+		const allDispatches = await indexedDBService.getAllRecords('trainDispatches');
+		const allLinkedWagonIds = new Set(
+			allDispatches.flatMap((d) => d.linkedWagonIds || []).filter((id) => !!id)
+		);
+
 		const allWagons = (await indexedDBService.getAllRecords('wagons')).filter(
-			w =>
+			(w) =>
 				!w.dispatchTimestamp &&
 				w.wagonIdSimple !== '' &&
-				// Exclude wagons whose id or serverId are present in linkedIds
-				!linkedIds.includes(w.id) &&
-				!(w.serverId ? linkedIds.includes(w.serverId) : false)
+				// Exclude wagons whose id or serverId are present in any dispatch's linkedWagonIds
+				!allLinkedWagonIds.has(w.id) &&
+				!(w.serverId ? allLinkedWagonIds.has(w.serverId) : false)
 		);
 		availableWagons = allWagons.map((w) => ({ value: w.wagonIdSimple, label: w.wagonIdSimple }));
 	});
@@ -57,6 +62,7 @@
 			placeholder="Select Wagon ID"
 			bind:value={wagonIdSimple}
 			options={availableWagons}
+			required={true}
 		/>
 	</div>
 	<div class="flex flex-col items-center mb-2">

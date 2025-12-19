@@ -328,7 +328,6 @@
 			>
 				<div class="m-6 w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
 					<WagonInput 
-						linkedIds={trainDispatch?.linkedWagonIds || []} 
 						on:submit={handleWagonSubmit} 
 						on:cancel={handleWagonCancel} 
 					/>
