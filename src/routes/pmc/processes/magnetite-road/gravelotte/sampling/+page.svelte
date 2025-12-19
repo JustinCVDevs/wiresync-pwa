@@ -213,6 +213,10 @@
 				}
 				isDedicatedFleet = true;
 
+				if (!truckRegistration) {
+					throw new Error('Truck Registration is required for DMS trucks');
+				}
+
 				// Find linked truck using getRecords with filter (more efficient)
 				const linkedTrucks = await indexedDBService.getRecords(
 					'dedicatedFleetTrucks',
@@ -279,6 +283,10 @@
 			} else {
 				isDedicatedFleet = false;
 
+				if (!truckRegistration) {
+					throw new Error('Truck Registration is required for DMS trucks');
+				}
+				
 				// Find linked truck using getRecords with filter (more efficient)
 				const linkedTrucks = await indexedDBService.getRecords(
 					'trucks',

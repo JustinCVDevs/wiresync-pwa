@@ -8,7 +8,7 @@
 	import type { Truck } from '$lib/types/truck';
 
 	const sampleId = $page.url.searchParams.get('sampleId') || '';
-	const truckRegistration = $page.url.searchParams.get('truckRegistration') || '';
+	const truckTransRef = $page.url.searchParams.get('truckTransRef') || '';
 	let assay: Assay | null = null;
 	let truck: Truck | null = null;
 	let currentStep = 2;
@@ -32,9 +32,9 @@
 	}
 
 	async function loadTruckData() {
-		if (truckRegistration) {
+		if (truckTransRef) {
 			const result = (await indexedDBService.getAllRecords('trucks')).filter(
-				(t) => t.registration === truckRegistration
+				(t) => t.transRef === truckTransRef
 			)[0];
 			truck = result ?? null;
 			console.log('Truck Data:', truck);

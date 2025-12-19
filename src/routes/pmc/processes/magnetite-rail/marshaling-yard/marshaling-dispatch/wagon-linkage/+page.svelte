@@ -260,8 +260,8 @@
 									<span class="text-sm font-light">Wagon ID</span>: {wagon?.wagonIdSimple || 'Unknown'}
 								</div>
 								<div class="text-left text-xs text-gray-400">
-									Date linked: {wagon?.created
-										? new Date(wagon.created).toLocaleString('en-GB', {
+									Date linked: {wagon?.updated
+										? new Date(wagon.updated).toLocaleString('en-GB', {
 												day: '2-digit',
 												month: '2-digit',
 												year: 'numeric',
@@ -327,7 +327,6 @@
 			>
 				<div class="m-6 w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
 					<WagonInput 
-						linkedIds={trainDispatch?.linkedWagonIds || []} 
 						on:submit={handleWagonSubmit} 
 						on:cancel={handleWagonCancel} 
 					/>

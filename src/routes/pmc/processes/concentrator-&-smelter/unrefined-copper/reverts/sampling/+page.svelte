@@ -10,12 +10,14 @@
 	import { pocketbaseService } from '$lib/services/pocketbaseService';
 
 	let truckRegistration = '';
+	let transRef = '';
 	let materialType = 'Reverts';
 	let sampleId = '';
 	let loadingLocation = 'Unrefined Copper';
 	let error = '';
 	let processLayout: ProcessLayout;
 	let trucks: Truck[] = [];
+	let showDropdown = false;
 	let isSubmitting = false;
 
 	const steps = ['Sample Details', 'Complete'];
@@ -33,12 +35,35 @@
 		sampleId = `${YYMMDD}${truckRegistration ? `_${truckRegistration}` : ''}${productCode ? `_${productCode}` : ''}`;
 	}
 
+	$: if (showDropdown) {
+		const searchInput = document.querySelector('#truckRegistartion-search') as HTMLInputElement;
+		console.log('Search input:', searchInput);
+		if (searchInput) {
+			searchInput.focus();
+		}
+	}
+
+	$: if (transRef) {
+		const selectedTruck = trucks.find(t => t.transRef === transRef);
+		truckRegistration = selectedTruck ? selectedTruck.registration : '';
+	}
+
 	// Fetch truck records from IndexedDB on component mount
 	onMount(async () => {
 		try {
+			const today = new Date();
+			const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+			const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+
 			trucks = (await indexedDBService.getAllRecords('trucks')).filter(
-			(truck: Truck) => truck.productType === 'Reverts'
-		);
+				(truck: Truck) => {
+					const matchesProduct = truck.productType === 'Reverts';
+					if (!truck.tareTimestamp) return false;
+					const ts = new Date(truck.tareTimestamp).getTime();
+					const isToday = ts >= startOfDay.getTime() && ts <= endOfDay.getTime();
+					return matchesProduct && isToday;
+				}
+			);
 
 			trucks.sort((a, b) => a.registration.localeCompare(b.registration));
 		} catch (err) {
@@ -47,11 +72,27 @@
 		}
 	});
 
+	function formatTareTimestamp(date: Date) {
+		return new Date(date).toLocaleString('en-GB', {
+			day: '2-digit',
+			month: '2-digit',
+			year: '2-digit',
+			hour: '2-digit',
+			minute: '2-digit',
+			hour12: false,
+			timeZone: 'UTC'
+		});
+	}
+
 	async function handleSubmit() {
 		try {
 			processLayout.setError('');
 			processLayout.setSuccess('');
 			isSubmitting = true;
+
+			if (!truckRegistration) {
+				throw new Error('Truck Registration is required for Dedicated Fleet');
+			}
 
 			let linkTruck = (await indexedDBService.getAllRecords('trucks')).filter(
 				(truck: Truck) => truck.registration === truckRegistration
@@ -95,12 +136,11 @@
 			await syncService.syncAssay(assay);
 
 			goto(
-				`/pmc/processes/concentrator-&-smelter/unrefined-copper/reverts/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`
+				`/pmc/processes/concentrator-&-smelter/unrefined-copper/reverts/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckTransRef=${encodeURIComponent(transRef)}`
 			);
 		} catch (err) {
 			error = 'Failed to submit data';
 			console.error(err);
-			processLayout.setError(error);
 		} finally {
 			isSubmitting = false;
 		}
@@ -141,8 +181,11 @@
 				id="truckRegistration"
 				label="Select the Truck Registration"
 				search={true}
-				options={trucks.map((truck) => ({ value: truck.registration, label: truck.registration }))}
-				bind:value={truckRegistration}
+				options={trucks.map((truck) => ({
+					value: truck.transRef ?? '',
+					label: `${truck.registration} - ${truck.tareTimestamp ? formatTareTimestamp(new Date(truck.tareTimestamp)) : ''}`
+				}))}
+				bind:value={transRef}
 				placeholder="Select Truck Registration"
 				required
 			/>
