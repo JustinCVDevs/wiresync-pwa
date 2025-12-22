@@ -75,7 +75,7 @@
 
 	async function handleWagonSubmit(event: {
 		preventDefault: () => void;
-		detail: { wagonIdSimple: any; tarpedStatus: boolean };
+		detail: { wagonId: any; tarpedStatus: boolean };
 	}) {
 		event.preventDefault();
 		if (!trainDispatch || !trainDispatch.linkedWagonIds) {
@@ -92,9 +92,9 @@
 				return;
 			}
 			
-			// Find the existing wagon by wagonIdSimple
+			// Find the existing wagon by wagonId
 			const allWagons = await indexedDBService.getAllRecords('wagons');
-			const wagon = allWagons.find((w) => w.wagonIdSimple === event.detail.wagonIdSimple);
+			const wagon = allWagons.find((w) => w.wagonId === event.detail.wagonId);
 
 			if (!wagon) {
 				error = 'Wagon not found';

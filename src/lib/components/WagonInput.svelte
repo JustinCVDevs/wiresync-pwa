@@ -3,13 +3,13 @@
 	import FormField from './FormField.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 
-	export let wagonIdSimple = '';
+	export let wagonId = '';
 	export let tarpedStatus = false;
 
 	let availableWagons: any[] = [];
 
 	const dispatch = createEventDispatcher<{
-		submit: { wagonIdSimple: string; tarpedStatus: boolean };
+		submit: { wagonId: string; tarpedStatus: boolean };
 		cancel: void;
 	}>();
 
@@ -19,11 +19,11 @@
 			e.stopPropagation();
 		}
 		
-		if (!wagonIdSimple || wagonIdSimple.trim() === '') {
+		if (!wagonId || wagonId.trim() === '') {
 			return;
 		}
 
-		dispatch('submit', { wagonIdSimple, tarpedStatus });
+		dispatch('submit', { wagonId, tarpedStatus });
 	}
 
 	function handleCancel(e?: Event) {
@@ -49,7 +49,7 @@
 				!allLinkedWagonIds.has(w.id) &&
 				!(w.serverId ? allLinkedWagonIds.has(w.serverId) : false)
 		);
-		availableWagons = allWagons.map((w) => ({ value: w.wagonIdSimple, label: w.wagonIdSimple }));
+		availableWagons = allWagons.map((w) => ({ value: w.wagonId, label: w.wagonIdSimple }));
 	});
 </script>
 
@@ -60,7 +60,7 @@
 			id="wagonIdSimple"
 			search={true}
 			placeholder="Select Wagon ID"
-			bind:value={wagonIdSimple}
+			bind:value={wagonId}
 			options={availableWagons}
 			required={true}
 		/>
@@ -88,7 +88,7 @@
 		type="button"
 		on:click={handleSubmit}
 		class="w-36 text-sm items-center justify-center rounded-lg bg-gray py-3 px-2 text-white transition hover:bg-green-700 active:bg-black disabled:opacity-50"
-		disabled={!wagonIdSimple || wagonIdSimple.trim() === ''}
+		disabled={!wagonId || wagonId.trim() === ''}
 	>
 		Submit Wagon
 	</button>
