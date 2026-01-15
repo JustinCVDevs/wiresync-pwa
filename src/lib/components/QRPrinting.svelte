@@ -13,10 +13,13 @@
 
     // Generate a combined image with Sample ID above QR code
     async function generateQRCode() {
-        // Label size: 3x2 inches at 300 DPI
-        const LABEL_WIDTH = 900; // px
-        const LABEL_HEIGHT = 600; // px
-        const QR_SIZE = 500; // px (centered, with margin)
+        // Label size: 100mm x 150mm
+        const DPI = 300; // keep original print DPI
+        const MM_TO_IN = 1 / 25.4;
+        const PX_PER_MM = DPI * MM_TO_IN; // pixels per mm at chosen DPI
+        const LABEL_WIDTH = Math.round(100 * PX_PER_MM); // 100 mm -> px
+        const LABEL_HEIGHT = Math.round(150 * PX_PER_MM); // 150 mm -> px
+        const QR_SIZE = 500; // px (centered, with margin) — keeping original proportioning
         const TEXT_HEIGHT = 60; // px
         const MARGIN_TOP = 40; // px
         const MARGIN_BOTTOM = 40; // px
