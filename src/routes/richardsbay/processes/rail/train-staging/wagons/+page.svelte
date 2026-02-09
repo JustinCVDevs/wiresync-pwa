@@ -36,11 +36,11 @@
 		const linkedWagons = trainArrival?.linkedWagonIds || [];
 
 		let allwagons = (await indexedDBService.getAllRecords('wagons')).filter(
-			wagon => !wagon.stagingTimestamp
+			wagon => linkedWagons.some(linkedWagon => linkedWagon === wagon.id || linkedWagon === wagon.serverId)
 		);
 
 		availableWagons = allwagons.filter(
-			wagon => linkedWagons.some(linkedWagon => linkedWagon === wagon.id || linkedWagon === wagon.serverId)
+			wagon => !wagon.stagingTimestamp
 		);
 	});
 

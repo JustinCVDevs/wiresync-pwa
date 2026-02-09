@@ -67,6 +67,11 @@
 	}
 
 	async function handleSubmit() {
+		if (filteredWagons.length < 40) {
+			processLayout.setError('At least 40 wagons are required to complete staging');
+			return;
+		}
+
 		let linkedTrain = (await indexedDBService.getAllRecords('trains')).filter(
 			train => train.refNr === trainRefNr
 		)[0];
@@ -81,7 +86,7 @@
 			syncStatus: 'pending'
 		})
 
-		processLayout.setSuccess('Wagons Successfully Received!');
+		processLayout.setSuccess('Wagons Successfully Staged!');
 
 		setTimeout(() => {
 			goto('/richardsbay/processes/rail/train-staging');
