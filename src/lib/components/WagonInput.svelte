@@ -3,14 +3,13 @@
 	import FormField from './FormField.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 
-	export let wagonIdSimple = '';
+	export let wagonId = '';
 	export let tarpedStatus = false;
-	export let linkedIds: string[] = [];
 
 	let availableWagons: any[] = [];
 
 	const dispatch = createEventDispatcher<{
-		submit: { wagonIdSimple: string; tarpedStatus: boolean };
+		submit: { wagonId: string; tarpedStatus: boolean };
 		cancel: void;
 	}>();
 
@@ -19,12 +18,12 @@
 			e.preventDefault();
 			e.stopPropagation();
 		}
-		
-		if (!wagonIdSimple || wagonIdSimple.trim() === '') {
+
+		if (!wagonId || wagonId.trim() === '') {
 			return;
 		}
 
-		dispatch('submit', { wagonIdSimple, tarpedStatus });
+		dispatch('submit', { wagonId, tarpedStatus });
 	}
 
 	function handleCancel(e?: Event) {
@@ -36,15 +35,34 @@
 	}
 
 	onMount(async () => {
+		// Fetch all dispatches to get all linked wagon IDs
+		const allDispatches = await indexedDBService.getAllRecords('trainDispatches');
+		const allLinkedWagonIds = new Set(
+			allDispatches.flatMap((d) => d.linkedWagonIds || []).filter((id) => !!id)
+		);
+
 		const allWagons = (await indexedDBService.getAllRecords('wagons')).filter(
-			w =>
+			(w) =>
 				!w.dispatchTimestamp &&
 				w.wagonIdSimple !== '' &&
-				// Exclude wagons whose id or serverId are present in linkedIds
-				!linkedIds.includes(w.id) &&
-				!(w.serverId ? linkedIds.includes(w.serverId) : false)
+				// Exclude wagons whose id or serverId are present in any dispatch's linkedWagonIds
+				!allLinkedWagonIds.has(w.id) &&
+				!(w.serverId ? allLinkedWagonIds.has(w.serverId) : false)
 		);
-		availableWagons = allWagons.map((w) => ({ value: w.wagonIdSimple, label: w.wagonIdSimple }));
+
+		// Deduplicate by wagonIdSimple so we don't show multiple options with same display label
+		const dedupMap = new Map<string, any>();
+		for (const w of allWagons) {
+			const key = w.wagonIdSimple ?? '';
+			const existing = dedupMap.get(key);
+			if (!existing || (w.created && existing.created && w.created > existing.created)) {
+				dedupMap.set(key, w);
+			}
+		}
+
+		availableWagons = Array.from(dedupMap.values())
+			.sort((a, b) => a.wagonIdSimple.localeCompare(b.wagonIdSimple))
+			.map((w) => ({ value: w.wagonId, label: w.wagonIdSimple }));
 	});
 </script>
 
@@ -55,25 +73,21 @@
 			id="wagonIdSimple"
 			search={true}
 			placeholder="Select Wagon ID"
-			bind:value={wagonIdSimple}
+			bind:value={wagonId}
 			options={availableWagons}
+			required={true}
 		/>
 	</div>
-	<div class="flex flex-col items-center mb-2">
-		<label for="tarpedCheckbox" class="text-xs mb-1">Tarped</label>
-		<input
-			id="tarpedCheckbox"
-			type="checkbox"
-			bind:checked={tarpedStatus}
-			class="w-5 h-5"
-		/>
+	<div class="mb-2 flex flex-col items-center">
+		<label for="tarpedCheckbox" class="mb-1 text-xs">Tarped</label>
+		<input id="tarpedCheckbox" type="checkbox" bind:checked={tarpedStatus} class="h-5 w-5" />
 	</div>
 </div>
 
-<div class="flex justify-between items-center pt-8">
-	<button 
+<div class="flex items-center justify-between pt-8">
+	<button
 		type="button"
-		class="w-36 text-sm rounded-lg bg-red py-3 text-white transition hover:bg-red-700 active:bg-red-800 disabled:opacity-50 px-2" 
+		class="bg-red w-36 rounded-lg px-2 py-3 text-sm text-white transition hover:bg-red-700 active:bg-red-800 disabled:opacity-50"
 		on:click={handleCancel}
 	>
 		Cancel
@@ -81,8 +95,8 @@
 	<button
 		type="button"
 		on:click={handleSubmit}
-		class="w-36 text-sm items-center justify-center rounded-lg bg-gray py-3 px-2 text-white transition hover:bg-green-700 active:bg-black disabled:opacity-50"
-		disabled={!wagonIdSimple || wagonIdSimple.trim() === ''}
+		class="bg-gray w-36 items-center justify-center rounded-lg px-2 py-3 text-sm text-white transition hover:bg-green-700 active:bg-black disabled:opacity-50"
+		disabled={!wagonId || wagonId.trim() === ''}
 	>
 		Submit Wagon
 	</button>

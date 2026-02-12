@@ -35,7 +35,11 @@ type PBModelMap = {
 		loadingHour: number | undefined;
 		dedicatedFleet: boolean | undefined;
 		linkedFleetId: string | undefined;
-		felWeight: number | undefined; id: string; registration: string 
+		felWeight: number | undefined; 
+		id: string; 
+		registration: string;
+		transRef?: string;
+		tareTimestamp?: Date;
 	};
 	consignments: Consignment;
 	trainDispatches: TrainDispatch;
@@ -119,11 +123,14 @@ class PocketBaseService {
 			expand?: (keyof PBModelMap[K])[];
 			page?: number;
 			perPage?: number;
+			filterString?: string;
 		} = {}
 	) {
-		const { query = {}, expand = [], page = 1, perPage = 20 } = options;
+		const { query = {}, expand = [], page = 1, perPage = 20, filterString } = options;
+		// Use custom filterString if provided, otherwise build from query object
+		const filter = filterString || this.buildFilter(query);
 		return this.pb.collection<PBModelMap[K]>(collection).getList(page, perPage, {
-			filter: this.buildFilter(query),
+			filter: filter || undefined,
 			expand: expand.join(',') || undefined
 		});
 	}

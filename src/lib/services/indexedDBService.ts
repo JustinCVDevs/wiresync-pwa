@@ -59,7 +59,7 @@ interface Tag extends BaseRecord {
 }
 class IndexedDBService {
 	private dbName = 'wiresync-db';
-	private version = 12; // Increment version to trigger upgrade
+	private version = 14; // Increment version to trigger upgrade
 	private db: IDBPDatabase<AppDB> | null = null;
 
 	private async initDB(): Promise<void> {

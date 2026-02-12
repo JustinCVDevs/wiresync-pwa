@@ -16,4 +16,5 @@ export interface TruckLoad extends BaseRecord {
 	acidType?: string;
 	materialType?: string;
 	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"
+	user: string;
 }

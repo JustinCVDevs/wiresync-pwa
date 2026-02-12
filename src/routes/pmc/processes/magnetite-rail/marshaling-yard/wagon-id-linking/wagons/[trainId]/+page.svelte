@@ -15,45 +15,55 @@
 	let success = '';
 	let isLoading = true;
 	let trainId = $page.params.trainId;
-	let dataRefreshKey = 0; // Force reactive updates
+	let dataRefreshKey = 0;
+	let isSubmitting = false;
+	let disableSubmit = false;
 
 	const steps = ['Select Shunting Train', 'Wagon Linking'];
 	let currentStep = 2;
 
-	// Custom event listener for wagon updates
 	let wagonUpdateListener: ((event: CustomEvent) => void) | null = null;
-	let visibilityHandler: (() => Promise<void>) | null = null;
 	let isInitialLoad = true;
-	let isReloading = false; // Prevent concurrent reloads
+	let isReloading = false;
 	let reloadDebounceTimer: ReturnType<typeof setTimeout> | undefined;
 
-	// Debounced reload to prevent redundant fetches when multiple triggers fire
+	// Debounce reload to prevent multiple simultaneous fetches
 	function scheduleReload(source: string, delay: number = 100) {
 		if (reloadDebounceTimer) {
 			clearTimeout(reloadDebounceTimer);
 		}
 		
 		reloadDebounceTimer = setTimeout(async () => {
-			console.log(`Reload triggered by: ${source}`);
 			await loadTrainAndWagons();
 			reloadDebounceTimer = undefined;
 		}, delay);
 	}
 
+	$: disableSubmit = linkedWagons.length === 0;
+
+	// Load train and linked wagons from IndexedDB
 	async function loadTrainAndWagons() {
 		// Prevent concurrent reloads
 		if (isReloading) {
-			console.log('Reload already in progress, skipping');
 			return;
 		}
+		
+		// Store current wagons as backup
+		const previousWagons = [...linkedWagons];
+		const hadWagons = linkedWagons.length > 0;
 		
 		try {
 			isReloading = true;
 			isLoading = true;
 			error = '';
 			
-			// Load the shunting train
-			shuntingTrain = await indexedDBService.getRecord('shuntingTrains', trainId) ?? null;
+			// Add timeout to prevent infinite loading on mobile
+			const timeoutPromise = new Promise<null>((_, reject) => 
+				setTimeout(() => reject(new Error('Load timeout - taking too long')), 15000)
+			);
+			
+			const trainPromise = indexedDBService.getRecord('shuntingTrains', trainId);
+			shuntingTrain = await Promise.race([trainPromise, timeoutPromise]) ?? null;
 
 			if (!shuntingTrain) {
 				error = 'Shunting train not found';
@@ -62,117 +72,105 @@
 
 			// Load linked wagons using the IDs from linkedWagons array
 			if (shuntingTrain.linkedWagons && shuntingTrain.linkedWagons.length > 0) {
-				linkedWagons = [];
+				const allWagons = await indexedDBService.getWagons();
 				
-				// Fetch linked wagons
+				if (allWagons.length === 0) {
+					error = 'No wagon data found. Please sync data first.';
+					linkedWagons = [];
+					return;
+				}
+				
+				const wagonMap = new Map<string, Wagon>();
+				
+				allWagons.forEach(w => {
+					wagonMap.set(w.id, w);
+					if (w.serverId) {
+						wagonMap.set(w.serverId, w);
+					}
+				});
+				
+				// Fetch linked wagons using the map (instant lookups)
 				const foundWagons: Wagon[] = [];
+				const missingWagons: string[] = [];
 				
 				for (const wagonId of shuntingTrain.linkedWagons) {
-					let wagon = await indexedDBService.getRecord('wagons', wagonId);
-					
-					if (!wagon) {
-						const allWagons = await indexedDBService.getRecords(
-							'wagons',
-							(w) => w.serverId === wagonId
-						);
-						if (allWagons.length > 0) {
-							wagon = allWagons[0];
-						}
-					}
-					
+					const wagon = wagonMap.get(wagonId);
 					if (wagon) {
 						foundWagons.push(wagon);
 					} else {
-						console.warn(`Wagon not found: ${wagonId}`);
+						missingWagons.push(wagonId);
 					}
 				}
 				
-				// Sort by position
 				linkedWagons = foundWagons.sort((a, b) => (a.wagonPosition ?? 0) - (b.wagonPosition ?? 0));
 			} else {
 				linkedWagons = [];
 			}
 			
-			// Increment refresh key to force reactive updates
 			dataRefreshKey++;
 		} catch (e) {
-			console.error('Error loading train and wagons:', e);
-			error = 'Failed to load train and wagon data';
+			const errorMsg = e instanceof Error ? e.message : 'Unknown error';
+			console.error('Error loading:', e);
+			
+			// Restore previous wagons on error to prevent disappearing wagons
+			if (hadWagons && previousWagons.length > 0) {
+				linkedWagons = previousWagons;
+			}
+			
+			if (e instanceof Error && e.message.includes('timeout')) {
+				error = 'Loading is taking too long. Please check your connection and try again.';
+			} else {
+				error = 'Failed to load train and wagon data';
+			}
 		} finally {
 			isLoading = false;
 			isReloading = false;
 		}
 	}
 
-	// Listen for navigation events to reload data when returning from edit page
+	// Reload wagons when navigating back from edit page
 	afterNavigate(async (navigation) => {
-		// Skip reload on initial load
 		if (isInitialLoad) {
 			isInitialLoad = false;
 			return;
 		}
 		
-		// Only reload if coming from the edit page
-		// The edit page dispatches 'wagon-updated' event after transaction completes
-		// This is a backup mechanism in case the event was missed
-		// Use precise path-segment check to avoid false positives (e.g., '/edited-items/')
 		const fromPath = navigation.from?.url.pathname;
 		if (fromPath && /(^|\/)edit(\/|$)/.test(fromPath)) {
-			// Use debounce to coordinate with potential wagon-updated event
 			scheduleReload('afterNavigate', 50);
 		}
 	});
 
 	onMount(() => {
-		loadTrainAndWagons();
+		setTimeout(() => {
+			loadTrainAndWagons();
+		}, 100);
 		
-		// Listen for custom wagon update events - PRIMARY reload mechanism
-		// This event is dispatched AFTER the IndexedDB transaction completes (tx.done resolved)
 		wagonUpdateListener = async (event: CustomEvent) => {
-			// Use immediate reload for primary mechanism (no debounce delay)
 			scheduleReload('wagon-updated', 0);
 		};
 		
 		if (typeof window !== 'undefined') {
 			window.addEventListener('wagon-updated', wagonUpdateListener as EventListener);
-			
-			// Also listen for page visibility changes
-			// When tab becomes visible, reload to ensure fresh data
-			visibilityHandler = async () => {
-				if (document.visibilityState === 'visible') {
-					// Use longer debounce for visibility changes (less critical)
-					scheduleReload('visibilitychange', 200);
-				}
-			};
-			document.addEventListener('visibilitychange', visibilityHandler);
 		}
 	});
 
 	onDestroy(() => {
-		// Cancel any pending debounced reload
 		if (reloadDebounceTimer) {
 			clearTimeout(reloadDebounceTimer);
 			reloadDebounceTimer = undefined;
 		}
 		
-		// Clean up event listeners
-		if (typeof window !== 'undefined') {
-			if (wagonUpdateListener) {
-				window.removeEventListener('wagon-updated', wagonUpdateListener as EventListener);
-			}
-		}
-		
-		if (typeof document !== 'undefined') {
-			if (visibilityHandler) {
-				document.removeEventListener('visibilitychange', visibilityHandler);
-			}
+		if (typeof window !== 'undefined' && wagonUpdateListener) {
+			window.removeEventListener('wagon-updated', wagonUpdateListener as EventListener);
 		}
 	});
 
-
+	// Complete verification and navigate back to processes
 	async function handleSubmit() {
 		try {
-			// Set the verification timestamp to current time
+			isSubmitting = true;
+
 			if (shuntingTrain) {
 				// Update the shunting train with verification timestamp
 				await indexedDBService.updateRecord('shuntingTrains', shuntingTrain.id, {
@@ -180,10 +178,8 @@
 					syncStatus: 'pending' as const
 				});
 				
-				// Show success message
 				success = 'Process Complete';
 				
-				// Navigate back to processes screen after 1.5 seconds
 				setTimeout(() => {
 					goto('/pmc/processes/magnetite-rail/marshaling-yard/wagon-id-linking');
 				}, 1500);
@@ -191,6 +187,8 @@
 		} catch (e: any) {
 			console.error(e);
 			error = 'Failed to complete process';
+		} finally {
+			isSubmitting = false;
 		}
 	}
 
@@ -210,14 +208,14 @@
 	title="Wagon Details"
 	{steps}
 	{currentStep}
-	isSubmitting={isLoading}
+	{isSubmitting}
+	disableSubmit={disableSubmit}
 	cancelPath="/pmc/processes/magnetite-rail/marshaling-yard/wagon-id-linking"
 	on:cancel={() => goto('/pmc/processes/magnetite-rail/marshaling-yard/wagon-id-linking')}
 	on:submit={handleSubmit}
 	on:error={({ detail }) => (error = detail)}
 	on:success={({ detail }) => (success = detail)}
 >
-	
 
 	{#if error}
 		<div class="mb-4 rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">
@@ -232,8 +230,8 @@
 	{/if}
 
 	{#if isLoading}
-		<div class="flex justify-center items-center py-8">
-			<div>Loading…</div>
+		<div class="flex flex-col justify-center items-center py-8 space-y-4">
+			<div class="text-lg">Loading wagons...</div>
 		</div>
 	{:else if shuntingTrain}
 		<!-- Train Selection Display -->
@@ -250,7 +248,6 @@
 		</div>
 
 		<!-- Wagons List -->
-		<!-- Use key block to force re-render when data changes -->
 		{#key dataRefreshKey}
 		<div class="space-y-4">
 			{#each linkedWagons as wagon, index (wagon.id)}
@@ -279,7 +276,6 @@
 								type="button"
 								class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded font-medium"
 								on:click={() => {
-									// Navigate to wagon edit page
 									goto(`/pmc/processes/magnetite-rail/marshaling-yard/wagon-id-linking/wagons/${trainId}/edit/${wagon.id}?position=${index + 1}`);
 								}}
 							>

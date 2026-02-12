@@ -8,13 +8,16 @@
 	import { syncService } from '$lib/services/syncService';
 	import { onMount } from 'svelte';
 	import type { DedicatedFleetTruck } from '$lib';
+	import { pocketbaseService } from '$lib/services/pocketbaseService';
 
 	let dedicatedFleet = '';
 	let isDedicatedFleet = false;
 	let isSubmitting = false;
 
 	let truckRegistration = '';
+	let transRef = '';
 	let productType = localStorage.getItem('gravelotte-productType') || '';
+	let truckDestination = localStorage.getItem('gravelotte-truckDestination') || '';
 	let sampleId = '';
 	let loadingLocation = 'Gravelotte';
 	let loadingTime = '';
@@ -27,8 +30,9 @@
 	let trucks: Truck[] = [];
 	let dedicatedFleetTrucks: DedicatedFleetTruck[] = [];
 	let productTypes = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite 62%', 'Magnetite 65%'];
+	let truckDestinations = ['Bosveld', 'Crosscon', 'CPAL'];
 
-	// Function to determine today's (00:00-23:59) next sample number from the fleet table
+	// Determine today's next sample number from fleet records for Gravelotte
 	async function getSampleNumberFromFleet() {
 		const now = new Date();
 		const startOfDay = new Date(
@@ -52,17 +56,25 @@
 
 		// load all fleet records and compute highest numeric sampleNumber for the selected loadingLocation within today
 		const allFleet = (await indexedDBService.getRecords('fleet')).filter(
-			(fleet: Fleet) => fleet.loadingLocation === 'Gravelotte'
+			(fleet: Fleet) => fleet.loadingLocation === 'Gravelotte' && fleet.truckDestination === truckDestination
 		);
 		let max = 0;
+		
+		for (const rec of allFleet) {			
+			/// Parse the created date
+			const createdDate = rec.created ? new Date(rec.created) : null;
+			if (!createdDate || isNaN(createdDate.getTime())) continue;
 
-		for (const rec of allFleet) {
-			const createdTs = rec.created ? new Date(rec.created).getTime() : NaN;
-			if (Number.isNaN(createdTs)) continue;
-			if (createdTs < startOfDay || createdTs > endOfDay) continue;
+			// Get timestamp for comparison
+			const createdTs = createdDate.getTime();
 
-			const n = Number(rec.sampleNumber);
-			if (Number.isFinite(n) && n > max) max = Math.floor(n);
+			// Check if the record was created today (between startOfDay and endOfDay)
+			if (createdTs >= startOfDay && createdTs <= endOfDay) {
+				const n = Number(rec.sampleNumber);
+				if (Number.isFinite(n) && n > max) {
+					max = Math.floor(n);
+				}
+			}
 		}
 
 		// no fallback: always return highest found + 1 (will be 1 if none found)
@@ -70,8 +82,36 @@
 		return sampleNumberGravelotte;
 	}
 
+	function formatTareTimestamp(date: Date) {
+		return new Date(date).toLocaleString('en-GB', {
+			day: '2-digit',
+			month: '2-digit',
+			year: '2-digit',
+			hour: '2-digit',
+			minute: '2-digit',
+			hour12: false,
+			timeZone: 'UTC'
+		});
+	}
+
+	$: if (truckDestination) {
+		getSampleNumberFromFleet();
+	}
+
 	async function getTrucks() {
-		trucks = await indexedDBService.getAllRecords('trucks');
+		const today = new Date();
+		const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+		const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+
+		trucks = (await indexedDBService.getAllRecords('trucks')).filter(
+			(truck: Truck) => {
+				const matchesProduct = truck.productType === 'Magnetite - DMS';
+				if (!truck.tareTimestamp) return false;
+				const ts = new Date(truck.tareTimestamp).getTime();
+				const isToday = ts >= startOfDay.getTime() && ts <= endOfDay.getTime();
+				return matchesProduct && isToday;
+			}
+		);
 
 		trucks.sort((a, b) => a.registration.localeCompare(b.registration));
 	}
@@ -87,7 +127,6 @@
 		try {
 			await getTrucks();
 			await getDedicatedFleetTruck();
-			await getSampleNumberFromFleet();
 		} catch (err) {
 			console.error('Failed to load trucks from IndexedDB or initialize sample number:', err);
 			error = 'Failed to load truck records or sample number';
@@ -105,8 +144,14 @@
 			'Magnetite 65%': 'MAG65'
 		}[productType];
 
+		const suffix = {
+			'Bosveld': 'BV',
+			'Crosscon': 'CR',
+			'CPAL': 'CPAL'
+		}[truckDestination];
+
 		if (dedicatedFleet === 'Yes') {
-			sampleId = `${YYMMDD}${truckRegistration ? `_${truckRegistration}` : ''}${sampleNumberGravelotte ? `_#${sampleNumberGravelotte}` : ''}${productCode ? `_${productCode}` : ''}`;
+			sampleId = `${YYMMDD}${truckRegistration ? `_${truckRegistration}` : ''}${sampleNumberGravelotte ? `_#${sampleNumberGravelotte}` : ''}${productCode ? `_${productCode}` : ''}${suffix ? `_${suffix}` : ''}`;
 		} else {
 			sampleId = `${YYMMDD}${truckRegistration ? `_${truckRegistration}` : ''}${productCode ? `_${productCode}` : ''}`;
 		}
@@ -135,17 +180,42 @@
 		}
 	}
 
+	$: if (transRef) {
+		const selectedTruck = trucks.find(t => t.transRef === transRef);
+		truckRegistration = selectedTruck ? selectedTruck.registration : '';
+	}
+
 	async function handleSubmit() {
+		if (isSubmitting) return;
+		if (!truckRegistration) {
+			processLayout.setError('Please select a truck registration.');
+			return;
+		}
+		if (!productType) {
+			processLayout.setError('Please select a product type.');
+			return;
+		}
 		isSubmitting = true;
 		try {
 			processLayout.setError('');
 			processLayout.setSuccess('');
 
+			await getSampleNumberFromFleet();
+
 			// Save the selected productType to localStorage
 			localStorage.setItem('gravelotte-productType', productType);
+			localStorage.setItem('gravelotte-truckDestination', truckDestination);
 
 			if (dedicatedFleet === 'Yes') {
+				if (!truckDestination) {
+					processLayout.setError('Please select a truck destination.');
+					return;
+				}
 				isDedicatedFleet = true;
+
+				if (!truckRegistration) {
+					throw new Error('Truck Registration is required for DMS trucks');
+				}
 
 				// Find linked truck using getRecords with filter (more efficient)
 				const linkedTrucks = await indexedDBService.getRecords(
@@ -154,23 +224,32 @@
 				);
 				const linkedTruck = linkedTrucks[0];
 
+				// Format current date as yyyy/mm/dd
+				const now = new Date();
+				const yyyy = now.getFullYear();
+				const mm = String(now.getMonth() + 1).padStart(2, '0');
+				const dd = String(now.getDate()).padStart(2, '0');
+				const formattedDate = `${yyyy}/${mm}/${dd}`;
+
 				// Create fleet object
 				const fleet: Fleet = {
 					id: crypto.randomUUID(),
 					sampleId,
 					commodity: productType,
+					truckDestination: truckDestination,
 					materialType: 'Coarse',
 					registration: truckRegistration,
 					felMassKg: 0,
 					sampleNumber: sampleNumberGravelotte,
 					loadingLocation: loadingLocation,
-					loadingHour: loadingTime,
+					loadingHour: `${formattedDate} ${loadingTime}`,
 					syncStatus: 'pending',
 					siteLocation: 'PMC',
+					user: pocketbaseService.currentUser?.id || '',
 					created: new Date()
 				};
 
-				// Save fleet and create assay in parallel
+				// Save fleet and fire-and-forget sync
 				const [savedFleet] = await Promise.all([
 					indexedDBService.saveRecord('fleet', fleet),
 					// Don't wait for sync - do it in background
@@ -182,13 +261,14 @@
 					name: sampleId,
 					productType: productType,
 					dedicatedFleet: isDedicatedFleet,
-					linkedDedicatedFleetTruckIds: [linkedTruck?.serverId || ''],
-					linkedFleetIds: [fleet.id], // Use the fleet ID directly
+					linkedDedicatedFleetTruckIds: linkedTruck?.serverId ? [linkedTruck.serverId] : [],
+					linkedFleetIds: [fleet.id],
 					syncStatus: 'pending',
 					location: loadingLocation,
 					created: new Date(),
 					updated: new Date().toISOString(),
 					sampleId: sampleId,
+					user: pocketbaseService.currentUser?.id || '',
 					siteLocation: 'PMC'
 				};
 
@@ -203,10 +283,14 @@
 			} else {
 				isDedicatedFleet = false;
 
+				if (!truckRegistration) {
+					throw new Error('Truck Registration is required for DMS trucks');
+				}
+				
 				// Find linked truck using getRecords with filter (more efficient)
 				const linkedTrucks = await indexedDBService.getRecords(
 					'trucks',
-					(truck: Truck) => truck.registration === truckRegistration
+					(truck: Truck) => truck.transRef === transRef
 				);
 				const linkedTruck = linkedTrucks[0];
 
@@ -219,26 +303,26 @@
 					syncStatus: 'pending',
 					created: new Date(),
 					loadingLocation: loadingLocation,
+					user: pocketbaseService.currentUser?.id || '',
 					siteLocation: 'PMC'
 				};
 
 				// Save truckLoad
 				await indexedDBService.saveRecord('truckLoads', truckLoad);
-				// Sync in background
-				syncService.syncTruckLoad(truckLoad).catch(console.warn);
 
 				const assay: Assay = {
 					id: crypto.randomUUID(),
 					name: sampleId,
 					productType: productType,
 					dedicatedFleet: isDedicatedFleet,
-					linkedTruckLoadIds: [truckLoad.id], // Use the truckLoad ID directly
-					linkedTruckIds: [linkedTruck?.serverId || ''],
+					linkedTruckLoadIds: [truckLoad.id],
+					linkedTruckIds: linkedTruck?.serverId ? [linkedTruck.serverId] : [],
 					syncStatus: 'pending',
 					location: loadingLocation,
 					created: new Date(),
 					updated: new Date().toISOString(),
 					sampleId: sampleId,
+					user: pocketbaseService.currentUser?.id || '',
 					siteLocation: 'PMC'
 				};
 
@@ -268,7 +352,7 @@
 	title="Gravelotte"
 	{steps}
 	{currentStep}
-	isSubmitting={isSubmitting}
+	{isSubmitting}
 	bind:this={processLayout}
 	cancelPath="/pmc/processes/magnetite-road/gravelotte"
 	on:cancel={handleCancel}
@@ -298,10 +382,10 @@
 					label="Select the Truck Registration"
 					search={true}
 					options={trucks.map((truck) => ({
-						value: truck.registration,
-						label: truck.registration
+						value: truck.transRef ?? '',
+						label: `${truck.registration} - ${truck.tareTimestamp ? formatTareTimestamp(new Date(truck.tareTimestamp)) : ''}`
 					}))}
-					bind:value={truckRegistration}
+					bind:value={transRef}
 					placeholder="Select Truck Registration"
 					required
 				/>
@@ -361,6 +445,16 @@
 				options={productTypes.map((type) => ({ value: type, label: type }))}
 				bind:value={productType}
 				placeholder="Select Product Type"
+				required
+			/>
+
+			<FormField
+				id="truckDestination"
+				label="Truck Destination"
+				isSelect={true}
+				options={truckDestinations.map((type) => ({ value: type, label: type }))}
+				bind:value={truckDestination}
+				placeholder="Select Truck Destination"
 				required
 			/>
 

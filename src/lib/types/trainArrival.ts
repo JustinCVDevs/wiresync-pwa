@@ -13,4 +13,5 @@ export interface TrainArrival extends BaseRecord {
 	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"
 	linkedWagonIds?: ID[];
 	comment?: string;
+	user: string;
 }

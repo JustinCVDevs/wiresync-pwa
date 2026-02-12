@@ -6,6 +6,7 @@
 	import type { Assay } from '$lib/types';
 	import FormField from '$lib/components/FormField.svelte';
 	import { syncService } from '$lib/services/syncService';
+	import { pocketbaseService } from '$lib/services/pocketbaseService';
 
 	let truckRegistration = '';
 	let sampleId = '';
@@ -13,6 +14,7 @@
 	let error = '';
 	let processLayout: ProcessLayout;
 	let currentStep = 1;
+	let isSubmitting = false;
 
 	const steps = ["Registration", "Verification"];
 
@@ -53,6 +55,7 @@
 		try {
 			processLayout.setError('');
 			processLayout.setSuccess('');
+			isSubmitting = true;
 
 			// Find truck arrival by registration
 			const truckArrival = (await indexedDBService.getAllRecords('truckArrivals')).find(
@@ -72,6 +75,7 @@
 				created: new Date(),
 				updated: new Date().toISOString(),
 				sampleId: sampleId,
+				user: pocketbaseService.currentUser?.id || '',
 				siteLocation: 'Richards Bay',
 			};
 
@@ -90,6 +94,8 @@
 		} catch (err) {
 			error = 'Failed to submit data';
 			console.error(err);
+		} finally {
+			isSubmitting = false;
 		}
 	}
 	
@@ -102,7 +108,7 @@
 	title="BOP Truck Sampling"
 	{steps}
 	{currentStep}
-	isSubmitting={false}
+	{isSubmitting}
 	bind:this={processLayout}
 	cancelPath="/richardsbay/processes/road"
 	on:cancel={handleCancel}

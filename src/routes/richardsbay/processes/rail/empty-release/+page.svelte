@@ -42,7 +42,6 @@
 			const toRelease = filteredWagons.filter(wagon => checkedWagons[wagon.id]);
 			if (toRelease.length === 0) {
 				processLayout.setError('Please select at least one wagon.');
-				isSubmitting = false;
 				return;
 			}
 

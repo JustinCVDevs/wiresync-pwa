@@ -8,6 +8,7 @@
 	import type { Assay } from '$lib/types/assay';
 	import { syncService } from '$lib/services/syncService';
 	import { page } from '$app/stores';
+	import { pocketbaseService } from '$lib/services/pocketbaseService';
 	import QRPrinting from '$lib/components/QRPrinting.svelte';
 
 	let sampleId = '';
@@ -196,6 +197,7 @@
 					updated: new Date().toISOString(),
 					linkedWagonIds: [wagon?.serverId || ''],
 					syncStatus: 'pending',
+					user: pocketbaseService.currentUser?.id || '',
 					siteLocation: 'PMC',
 				};
 

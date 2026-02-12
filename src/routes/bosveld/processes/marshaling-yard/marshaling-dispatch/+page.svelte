@@ -6,6 +6,7 @@
 	import type { TrainDispatch } from '$lib';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import FormField from '$lib/components/FormField.svelte';
+	import { pocketbaseService } from '$lib/services/pocketbaseService';
 
 	let trains: Train[] = [];
 	let consignments: Consignment[] = [];
@@ -17,6 +18,7 @@
 	let foundTrainDispatch = false;
 	let showPopup = false;
 	let processLayout: ProcessLayout;
+	let isSubmitting = false;
 
 	const steps = ['Train & Consignment Details', 'Wagon Linkage'];
 	let currentStep = 1;
@@ -84,6 +86,7 @@
 	};
 
 	async function confirmFinishDispatch(confirm: boolean) {
+		isSubmitting = true;
 		if (confirm) {
 			let train = (await indexedDBService.getAllRecords('trains')).filter(
 				train => train.refNr === selectedTrainRef
@@ -104,14 +107,15 @@
 				dispatchTimestamp: new Date(),
 				updated: new Date().toISOString()
 			});
+
+			processLayout.setSuccess('Wagon linkage completed');
+
+			setTimeout(() => {
+				location.reload();
+			}, 1000);
 		}
+		isSubmitting = false;
 		showPopup = false;
-
-		processLayout.setSuccess('Wagon linkage completed');
-
-		setTimeout(() => {
-			location.reload();
-		}, 1000);
 	}
 
 	async function handleSubmit() {
@@ -128,6 +132,8 @@
 		const dispatchId = crypto.randomUUID();
 		
 		try {
+			isSubmitting = true;
+
 			if (foundTrainDispatch) {
 				const trains = (await indexedDBService.getAllRecords('trains')).find(
 					(t) => t.refNr === selectedTrainRef
@@ -177,6 +183,7 @@
 					syncStatus: 'pending',
 					created: new Date(),
 					updated: new Date().toISOString(),
+					user: pocketbaseService.currentUser?.id || '',
 					siteLocation: 'Bosveld',
 				};
 
@@ -188,6 +195,8 @@
 		} catch (e: any) {
 			console.error(e);
 			error = 'Failed to initialize dispatch' + e?.data?.toJson();
+		} finally {
+			isSubmitting = false;
 		}
 	}
 </script>
@@ -196,7 +205,7 @@
 	title="Marshaling Dispatch"
 	{steps}
 	{currentStep}
-	isSubmitting={isLoading}
+	{isSubmitting}
 	cancelPath="/bosveld/processes/marshaling-yard"
 	on:cancel={() => goto('/bosveld/processes/marshaling-yard')}
 	on:submit={handleSubmit}
@@ -253,7 +262,7 @@
 	{#if showPopup}
 		<div class="popup-overlay">
 			<div class="popup-content">
-				<p class="popup-message">Are you sure you are done sampling train {selectedTrainRef}?</p>
+				<p class="popup-message">Are you sure you are done with consignment {selectedConsignment}?</p>
 				<div class="popup-buttons">
 					<button
 						type="button"

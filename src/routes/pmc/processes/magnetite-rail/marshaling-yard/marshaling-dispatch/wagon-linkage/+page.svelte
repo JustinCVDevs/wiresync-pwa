@@ -75,7 +75,7 @@
 
 	async function handleWagonSubmit(event: {
 		preventDefault: () => void;
-		detail: { wagonIdSimple: any; tarpedStatus: boolean };
+		detail: { wagonId: any; tarpedStatus: boolean };
 	}) {
 		event.preventDefault();
 		if (!trainDispatch || !trainDispatch.linkedWagonIds) {
@@ -92,9 +92,9 @@
 				return;
 			}
 			
-			// Find the existing wagon by wagonIdSimple
+			// Find the existing wagon by wagonId
 			const allWagons = await indexedDBService.getAllRecords('wagons');
-			const wagon = allWagons.find((w) => w.wagonIdSimple === event.detail.wagonIdSimple);
+			const wagon = allWagons.find((w) => w.wagonId === event.detail.wagonId);
 
 			if (!wagon) {
 				error = 'Wagon not found';
@@ -260,8 +260,8 @@
 									<span class="text-sm font-light">Wagon ID</span>: {wagon?.wagonIdSimple || 'Unknown'}
 								</div>
 								<div class="text-left text-xs text-gray-400">
-									Date linked: {wagon?.created
-										? new Date(wagon.created).toLocaleString('en-GB', {
+									Date linked: {wagon?.updated
+										? new Date(wagon.updated).toLocaleString('en-GB', {
 												day: '2-digit',
 												month: '2-digit',
 												year: 'numeric',
@@ -327,7 +327,6 @@
 			>
 				<div class="m-6 w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
 					<WagonInput 
-						linkedIds={trainDispatch?.linkedWagonIds || []} 
 						on:submit={handleWagonSubmit} 
 						on:cancel={handleWagonCancel} 
 					/>
@@ -358,7 +357,7 @@
 {#if showPopup}
 	<div class="popup-overlay">
 		<div class="popup-content">
-			<p class="popup-message">Are you sure you are done sampling train {train?.refNr}?</p>
+			<p class="popup-message">Are you sure you are done with consignment {consignment?.name}?</p>
 			<div class="popup-buttons">
 				<button
 					type="button"

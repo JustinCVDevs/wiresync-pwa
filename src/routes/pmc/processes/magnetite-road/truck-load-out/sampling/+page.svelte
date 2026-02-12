@@ -8,12 +8,14 @@
 	import { syncService } from '$lib/services/syncService';
 	import { onMount } from 'svelte';
 	import type { DedicatedFleetTruck } from '$lib';
+	import { pocketbaseService } from '$lib/services/pocketbaseService';
 
 	let dedicatedFleet = '';
 	let isDedicatedFleet = false;
 	let isSubmitting = false;
 
 	let truckRegistration = '';
+	let transRef = '';
 	let productType = localStorage.getItem('truck-productType') || '';
 	let sampleId = '';
 	let loadingLocation = 'Truck Load Out';
@@ -57,14 +59,22 @@
 			(fleet: Fleet) => fleet.loadingLocation === 'Truck Load Out'
 		);
 		let max = 0;
-		console.log('allFleet', allFleet);
-		for (const rec of allFleet) {
-			const createdTs = rec.created ? new Date(rec.created).getTime() : NaN;
-			if (Number.isNaN(createdTs)) continue;
-			if (createdTs < startOfDay || createdTs > endOfDay) continue;
 
-			const n = Number(rec.sampleNumber);
-			if (Number.isFinite(n) && n > max) max = Math.floor(n);
+		for (const rec of allFleet) {			
+			// Parse the created date			
+			const createdDate = rec.created ? new Date(rec.created) : null;			
+			if (!createdDate || isNaN(createdDate.getTime())) continue;
+
+			// Get timestamp for comparison
+			const createdTs = createdDate.getTime();
+
+			// Check if the record was created today (between startOfDay and endOfDay)
+			if (createdTs >= startOfDay && createdTs <= endOfDay) {
+				const n = Number(rec.sampleNumber);
+				if (Number.isFinite(n) && n > max) {
+					max = Math.floor(n);
+				}
+			}
 		}
 
 		// no fallback: always return highest found + 1 (will be 1 if none found)
@@ -72,8 +82,32 @@
 		return sampleNumberTruck;
 	}
 
+	function formatTareTimestamp(date: Date) {
+		return new Date(date).toLocaleString('en-GB', {
+			day: '2-digit',
+			month: '2-digit',
+			year: '2-digit',
+			hour: '2-digit',
+			minute: '2-digit',
+			hour12: false,
+			timeZone: 'UTC'
+		});
+	}
+
 	async function getTrucks() {
-		trucks = await indexedDBService.getAllRecords('trucks');
+		const today = new Date();
+		const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+		const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+
+		trucks = (await indexedDBService.getAllRecords('trucks')).filter(
+			(truck: Truck) => {
+				const matchesProduct = truck.productType === 'Magnetite - DMS';
+				if (!truck.tareTimestamp) return false;
+				const ts = new Date(truck.tareTimestamp).getTime();
+				const isToday = ts >= startOfDay.getTime() && ts <= endOfDay.getTime();
+				return matchesProduct && isToday;
+			}
+		);
 
 		trucks.sort((a, b) => a.registration.localeCompare(b.registration));
 	}
@@ -137,11 +171,18 @@
 		}
 	}
 
+	$: if (transRef) {
+		const selectedTruck = trucks.find(t => t.transRef === transRef);
+		truckRegistration = selectedTruck ? selectedTruck.registration : '';
+	}
+
 	async function handleSubmit() {
 		isSubmitting = true;
 		try {
 			processLayout.setError('');
 			processLayout.setSuccess('');
+
+			await getSampleNumberFromFleet();
 
 			// Save the selected productType to localStorage
 			localStorage.setItem('truck-productType', productType);
@@ -149,12 +190,23 @@
 			if (dedicatedFleet === 'Yes') {
 				isDedicatedFleet = true;
 
+				if (!truckRegistration) {
+					throw new Error('Truck Registration is required for DMS trucks');
+				}
+
 				// Find linked truck using getRecords with filter (more efficient)
 				const linkedTrucks = await indexedDBService.getRecords(
 					'dedicatedFleetTrucks',
 					(truck: DedicatedFleetTruck) => truck.registration === truckRegistration
 				);
 				const linkedTruck = linkedTrucks[0];
+
+				// Format current date as yyyy/mm/dd
+				const now = new Date();
+				const yyyy = now.getFullYear();
+				const mm = String(now.getMonth() + 1).padStart(2, '0');
+				const dd = String(now.getDate()).padStart(2, '0');
+				const formattedDate = `${yyyy}/${mm}/${dd}`;
 
 				// Create fleet object
 				const fleet: Fleet = {
@@ -166,9 +218,10 @@
 					felMassKg: 0,
 					sampleNumber: sampleNumberTruck,
 					loadingLocation: loadingLocation,
-					loadingHour: loadingTime,
+					loadingHour: `${formattedDate} ${loadingTime}`,
 					syncStatus: 'pending',
 					siteLocation: 'PMC',
+					user: pocketbaseService.currentUser?.id || '',
 					created: new Date()
 				};
 
@@ -184,13 +237,14 @@
 					name: sampleId,
 					productType: productType,
 					dedicatedFleet: isDedicatedFleet,
-					linkedDedicatedFleetTruckIds: [linkedTruck?.serverId || ''],
+					linkedDedicatedFleetTruckIds: linkedTruck?.serverId ? [linkedTruck.serverId] : [],
 					linkedFleetIds: [fleet.id], // Use the fleet ID directly
 					syncStatus: 'pending',
 					location: loadingLocation,
 					created: new Date(),
 					updated: new Date().toISOString(),
 					sampleId: sampleId,
+					user: pocketbaseService.currentUser?.id || '',
 					siteLocation: 'PMC'
 				};
 
@@ -205,10 +259,14 @@
 			} else {
 				isDedicatedFleet = false;
 
+				if (!truckRegistration) {
+					throw new Error('Truck Registration is required for DMS trucks');
+				}
+				
 				// Find linked truck using getRecords with filter (more efficient)
 				const linkedTrucks = await indexedDBService.getRecords(
 					'trucks',
-					(truck: Truck) => truck.registration === truckRegistration
+					(truck: Truck) => truck.transRef === transRef
 				);
 				const linkedTruck = linkedTrucks[0];
 
@@ -221,26 +279,26 @@
 					syncStatus: 'pending',
 					created: new Date(),
 					loadingLocation: loadingLocation,
+					user: pocketbaseService.currentUser?.id || '',
 					siteLocation: 'PMC'
 				};
 
 				// Save truckLoad
 				await indexedDBService.saveRecord('truckLoads', truckLoad);
-				// Sync in background
-				syncService.syncTruckLoad(truckLoad).catch(console.warn);
 
 				const assay: Assay = {
 					id: crypto.randomUUID(),
 					name: sampleId,
 					productType: productType,
 					dedicatedFleet: isDedicatedFleet,
-					linkedTruckLoadIds: [truckLoad.id], // Use the truckLoad ID directly
-					linkedTruckIds: [linkedTruck?.serverId || ''],
+					linkedTruckLoadIds: [truckLoad.id],
+					linkedTruckIds: linkedTruck?.serverId ? [linkedTruck.serverId] : [],
 					syncStatus: 'pending',
 					location: loadingLocation,
 					created: new Date(),
 					updated: new Date().toISOString(),
 					sampleId: sampleId,
+					user: pocketbaseService.currentUser?.id || '',
 					siteLocation: 'PMC'
 				};
 
@@ -300,10 +358,10 @@
 					label="Select the Truck Registration"
 					search={true}
 					options={trucks.map((truck) => ({
-						value: truck.registration,
-						label: truck.registration
+						value: truck.transRef ?? '',
+						label: `${truck.registration} - ${truck.tareTimestamp ? formatTareTimestamp(new Date(truck.tareTimestamp)) : ''}`
 					}))}
-					bind:value={truckRegistration}
+					bind:value={transRef}
 					placeholder="Select Truck Registration"
 					required
 				/>
