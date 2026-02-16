@@ -111,8 +111,8 @@
 			processLayout.setSuccess('');
 
 			if (selectedWagon) {
-				let wagon = (await indexedDBService.getAllRecords('wagons')).find(
-					(w) => w.wagonIdSimple === selectedWagon
+				let wagon = (availableWagons).find(
+					(w) => w.wagonId === selectedWagon
 				);
 
 				if (!wagon) {
@@ -169,7 +169,7 @@
 			id="wagonId"
 			label="Wagon ID"
 			search={true}
-			options={availableWagons.map(wagon => ({value: wagon.wagonIdSimple, label: wagon.wagonIdSimple}))}
+			options={availableWagons.map(wagon => ({value: wagon.wagonId, label: wagon.wagonIdSimple}))}
 			bind:value={selectedWagon}
 			placeholder="Select Wagon ID"
 			required

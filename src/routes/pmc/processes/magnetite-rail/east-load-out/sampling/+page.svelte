@@ -40,7 +40,7 @@
 		});
 
 		availableTrains = shuntingTrains.map(shunting => ({
-			value: shunting.verificationTimestamp,
+			value: shunting.postDate,
 			label: formatDate(shunting.postDate)
 		}));
 	});
@@ -53,7 +53,7 @@
 				return;
 			}
 			let shuntingTrain = (await indexedDBService.getAllRecords('shuntingTrains')).find(
-				train => train.verificationTimestamp === selectedTrain
+				train => train.postDate === selectedTrain
 			);
 
 			if (!shuntingTrain) {
@@ -62,7 +62,7 @@
 			}
 
 			let linkedWagonIds = shuntingTrain.linkedWagons || [];
-
+			console.log('Linked wagon IDs:', linkedWagonIds);
 			for (let wagonId of linkedWagonIds) {
 				let wagon = (await indexedDBService.getAllRecords('wagons')).find(
 					wagon => wagon.serverId === wagonId

@@ -20,6 +20,7 @@
 	let isSubmitting = false;
 	let currentStep = 2;
 
+	let selectedWagonId = '';
 	let selectedWagon = '';
 	let availableWagons: any[] = [];
 
@@ -65,7 +66,11 @@
 		}
 	}
 
-	$: if (wagonIdSimple === '') {
+	$: if (selectedWagonId) {
+		selectedWagon = availableWagons.find(wagon => wagon.wagonId === selectedWagonId)?.wagonIdSimple || '';
+	}
+
+	$: if(wagonIdSimple === '') {
 		const currentDate = new Date();
 		const YYMMDD = `${currentDate.getFullYear().toString().slice(-2)}${String(currentDate.getMonth() + 1).padStart(2, '0')}${String(currentDate.getDate()).padStart(2, '0')}`;
 
@@ -135,7 +140,7 @@
 
 	onMount(async () => {
 		let shuntingTrain = (await indexedDBService.getAllRecords('shuntingTrains')).find(t => t.verificationTimestamp === shuntingTrainVerificationDate);
-
+		console.log('Shunting Train:', shuntingTrain);
 		const linkedWagons = shuntingTrain?.linkedWagons || [];
 		
 		let allwagons = (await indexedDBService.getAllRecords('wagons')).filter(
@@ -166,9 +171,9 @@
 			processLayout.setError('');
 			processLayout.setSuccess('');
 
-			if (selectedWagon) {
-				let wagon = (await indexedDBService.getAllRecords('wagons')).find(
-					(w) => w.wagonIdSimple === selectedWagon
+			if (selectedWagonId) {
+				let wagon = (availableWagons).find(
+					(w) => w.wagonId === selectedWagonId
 				);
 
 				if (!wagon) {
@@ -248,8 +253,8 @@
 				id="wagonId"
 				label="Wagon ID"
 				search={true}
-				options={availableWagons.map(wagon => ({value: wagon.wagonIdSimple, label: wagon.wagonIdSimple}))}
-				bind:value={selectedWagon}
+				options={availableWagons.map(wagon => ({value: wagon.wagonId, label: wagon.wagonIdSimple}))}
+				bind:value={selectedWagonId}
 				placeholder="Select Wagon ID"
 				required
 			/>
