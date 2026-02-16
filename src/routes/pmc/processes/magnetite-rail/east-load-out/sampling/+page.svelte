@@ -62,18 +62,18 @@
 			}
 
 			let linkedWagonIds = shuntingTrain.linkedWagons || [];
-			console.log('Linked wagon IDs:', linkedWagonIds);
+
 			for (let wagonId of linkedWagonIds) {
 				let wagon = (await indexedDBService.getAllRecords('wagons')).find(
 					wagon => wagon.serverId === wagonId
 				);
 
 				if (wagon?.sampleTimestamp) {
-					goto(`/pmc/processes/magnetite-rail/east-load-out/sampling/wagons/review?shuntingTrainVerificationDate=${selectedTrain}`);
+					goto(`/pmc/processes/magnetite-rail/east-load-out/sampling/wagons/review?shuntingTrainVerificationDate=${shuntingTrain.verificationTimestamp}`);
 					return;
 				}
 			}
-			goto(`/pmc/processes/magnetite-rail/east-load-out/sampling/wagons?shuntingTrainVerificationDate=${selectedTrain}`);
+			goto(`/pmc/processes/magnetite-rail/east-load-out/sampling/wagons?shuntingTrainVerificationDate=${shuntingTrain.verificationTimestamp}`);
 		} finally {
 			isSubmitting = false;
 		}
