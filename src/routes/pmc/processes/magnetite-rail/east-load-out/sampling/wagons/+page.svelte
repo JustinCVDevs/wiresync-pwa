@@ -20,6 +20,7 @@
 	let isSubmitting = false;
 	let currentStep = 2;
 
+	let selectedWagonId = '';
 	let selectedWagon = '';
 	let availableWagons: any[] = [];
 
@@ -63,6 +64,10 @@
 			trainNumber = wagon.trainNumber || '';
 			sampleId = wagon.sampleId || '';
 		}
+	}
+
+	$: if (selectedWagonId) {
+		selectedWagon = availableWagons.find(wagon => wagon.wagonId === selectedWagonId)?.wagonIdSimple || '';
 	}
 
 	$: if (wagonIdSimple === '') {
@@ -166,9 +171,9 @@
 			processLayout.setError('');
 			processLayout.setSuccess('');
 
-			if (selectedWagon) {
-				let wagon = (await indexedDBService.getAllRecords('wagons')).find(
-					(w) => w.wagonIdSimple === selectedWagon
+			if (selectedWagonId) {
+				let wagon = (availableWagons).find(
+					(w) => w.wagonId === selectedWagonId
 				);
 
 				if (!wagon) {
@@ -248,8 +253,8 @@
 				id="wagonId"
 				label="Wagon ID"
 				search={true}
-				options={availableWagons.map(wagon => ({value: wagon.wagonIdSimple, label: wagon.wagonIdSimple}))}
-				bind:value={selectedWagon}
+				options={availableWagons.map(wagon => ({value: wagon.wagonId, label: wagon.wagonIdSimple}))}
+				bind:value={selectedWagonId}
 				placeholder="Select Wagon ID"
 				required
 			/>

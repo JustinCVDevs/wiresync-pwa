@@ -40,7 +40,7 @@
 		});
 
 		availableTrains = shuntingTrains.map(shunting => ({
-			value: shunting.verificationTimestamp,
+			value: shunting.postDate,
 			label: formatDate(shunting.postDate)
 		}));
 	});
@@ -53,7 +53,7 @@
 				return;
 			}
 			let shuntingTrain = (await indexedDBService.getAllRecords('shuntingTrains')).find(
-				train => train.verificationTimestamp === selectedTrain
+				train => train.postDate === selectedTrain
 			);
 
 			if (!shuntingTrain) {
@@ -69,11 +69,11 @@
 				);
 
 				if (wagon?.sampleTimestamp) {
-					goto(`/bosveld/processes/loading-station/sampling/wagons/review?shuntingTrainVerificationDate=${selectedTrain}`);
+					goto(`/bosveld/processes/loading-station/sampling/wagons/review?shuntingTrainVerificationDate=${shuntingTrain.verificationTimestamp}&wagonIdSimple=${wagon.wagonIdSimple}`);
 					return;
 				}
 			}
-			goto(`/bosveld/processes/loading-station/sampling/wagons?shuntingTrainVerificationDate=${selectedTrain}`);
+			goto(`/bosveld/processes/loading-station/sampling/wagons?shuntingTrainVerificationDate=${shuntingTrain.verificationTimestamp}`);
 		} finally {
 			isSubmitting = false;
 		}

@@ -40,7 +40,7 @@
 		});
 
 		availableTrains = shuntingTrains.map(shunting => ({
-			value: shunting.verificationTimestamp,
+			value: shunting.postDate,
 			label: formatDate(shunting.postDate)
 		}));
 	});
@@ -53,7 +53,7 @@
 				return;
 			}
 			let shuntingTrain = (await indexedDBService.getAllRecords('shuntingTrains')).find(
-				train => train.verificationTimestamp === selectedTrain
+				train => train.postDate === selectedTrain
 			);
 
 			if (!shuntingTrain) {
@@ -69,11 +69,11 @@
 				);
 
 				if (wagon?.sampleTimestamp) {
-					goto(`/pmc/processes/magnetite-rail/west-load-out/sampling/wagons/review?shuntingTrainVerificationDate=${selectedTrain}`);
+					goto(`/pmc/processes/magnetite-rail/west-load-out/sampling/wagons/review?shuntingTrainVerificationDate=${shuntingTrain.verificationTimestamp}`);
 					return;
 				}
 			}
-			goto(`/pmc/processes/magnetite-rail/west-load-out/sampling/wagons?shuntingTrainVerificationDate=${selectedTrain}`);
+			goto(`/pmc/processes/magnetite-rail/west-load-out/sampling/wagons?shuntingTrainVerificationDate=${shuntingTrain.verificationTimestamp}`);
 		} finally {
 			isSubmitting = false;
 		}
