@@ -4,6 +4,7 @@
 	import FormField from '$lib/components/FormField.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import { onMount } from 'svelte';
+	import type { Truck } from '$lib/types';
 	import { formPersistenceService } from '$lib/services/formPersistenceService';
 
 	let felWeight = '';
@@ -13,7 +14,7 @@
 	let isSubmitting = false;
 
 	let truckInput = '';
-	let availableTrucks: any[] = [];
+	let availableTrucks: Truck[] = [];
 	let selectedTruck: any = '';
 
 	const steps = [
@@ -27,9 +28,21 @@
 
 	async function getTrucks() {
 		try {
-			availableTrucks = await indexedDBService.getAllRecords('trucks');
+			const today = new Date();
+			const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+			const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
 
-            availableTrucks.sort((a, b) => a.registration.localeCompare(b.registration));
+			availableTrucks = (await indexedDBService.getAllRecords('trucks')).filter(
+				(truck: Truck) => {
+					const matchesProduct = truck.productType === 'Reverts';
+					if (!truck.tareTimestamp) return false;
+					const ts = new Date(truck.tareTimestamp).getTime();
+					const isToday = ts >= startOfDay.getTime() && ts <= endOfDay.getTime();
+					return matchesProduct && isToday;
+				}
+			);
+
+			availableTrucks.sort((a, b) => a.registration.localeCompare(b.registration));
 		} catch (error) {
 			console.error('No trucks available', error);
 			return [];
