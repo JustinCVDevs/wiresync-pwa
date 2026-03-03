@@ -19,6 +19,17 @@
 
 	const steps = ["FEL Details", "Complete"]
 
+	function formatTareTimestamp(date: Date) {
+		return new Date(date).toLocaleString('en-GB', {
+			day: '2-digit',
+			month: '2-digit',
+			year: '2-digit',
+			hour: '2-digit',
+			minute: '2-digit',
+			hour12: false
+		});
+	}
+	
 	onMount(async () => {
 		await getTrucks();
 	});
@@ -115,8 +126,10 @@
 						id="truckRegistration"
 						label="Select the Truck Registration"
 						search={true}
-						options={availableTrucks.map((truck) => ({ value: truck.registration, label: truck.registration }))} 
-						bind:value={selectedTruck}
+						options={availableTrucks.map((truck) => ({
+							value: truck.transRef ?? '',
+							label: `${truck.registration} - ${truck.tareTimestamp ? formatTareTimestamp(new Date(truck.tareTimestamp)) : ''}`
+						}))}						bind:value={selectedTruck}
 						placeholder="Select Truck Registration"
 						required
 					/>
