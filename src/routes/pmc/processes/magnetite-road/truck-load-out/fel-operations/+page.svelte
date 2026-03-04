@@ -24,6 +24,17 @@
 
 	const steps = ['FEL Details', 'Complete'];
 
+	function formatTareTimestamp(date: Date) {
+		return new Date(date).toLocaleString('en-GB', {
+			day: '2-digit',
+			month: '2-digit',
+			year: '2-digit',
+			hour: '2-digit',
+			minute: '2-digit',
+			hour12: false
+		});
+	}
+	
 	onMount(async () => {
 		try {
 			await getTrucks();
@@ -35,7 +46,19 @@
 	});
 
 	async function getTrucks() {
-		trucks = await indexedDBService.getAllRecords('trucks');
+		const today = new Date();
+		const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+		const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+
+		trucks = (await indexedDBService.getAllRecords('trucks')).filter(
+			(truck: Truck) => {
+				const matchesProduct = truck.productType === 'Magnetite - DMS';
+				if (!truck.tareTimestamp) return false;
+				const ts = new Date(truck.tareTimestamp).getTime();
+				const isToday = ts >= startOfDay.getTime() && ts <= endOfDay.getTime();
+				return matchesProduct && isToday;
+			}
+		);
 
 		trucks.sort((a, b) => a.registration.localeCompare(b.registration));
 	}
@@ -150,8 +173,8 @@
 					label="Truck Registration"
 					search={true}
 					options={trucks.map((truck) => ({
-						value: truck.registration,
-						label: truck.registration
+						value: truck.transRef ?? '',
+						label: `${truck.registration} - ${truck.tareTimestamp ? formatTareTimestamp(new Date(truck.tareTimestamp)) : ''}`
 					}))}
 					bind:value={selectedTruck}
 					placeholder="Select Truck Registration"
