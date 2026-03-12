@@ -59,7 +59,7 @@
 	});
 
 	function handleNewWagon() {
-		goto(`/richardsbay/processes/rail/train-staging/wagons/?wagonIdSimples=${wagonIdSimple.join(',')}&trainRefNr=${trainRefNr}`);
+		goto(`/richardsbay/processes/rail/train-staging/wagons/?trainRefNr=${trainRefNr}`);
 	}
 
 	function handleCancel() {
