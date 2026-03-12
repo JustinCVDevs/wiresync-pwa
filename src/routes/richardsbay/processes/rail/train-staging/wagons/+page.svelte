@@ -9,7 +9,7 @@
 
 	// Form state
 	let trainRefNr = $page.url.searchParams.get('trainRefNr') || '';
-	let wagonIdSimple = '';
+	let wagonId = '';
 	let isSubmitting = false;
 	let showSearch = false;
 	let currentStep = 2;
@@ -20,9 +20,6 @@
 
 	// Reference to the ProcessLayout component
 	let processLayout: ProcessLayout;
-
-	let existingIdsArray: string[] = [];
-	$: existingIdsArray = ($page.url.searchParams.get('wagonIds') || '').split(',').filter(Boolean);
 
 	onMount(async () => {
 		let linkedTrain = (await indexedDBService.getAllRecords('trains')).find(
@@ -51,7 +48,7 @@
 
 			// Check if wagon exists in Pocketbase DB
 			const pbWagons = await indexedDBService.getAllRecords('wagons');
-			const wagonToUse = pbWagons.find(wagon => wagon.wagonIdSimple === wagonIdSimple);
+			const wagonToUse = pbWagons.find(wagon => wagon.wagonId === wagonId);
 
 			if (!wagonToUse) {
 				processLayout.setError('Wagon Not in Pre-Registration List');
@@ -65,9 +62,7 @@
 				stagingTimestamp: new Date(),
 			});
 
-			// Add the new wagon's id to the list and pass as a query param
-			const dispatchedIds = [...(existingIdsArray), wagonToUse.id];
-			goto(`/richardsbay/processes/rail/train-staging/wagons/review?wagonIdSimples=${dispatchedIds.join(',')}&trainRefNr=${trainRefNr}`);
+			goto(`/richardsbay/processes/rail/train-staging/wagons/review?trainRefNr=${trainRefNr}`);
 		} catch (error) {
 			console.error('Failed to submit wagon arrival:', error);
 			processLayout.setError('Failed to submit wagon arrival. Please try again.');
@@ -105,8 +100,8 @@
 				id="wagonId"
 				label="Wagon ID"
 				search={true}
-				options={availableWagons.map(wagon => ({ value: wagon.wagonIdSimple ?? '', label: wagon.wagonIdSimple ?? '' }))}
-				bind:value={wagonIdSimple}
+				options={availableWagons.map(wagon => ({ value: wagon.wagonId ?? '', label: wagon.wagonIdSimple ?? '' }))}
+				bind:value={wagonId}
 				placeholder="Select Wagon ID"
 				required
 				on:focus={() => showSearch = true}
