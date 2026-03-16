@@ -2,94 +2,44 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
-	import FormField from '$lib/components/FormField.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
+	import FormField from '$lib/components/FormField.svelte';
 	import type { Wagon } from '$lib/types/wagon';
 	import { page } from '$app/stores';
 
 	// Form state
-	let trainRefNr = $page.url.searchParams.get('trainRefNr');
+	let trainRefNr = $page.url.searchParams.get('trainRefNr') || '';
 	let wagonId = '';
 	let isSubmitting = false;
+	let showSearch = false;
 	let currentStep = 2;
-	let sampleId = '';
-
 	let availableWagons: Wagon[] = [];
-	let filteredWagonSuggestions: Wagon[] = [];
-	let showWagonSuggestions = false;
-	let showWagonNotFound = false;
-	let selectedWagon: Wagon | null = null;
 
 	// Process steps
-	const processSteps = ['Arrival Train', 'Wagon Sampling', 'Verification'];
+	const processSteps = ['Arrival Train', 'Wagon', 'Verification'];
 
 	// Reference to the ProcessLayout component
 	let processLayout: ProcessLayout;
 
 	onMount(async () => {
-		let train = (await indexedDBService.getAllRecords('trains')).find(t => t.refNr === trainRefNr);
-
+		let linkedTrain = (await indexedDBService.getAllRecords('trains')).find(
+			train => train.refNr === trainRefNr
+		);
+	
 		let trainArrival = (await indexedDBService.getAllRecords('trainArrivals')).find(
-			arrival => arrival.trainId === train?.serverId
+			train => train.trainId === linkedTrain?.id
 		);
 
 		const linkedWagons = trainArrival?.linkedWagonIds || [];
 
 		let allwagons = (await indexedDBService.getAllRecords('wagons')).filter(
-			wagon => wagon.stagingTimestamp && !wagon.sampleTimestamp
+			wagon => linkedWagons.some(linkedWagon => linkedWagon === wagon.id || linkedWagon === wagon.serverId)
 		);
 
 		availableWagons = allwagons.filter(
-			wagon => linkedWagons.some(linkedWagon => linkedWagon === wagon.id)
+			wagon => !wagon.sampleTimestamp
 		);
 	});
-
-	function handleWagonInput() {
-		const value = wagonId.trim();
-		selectedWagon = null;
-		showWagonNotFound = false;
-
-		if (value.length === 0) {
-			showWagonSuggestions = false;
-			filteredWagonSuggestions = [];
-			return;
-		}
-
-		filteredWagonSuggestions = availableWagons.filter(wagon =>
-			wagon.wagonId?.toLowerCase().includes(value.toLowerCase())
-		).slice(0, 6);
-
-		const exactMatch = availableWagons.find(wagon =>
-			wagon.wagonId?.toLowerCase() === value.toLowerCase()
-		);
-
-		if (exactMatch) {
-			selectedWagon = exactMatch;
-			wagonId = exactMatch.wagonId ?? '';
-			showWagonSuggestions = false;
-		} else if (value.length >= 2) {
-			showWagonSuggestions = filteredWagonSuggestions.length > 0;
-			if (value.length >= 3 && filteredWagonSuggestions.length === 0) {
-				showWagonNotFound = true;
-			}
-		}
-	}
-
-	function showAllWagonSuggestions() {
-		if (availableWagons.length > 0) {
-			filteredWagonSuggestions = availableWagons.slice(0, 6);
-			showWagonSuggestions = true;
-		}
-	}
-
-	function formatTimestamp(date: Date) {
-		const yyyy = date.getFullYear();
-		const mm = String(date.getMonth() + 1).padStart(2, '0');
-		const dd = String(date.getDate()).padStart(2, '0');
-		const hh = String(date.getHours()).padStart(2, '0');
-		const min = String(date.getMinutes()).padStart(2, '0');
-		return `${yyyy}/${mm}/${dd} ${hh}:${min}`;
-	}
 
 	async function handleSubmit() {
 		try {
@@ -110,7 +60,6 @@
 				...wagonToUse,
 				syncStatus: 'pending',
 				sampleTimestamp: new Date(),
-				sampleId: sampleId
 			});
 
 			goto(`/richardsbay/processes/rail/train-sampling/wagons/review?trainRefNr=${trainRefNr}`);
@@ -147,50 +96,17 @@
 	
 
 		<div class="form">
-			<label for="wagonId" class="block font-medium text-gray text-sm mb-1">Wagon ID *</label>
-			<input
+			<FormField
 				id="wagonId"
-				type="text"
+				label="Wagon ID"
+				search={true}
+				options={availableWagons.map(wagon => ({ value: wagon.wagonId ?? '', label: wagon.wagonIdSimple ?? '' }))}
 				bind:value={wagonId}
-				placeholder="Scan/Enter Wagon ID"
-				on:input={handleWagonInput}
-				on:focus={showAllWagonSuggestions}
-				on:blur={() => setTimeout(() => showWagonSuggestions = false, 200)}
+				placeholder="Select Wagon ID"
 				required
-				class="w-full rounded-lg text-sm border px-3 py-2 text-gray border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none"
+				on:focus={() => showSearch = true}
+				on:blur={() => setTimeout(() => (showSearch = false), 200)}
 			/>
-			{#if showWagonSuggestions}
-				<ul class="suggestions-list">
-					{#each filteredWagonSuggestions as suggestion, i}
-						<li>
-							<button
-								type="button"
-								on:mousedown|preventDefault={() => {
-									wagonId = suggestion.wagonId || '';
-									showWagonSuggestions = false;
-									selectedWagon = suggestion;
-									sampleId = suggestion.sampleId || '';
-								}}
-							>
-								{suggestion.wagonId || 'Unknown Wagon'}
-							</button>
-						</li>
-					{/each}
-				</ul>
-			{/if}
-
-			{#if selectedWagon}
-				<div class="mt-5">
-					<FormField
-						id="sampleId"
-						label="Sample ID"
-						type="text"
-						bind:value={sampleId}
-						placeholder="Enter Sample ID"
-						required
-					/>
-				</div>	
-			{/if}
 		</div>
 	</div>
 </ProcessLayout>
@@ -199,49 +115,5 @@
 	.form {
 		margin-top: 1rem;
 		position: relative;
-	}
-	.form #wagonId {
-		min-height: 40px;
-	}
-
-	.suggestions-list {
-		border: 1px solid #ccc;
-		background: #fff;
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		max-height: 150px;
-		overflow-y: auto;
-		position: absolute;
-		z-index: 10;
-		width: 100%;
-	}
-
-	.suggestions-list li:nth-child(even) {
-		background: #f6f8fa;
-	}
-	.suggestions-list li:nth-child(odd) {
-		background: #fff;
-	}
-
-	.suggestions-list button {
-		width: 100%;
-		text-align: left;
-		padding: 0.5rem;
-		background: transparent;
-		border: none;
-		cursor: pointer;
-		color: #222;
-		transition: background 0.2s;
-	}
-
-	.suggestions-list button:hover {
-		background: #2563eb;
-		color: #fff;
-	}
-
-	.suggestions-list li {
-		padding: 0;
-		margin: 0;
 	}
 </style>
