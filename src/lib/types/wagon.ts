@@ -26,4 +26,5 @@ export interface Wagon extends BaseRecord {
 	trainNumber?: string; // Train number associated with the wagon
 	tarpedStatus?: boolean; // Whether the wagon is tarped
 	user: string;
+	portSampleId?: string; // PORT_SAMPLE_ID
 }

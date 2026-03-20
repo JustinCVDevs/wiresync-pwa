@@ -6,6 +6,7 @@
 	import FormField from '$lib/components/FormField.svelte';
 	import type { Wagon } from '$lib/types/wagon';
 	import { page } from '$app/stores';
+	import { Portal } from '$lib/components/ui/alert-dialog';
 
 	// Form state
 	let trainRefNr = $page.url.searchParams.get('trainRefNr') || '';
@@ -14,6 +15,7 @@
 	let showSearch = false;
 	let currentStep = 2;
 	let availableWagons: Wagon[] = [];
+	let portSampleId = '';
 
 	// Process steps
 	const processSteps = ['Arrival Train', 'Wagon', 'Verification'];
@@ -60,6 +62,7 @@
 				...wagonToUse,
 				syncStatus: 'pending',
 				sampleTimestamp: new Date(),
+				portSampleId: portSampleId
 			});
 
 			goto(`/richardsbay/processes/rail/train-sampling/wagons/review?trainRefNr=${trainRefNr}`);
@@ -108,6 +111,18 @@
 				on:blur={() => setTimeout(() => (showSearch = false), 200)}
 			/>
 		</div>
+
+		{#if wagonId}
+			<div class="form">
+				<FormField
+					id="sampleId"
+					label="Sample ID"
+					placeholder="Enter Sample ID"
+					required
+					bind:value={portSampleId}
+				/>
+			</div>
+		{/if}
 	</div>
 </ProcessLayout>
 

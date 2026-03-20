@@ -154,8 +154,8 @@
 								<div class="font-medium text-gray">
 									<span class="text-sm font-light">
 										Sample ID: </span> 
-										{wagon.sampleId 
-										? wagon.sampleId
+										{wagon.portSampleId 
+										? wagon.portSampleId
 										: 'Not set'}
 								</div>
 							</div>
