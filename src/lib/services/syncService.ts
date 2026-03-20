@@ -10,6 +10,7 @@ import type { TruckArrival } from '$lib/types/truckArrival';
 import type { Fleet, Truck } from '$lib/types';
 import type { TrainArrival } from '$lib/types/trainArrival';
 import type { DedicatedFleetTruck } from '$lib/types/dedicatedFleetTruck';
+import type { Consignment } from '$lib/types/consignment';
 
 function base64ToBlob(base64: string, mime: string) {
 	// Always use a supported image format (default to image/jpeg)
@@ -680,6 +681,49 @@ export const syncService = {
 				console.error('❌ Failed to sync consignment list:', err);
 			}
 			return false;
+		}
+	},
+
+	async syncConsignment(consignment: Consignment) {
+		try {
+			const { id, syncStatus, ...payload } = consignment;
+
+			let created;
+			if (consignment.serverId) {
+				created = await pocketbaseService.update('consignments', consignment.serverId, {
+					...payload,
+					user: pocketbaseService.currentUser?.id || ''
+				});
+			} else {
+				created = await pocketbaseService.create('consignments', {
+					...payload,
+					user: pocketbaseService.currentUser?.id || ''
+				});
+			}
+
+			if (consignment.id) {
+				await indexedDBService.updateRecord('consignments', consignment.id, {
+					...consignment,
+					syncStatus: 'synced',
+					serverId: created.id
+				});
+			}
+
+			return true;
+		} catch (err) {
+			console.warn('Failed to sync consignment with PocketBase:', err);
+			return false;
+		}
+	},
+
+	async syncPendingConsignments() {
+		const pending = await indexedDBService.getRecords(
+			'consignments',
+			(rec: { syncStatus: string }) => rec.syncStatus === 'pending'
+		);
+
+		for (const consignment of pending) {
+			await this.syncConsignment(consignment);
 		}
 	},
 
@@ -1663,6 +1707,7 @@ export const syncService = {
 		await Promise.all([
 			// Sync all pending records
 			this.syncPendingAssays(),
+			this.syncPendingConsignments(),
 			this.syncPendingFleet(),
 			this.syncPendingShuntingTrains(),
 			this.syncPendingTrainArrivals(),
