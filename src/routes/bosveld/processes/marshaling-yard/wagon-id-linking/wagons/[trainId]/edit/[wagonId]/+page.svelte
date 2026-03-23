@@ -123,7 +123,7 @@
 					wagonIdSimple: editableWagonId,
 					transcoreTag: editableTemporaryRfid,
 					syncStatus: 'pending',
-					updated: new Date().toISOString()
+					isWireSynced: false
 				});
 			} catch (dbError) {
 				console.error('IndexedDB transaction failed:', dbError);

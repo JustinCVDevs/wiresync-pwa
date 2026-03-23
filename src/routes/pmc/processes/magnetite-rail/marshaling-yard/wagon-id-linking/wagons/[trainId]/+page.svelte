@@ -175,6 +175,7 @@
 				// Update the shunting train with verification timestamp
 				await indexedDBService.updateRecord('shuntingTrains', shuntingTrain.id, {
 					verificationTimestamp: new Date(),
+					isWireSynced: false,
 					syncStatus: 'pending' as const
 				});
 				

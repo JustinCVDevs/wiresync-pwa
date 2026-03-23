@@ -90,6 +90,7 @@
 					await indexedDBService.updateRecord('fleet', fleet.id, {
 						loadingLocation: loadingLocation,
 						syncStatus: 'pending',
+						isWireSynced: false,
 						felMassKg: Number(felWeight)
 					});
 					formPersistenceService.clearForm('fel-operations-gravelotte');
@@ -118,6 +119,7 @@
 					await indexedDBService.updateRecord('truckLoads', truckLoad.id, {
 						loadingLocation: loadingLocation,
 						syncStatus: 'pending',
+						isWireSynced: false,
 						felWeight: felWeight
 					});
 					formPersistenceService.clearForm('fel-operations-gravelotte');

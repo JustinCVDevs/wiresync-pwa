@@ -105,7 +105,7 @@
 				...trainDispatches,
 				syncStatus: 'pending',
 				dispatchTimestamp: new Date(),
-				updated: new Date().toISOString()
+				isWireSynced: false
 			});
 
 			processLayout.setSuccess('Wagon linkage completed');
@@ -163,7 +163,7 @@
 					linkedTrainId: train.serverId,
 					siteLocation: 'Bosveld',
 					syncStatus: 'pending',
-					updated: new Date().toISOString()
+					isWireSynced: false
 				});
 
 				const linkedTrainId = (await indexedDBService.getAllRecords('trains')).find(
@@ -184,6 +184,7 @@
 					created: new Date(),
 					updated: new Date().toISOString(),
 					user: pocketbaseService.currentUser?.id || '',
+					isWireSynced: false,
 					siteLocation: 'Bosveld',
 				};
 

@@ -50,6 +50,7 @@
 					...wagon,
 					syncStatus: 'pending',
 					releaseTimestamp: new Date(),
+					isWireSynced: false
 				});
 			}
 

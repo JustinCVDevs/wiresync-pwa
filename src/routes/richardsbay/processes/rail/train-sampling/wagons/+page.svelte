@@ -6,7 +6,6 @@
 	import FormField from '$lib/components/FormField.svelte';
 	import type { Wagon } from '$lib/types/wagon';
 	import { page } from '$app/stores';
-	import { Portal } from '$lib/components/ui/alert-dialog';
 
 	// Form state
 	let trainRefNr = $page.url.searchParams.get('trainRefNr') || '';
@@ -22,6 +21,14 @@
 
 	// Reference to the ProcessLayout component
 	let processLayout: ProcessLayout;
+
+	$: if(wagonId !== '') {
+		const currentDate = new Date();
+		const YYMMDD = `${currentDate.getFullYear().toString().slice(-2)}${String(currentDate.getMonth() + 1).padStart(2, '0')}${String(currentDate.getDate()).padStart(2, '0')}`;
+
+		var wagonIdSimple = availableWagons.find(wagon => wagon.wagonId === wagonId)?.wagonIdSimple;
+		portSampleId = `${YYMMDD}${wagonIdSimple ? `_${wagonIdSimple}` : ''}`;
+	}
 
 	onMount(async () => {
 		let linkedTrain = (await indexedDBService.getAllRecords('trains')).find(
@@ -62,7 +69,8 @@
 				...wagonToUse,
 				syncStatus: 'pending',
 				sampleTimestamp: new Date(),
-				portSampleId: portSampleId
+				portSampleId: portSampleId,
+				isWireSynced: false
 			});
 
 			goto(`/richardsbay/processes/rail/train-sampling/wagons/review?trainRefNr=${trainRefNr}`);

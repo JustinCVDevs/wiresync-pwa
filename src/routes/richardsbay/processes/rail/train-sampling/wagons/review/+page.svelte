@@ -153,7 +153,7 @@
 								</div>
 								<div class="font-medium text-gray">
 									<span class="text-sm font-light">
-										Sample ID: </span> 
+										Port Sample ID: </span> 
 										{wagon.portSampleId 
 										? wagon.portSampleId
 										: 'Not set'}

@@ -16,4 +16,5 @@ export interface Fleet extends BaseRecord {
 	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"
 	user: string;
 	truckDestination?: string; // FLEET_TRUCK_DESTINATION
+	isWireSynced?: boolean;
 }

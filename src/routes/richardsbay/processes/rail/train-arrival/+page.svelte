@@ -111,6 +111,7 @@
 					portRailArrivalTimestamp: new Date(arrivalTimestamp),
 					trainPhotoUrl: photoData,
 					status: 'sampling',
+					isWireSynced: false
 				});
 
 			processLayout.setSuccess('Train Successfully Received!');

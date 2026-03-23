@@ -17,4 +17,5 @@ export interface TruckLoad extends BaseRecord {
 	materialType?: string;
 	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"
 	user: string;
+	isWireSynced?: boolean;
 }

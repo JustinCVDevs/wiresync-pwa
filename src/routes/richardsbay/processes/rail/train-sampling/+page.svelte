@@ -92,7 +92,8 @@
 
 			await indexedDBService.updateRecord('trainArrivals', trainArrival.id, {
 				finishSamplingTimestamp: new Date(),
-				syncStatus: 'pending'
+				syncStatus: 'pending',
+				isWireSynced: false
 			});
 
 			processLayout.setSuccess(`Train sampling finished successfully for train ${selectedTrain}.`);

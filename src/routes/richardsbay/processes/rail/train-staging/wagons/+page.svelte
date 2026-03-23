@@ -60,6 +60,7 @@
 				...wagonToUse,
 				syncStatus: 'pending',
 				stagingTimestamp: new Date(),
+				isWireSynced: false
 			});
 
 			goto(`/richardsbay/processes/rail/train-staging/wagons/review?trainRefNr=${trainRefNr}`);

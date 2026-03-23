@@ -128,6 +128,7 @@
 				siteLocation: 'PMC',
 				syncStatus: 'pending',
 				user: pocketbaseService.currentUser?.id || '',
+				isWireSynced: false,
 				samplingStatus: samplingStatus
 			}
 
@@ -149,6 +150,7 @@
 				updated: new Date().toISOString(),
 				sampleId: sampleId,
 				user: pocketbaseService.currentUser?.id || '',
+				isWireSynced: false,
 				siteLocation: 'PMC',
 			};
 
