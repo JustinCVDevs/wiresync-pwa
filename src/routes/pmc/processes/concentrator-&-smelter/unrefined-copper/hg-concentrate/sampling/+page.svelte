@@ -89,7 +89,7 @@
 			processLayout.setSuccess('');
 			isSubmitting = true;
 
-			if (!truckRegistration) {
+			if (!transRef) {
 				throw new Error('Truck Registration is required for Dedicated Fleet');
 			}
 
@@ -122,7 +122,8 @@
 				id: crypto.randomUUID(),
 				name: sampleId,
 				materialType: materialType,
-				linkedTruckLoadIds: [newTruckLoad?.serverId || ''],
+				linkedTruckIds: [linkTruck?.serverId || ''],
+				linkedTruckLoadIds: [newTruckLoad?.id || ''],
 				syncStatus: 'pending',
 				location: loadingLocation,
 				created: new Date(),

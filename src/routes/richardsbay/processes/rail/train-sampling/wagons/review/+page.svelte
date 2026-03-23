@@ -69,7 +69,7 @@
 				arrival => arrival.trainId === train.serverId
 			)[0];
 
-		if (trainArrival.linkedWagonIds?.length ?? 0 >= filteredWagons.length) {
+		if ((trainArrival?.linkedWagonIds?.length ?? 0) <= filteredWagons.length) {
 			warning = 'All wagons have been sampled for this train.';
 
 			setTimeout(() => {
