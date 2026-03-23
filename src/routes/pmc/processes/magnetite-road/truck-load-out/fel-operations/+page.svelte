@@ -102,7 +102,7 @@
 				isDedicatedFleet = false;
 
 				if (selectedTruck) {
-					const truck = trucks.find((truck) => truck.registration === selectedTruck);
+					const truck = trucks.find((truck) => truck.transRef === selectedTruck);
 
 					if (!truck) {
 						throw new Error(`Truck with registration "${selectedTruck}" not found.`);

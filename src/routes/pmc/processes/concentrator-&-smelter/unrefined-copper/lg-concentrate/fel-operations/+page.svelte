@@ -64,7 +64,7 @@
 			isSubmitting = true;
 
 			if (selectedTruck) {
-				const truck = availableTrucks.find(truck => truck.registration === selectedTruck);
+				const truck = availableTrucks.find(truck => truck.transRef === selectedTruck);
 
 				if (!truck) {
 					throw new Error(`Truck with registration "${selectedTruck}" not found.`);
