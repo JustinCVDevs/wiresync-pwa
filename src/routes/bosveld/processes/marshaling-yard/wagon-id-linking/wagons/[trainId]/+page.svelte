@@ -168,7 +168,8 @@
 			if (shuntingTrain) {
 				await indexedDBService.updateRecord('shuntingTrains', shuntingTrain.id, {
 					verificationTimestamp: new Date(),
-					syncStatus: 'pending' as const
+					syncStatus: 'pending' as const,
+					isWireSynced: false
 				});
 				
 				success = 'Process Complete';

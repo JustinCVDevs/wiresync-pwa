@@ -124,7 +124,7 @@
 					felWeight: Number(felWeight),
 					felTimestamp: new Date(),
 					syncStatus: 'pending',
-					updated: new Date().toISOString()
+					isWireSynced: false
 				});
 
 				// Clear persisted form data

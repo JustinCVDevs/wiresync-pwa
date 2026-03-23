@@ -8,4 +8,5 @@ export interface Consignment extends BaseRecord {
 	syncStatus: 'pending' | 'synced';
 	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"
 	user?: string; // user who created the consignment
+	isWireSynced?: boolean;
 }

@@ -83,6 +83,7 @@
 				updated: new Date().toISOString(),
 				sampleId: sampleId,
 				user: pocketbaseService.currentUser?.id || '',
+				isWireSynced: false,
 				siteLocation: 'Richards Bay',
 			};
 
@@ -100,6 +101,7 @@
 					...truckArrival,
 					port_arrival_sample_id: sampleId,
 					syncStatus: 'pending',
+					isWireSynced: false
 				});
 			}
 

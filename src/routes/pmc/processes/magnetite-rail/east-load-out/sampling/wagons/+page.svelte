@@ -188,6 +188,7 @@
 				wagon.syncStatus = 'pending';
 				wagon.sampleTimestamp = new Date();
 				wagon.updated = formatTimestamp(new Date());
+				wagon.isWireSynced = false;
 
 				await indexedDBService.updateRecord('wagons', wagon.id, wagon);
 
@@ -204,6 +205,7 @@
 					syncStatus: 'pending',
 					user: pocketbaseService.currentUser?.id || '',
 					siteLocation: 'PMC',
+					isWireSynced: false,
 				};
 
 				// Save to IndexedDB

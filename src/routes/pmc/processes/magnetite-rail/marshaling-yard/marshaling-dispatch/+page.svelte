@@ -93,7 +93,7 @@
 			)[0];
 
 			const trainDispatches = (await indexedDBService.getAllRecords('trainDispatches')).find(
-				(d) => !d.dispatchTimestamp && d.linkedTrainId === train?.serverId
+				(d) => !d.dispatchTimestamp && d.linkedTrainId === train?.serverId && d.siteLocation === 'PMC'
 			);
 
 			if (!trainDispatches) {
@@ -105,7 +105,7 @@
 				...trainDispatches,
 				syncStatus: 'pending',
 				dispatchTimestamp: new Date(),
-				updated: new Date().toISOString()
+				isWireSynced: false
 			});
 
 			processLayout.setSuccess('Wagon linkage completed');
@@ -162,7 +162,7 @@
 					linkedTrainId: train.serverId,
 					siteLocation: 'PMC',
 					syncStatus: 'pending',
-					updated: new Date().toISOString()
+					isWireSynced: false
 				});
 
 				const linkedTrainId = (await indexedDBService.getAllRecords('trains')).find(
@@ -184,6 +184,7 @@
 					updated: new Date().toISOString(),
 					user: pocketbaseService.currentUser?.id || '',
 					siteLocation: 'PMC',
+					isWireSynced: false
 				};
 
 				await indexedDBService.saveRecord('trainDispatches', trainDispatch);

@@ -21,4 +21,5 @@ export interface Assay extends BaseRecord {
 	sampleId?: string;
 	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"
 	user: string;
+	isWireSynced?: boolean;
 }

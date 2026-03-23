@@ -152,7 +152,8 @@
 					syncStatus: 'pending',
 					port_truck_arrival_timestamp: new Date(),
 					status: 'received',
-					truck_photo: photoData
+					truck_photo: photoData,
+					isWireSynced: false
 				});
 
 			goto('/richardsbay/processes/road/pmc-truck-arrivals/verification?truckArrivalId=' + selectedArrivalId);

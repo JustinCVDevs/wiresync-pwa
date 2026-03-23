@@ -81,6 +81,7 @@
 				truckLoad.updated = new Date().toISOString();
 				truckLoad.felWeight = felWeight;
 				truckLoad.syncStatus = 'pending';
+				truckLoad.isWireSynced = false;
 
 				await indexedDBService.updateRecord('truckLoads', truckLoad.id, truckLoad);
 

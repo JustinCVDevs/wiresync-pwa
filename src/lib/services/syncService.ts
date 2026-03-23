@@ -198,6 +198,7 @@ export const syncService = {
 							siteLocation: assay.siteLocation,
 							syncStatus: 'synced',
 							serverId: assay.id,
+							isWireSynced: assay.isWireSynced,
 							created: assay.created,
 							updated: assay.updated
 						});
@@ -227,7 +228,8 @@ export const syncService = {
 						serverId: assay.id,
 						user: pocketbaseService.currentUser?.id || '',
 						created: assay.created,
-						updated: assay.updated
+						updated: assay.updated,
+						isWireSynced: assay.isWireSynced
 					});
 				}
 			}
@@ -452,6 +454,7 @@ export const syncService = {
 							tarpedStatus: wagon.tarpedStatus,
 							serverId: wagon.id,
 							syncStatus: 'synced',
+							isWireSynced: wagon.isWireSynced,
 							created: wagon.created,
 							updated: wagon.updated
 						});
@@ -479,6 +482,7 @@ export const syncService = {
 						tarpedStatus: wagon.tarpedStatus,
 						serverId: wagon.id,
 						syncStatus: 'synced',
+						isWireSynced: wagon.isWireSynced,
 						user: pocketbaseService.currentUser?.id || '',
 						created: wagon.created,
 						updated: wagon.updated
@@ -659,6 +663,7 @@ export const syncService = {
 							syncStatus: 'synced',
 							serverId: consignment.id,
 							siteLocation: consignment.siteLocation,
+							isWireSynced: consignment.isWireSynced,
 							created: consignment.created,
 							updated: consignment.updated
 						});
@@ -672,6 +677,7 @@ export const syncService = {
 						syncStatus: 'synced',
 						serverId: consignment.id,
 						siteLocation: consignment.siteLocation,
+						isWireSynced: consignment.isWireSynced,
 						created: consignment.created,
 						updated: consignment.updated
 					});
@@ -772,6 +778,7 @@ export const syncService = {
 							updated: truckLoad.updated,
 							syncStatus: 'synced',
 							serverId: truckLoad.id,
+							isWireSynced: truckLoad.isWireSynced,
 							siteLocation: truckLoad.siteLocation
 						});
 					}
@@ -794,6 +801,7 @@ export const syncService = {
 						syncStatus: 'synced',
 						serverId: truckLoad.id,
 						user: pocketbaseService.currentUser?.id || '',
+						isWireSynced: truckLoad.isWireSynced,
 						siteLocation: truckLoad.siteLocation
 					});
 				}
@@ -878,6 +886,7 @@ export const syncService = {
 							siteLocation: trainDispatch.siteLocation,
 							dispatchTimestamp: trainDispatch.dispatchTimestamp,
 							syncStatus: 'synced',
+							isWireSynced: trainDispatch.isWireSynced,
 							serverId: trainDispatch.id,
 							created: trainDispatch.created,
 							updated: trainDispatch.updated
@@ -894,6 +903,7 @@ export const syncService = {
 						siteLocation: trainDispatch.siteLocation,
 						dispatchTimestamp: trainDispatch.dispatchTimestamp,
 						syncStatus: 'synced',
+						isWireSynced: trainDispatch.isWireSynced,
 						serverId: trainDispatch.id,
 						user: pocketbaseService.currentUser?.id || '',
 						created: trainDispatch.created,
@@ -1106,6 +1116,7 @@ export const syncService = {
 							siteLocation: train.siteLocation,
 							serverId: train.id,
 							syncStatus: 'synced',
+							isWireSynced: train.isWireSynced,
 							created: train.created,
 							updated: train.updated
 						});
@@ -1122,6 +1133,7 @@ export const syncService = {
 						siteLocation: train.siteLocation,
 						serverId: train.id,
 						syncStatus: 'synced',
+						isWireSynced: train.isWireSynced,
 						user: pocketbaseService.currentUser?.id || '',
 						created: train.created,
 						updated: train.updated
@@ -1299,6 +1311,7 @@ export const syncService = {
 							siteLocation: arrival.siteLocation,
 							name: arrival.name,
 							registration: arrival.registration,
+							isWireSynced: arrival.isWireSynced,
 							created: arrival.created,
 							updated: arrival.updated,
 							serverId: arrival.id
@@ -1325,6 +1338,7 @@ export const syncService = {
 						siteLocation: arrival.siteLocation,
 						name: arrival.name,
 						registration: arrival.registration,
+						isWireSynced: arrival.isWireSynced,
 						created: arrival.created,
 						updated: arrival.updated,
 						serverId: arrival.id,
@@ -1378,6 +1392,7 @@ export const syncService = {
 							comment: trainArrival.comment,
 							syncStatus: 'synced',
 							serverId: trainArrival.id,
+							isWireSynced: trainArrival.isWireSynced,
 							created: trainArrival.created,
 							updated: trainArrival.updated
 						});
@@ -1397,6 +1412,7 @@ export const syncService = {
 						comment: trainArrival.comment,
 						syncStatus: 'synced',
 						serverId: trainArrival.id,
+						isWireSynced: trainArrival.isWireSynced,
 						user: pocketbaseService.currentUser?.id || '',
 						created: trainArrival.created,
 						updated: trainArrival.updated
@@ -1537,6 +1553,7 @@ export const syncService = {
 							siteLocation: fleet.siteLocation,
 							syncStatus: 'synced',
 							serverId: fleet.id,
+							isWireSynced: fleet.isWireSynced,
 							created: fleet.created,
 							updated: fleet.updated
 						});
@@ -1558,6 +1575,7 @@ export const syncService = {
 						siteLocation: fleet.siteLocation,
 						syncStatus: 'synced',
 						serverId: fleet.id,
+						isWireSynced: fleet.isWireSynced,
 						user: pocketbaseService.currentUser?.id || '',
 						created: fleet.created,
 						updated: fleet.updated

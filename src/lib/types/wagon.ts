@@ -27,4 +27,5 @@ export interface Wagon extends BaseRecord {
 	tarpedStatus?: boolean; // Whether the wagon is tarped
 	user: string;
 	portSampleId?: string; // PORT_SAMPLE_ID
+	isWireSynced?: boolean;
 }

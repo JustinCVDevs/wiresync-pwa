@@ -188,6 +188,7 @@
 				wagon.syncStatus = 'pending';
 				wagon.sampleTimestamp = new Date();
 				wagon.updated = formatTimestamp(new Date());
+				wagon.isWireSynced = false;
 
 				await indexedDBService.updateRecord('wagons', wagon.id, wagon);
 
@@ -203,6 +204,7 @@
 					linkedWagonIds: [wagon?.serverId || ''],
 					syncStatus: 'pending',
 					user: pocketbaseService.currentUser?.id || '',
+					isWireSynced: false,
 					siteLocation: 'Bosveld',
 				};
 

@@ -87,7 +87,8 @@
 
 			await indexedDBService.updateRecord('trainArrivals', trainArrival.id, {
 				comment: comment,
-				syncStatus: 'pending'
+				syncStatus: 'pending',
+				isWireSynced: false
 			});
 
 			// Check linked wagons for stagingTimestamp
