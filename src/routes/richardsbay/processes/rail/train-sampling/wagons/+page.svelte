@@ -46,7 +46,7 @@
 		);
 
 		availableWagons = allwagons.filter(
-			wagon => !wagon.sampleTimestamp
+			wagon => !wagon.portSampleTimestamp
 		);
 	});
 
@@ -68,7 +68,7 @@
 			await indexedDBService.updateRecord('wagons', wagonToUse.id, {
 				...wagonToUse,
 				syncStatus: 'pending',
-				sampleTimestamp: new Date(),
+				portSampleTimestamp: new Date(),
 				portSampleId: portSampleId,
 				isWireSynced: false
 			});

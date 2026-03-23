@@ -28,4 +28,5 @@ export interface Wagon extends BaseRecord {
 	user: string;
 	portSampleId?: string; // PORT_SAMPLE_ID
 	isWireSynced?: boolean;
+	portSampleTimestamp?: Date; // Timestamp when the wagon was sampled at the port
 }
