@@ -67,7 +67,7 @@
 			const wagons = await indexedDBService.getAllRecords('wagons');
 			const hasSampledWagon = linkedWagonIds.some(wid => {
 				const wagon = wagons.find(w => w.id === wid || w.serverId === wid);
-				return wagon && wagon.sampleTimestamp;
+				return wagon && wagon.portSampleTimestamp;
 			});
 
 			if (hasSampledWagon) {
