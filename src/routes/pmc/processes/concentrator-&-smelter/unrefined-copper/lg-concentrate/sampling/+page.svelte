@@ -89,12 +89,12 @@
 			processLayout.setSuccess('');
 			isSubmitting = true;
 
-			if (!truckRegistration) {
+			if (!transRef) {
 				throw new Error('Truck Registration is required for Dedicated Fleet');
 			}
 
 			let linkTruck = (await indexedDBService.getAllRecords('trucks')).filter(
-				(truck: Truck) => truck.registration === truckRegistration
+				(truck: Truck) => truck.transRef === transRef
 			)[0];
 
 			const truckLoad: TruckLoad = {
@@ -107,6 +107,7 @@
 				updated: new Date().toISOString(),
 				siteLocation: 'PMC',
 				user: pocketbaseService.currentUser?.id || '',
+				isWireSynced: false,
 				syncStatus: 'pending'
 			};
 
@@ -121,13 +122,15 @@
 				id: crypto.randomUUID(),
 				name: sampleId,
 				materialType: materialType,
-				linkedTruckIds: [newTruckLoad?.serverId || ''],
+				linkedTruckIds: [linkTruck?.serverId || ''],
+				linkedTruckLoadIds: [newTruckLoad?.id || ''],
 				syncStatus: 'pending',
 				location: loadingLocation,
 				created: new Date(),
 				updated: new Date().toISOString(),
 				sampleId: sampleId,
 				user: pocketbaseService.currentUser?.id || '',
+				isWireSynced: false,
 				siteLocation: 'PMC'
 			};
 

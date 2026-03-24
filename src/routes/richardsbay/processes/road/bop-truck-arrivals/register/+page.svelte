@@ -175,6 +175,7 @@
 				updated: new Date().toISOString(),
 				syncStatus: 'pending',
 				user: pocketbaseService.currentUser?.id || '',
+				isWireSynced: false,
 				siteLocation: 'BOP',
 			};
 

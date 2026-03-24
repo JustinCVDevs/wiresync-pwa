@@ -14,6 +14,7 @@
 	let wagons: Wagon[] = [];
 	let filteredWagons: Wagon[] = [];
 	let error = '';
+	let warning = '';
 	let success = '';
 	let isLoading = true;
 	let processLayout: ProcessLayout;
@@ -45,7 +46,7 @@
 			const allWagons = await indexedDBService.getAllRecords('wagons');
 
 			filteredWagons = linkedWagonIds
-				.map(wid => allWagons.find(w => (w.id === wid || w.serverId === wid) && w.sampleTimestamp))
+				.map(wid => allWagons.find(w => (w.id === wid || w.serverId === wid) && w.portSampleTimestamp))
 				.filter((w): w is Wagon => !!w);
 		} catch (e) {
 			console.error(e);
@@ -59,7 +60,24 @@
 		loadWagons();
 	});
 
-	function handleNewWagon() {
+	async function handleNewWagon() {
+		let train = (await indexedDBService.getAllRecords('trains')).filter(
+				train => train.refNr === trainRefNr
+			)[0];
+
+			let trainArrival = (await indexedDBService.getAllRecords('trainArrivals')).filter(
+				arrival => arrival.trainId === train.serverId
+			)[0];
+
+		if ((trainArrival?.linkedWagonIds?.length ?? 0) <= filteredWagons.length) {
+			warning = 'All wagons have been sampled for this train.';
+
+			setTimeout(() => {
+				warning = '';
+			}, 3000);
+			return;
+		}
+
 		goto(`/richardsbay/processes/rail/train-sampling/wagons/?trainRefNr=${trainRefNr}`);
 	}
 
@@ -122,6 +140,12 @@
 		</div>
 	{/if}
 
+	{#if warning}
+		<div class="mb-4 rounded border border-yellow-400 bg-yellow-100 px-4 py-3 text-yellow-700">
+			{warning}
+		</div>
+	{/if}
+
 	{#if success}
 		<div class="mb-4 rounded border border-green-400 bg-green-100 px-4 py-3 text-green-700">
 			{success}
@@ -153,9 +177,9 @@
 								</div>
 								<div class="font-medium text-gray">
 									<span class="text-sm font-light">
-										Sample ID: </span> 
-										{wagon.sampleId 
-										? wagon.sampleId
+										Port Sample ID: </span> 
+										{wagon.portSampleId 
+										? wagon.portSampleId
 										: 'Not set'}
 								</div>
 							</div>

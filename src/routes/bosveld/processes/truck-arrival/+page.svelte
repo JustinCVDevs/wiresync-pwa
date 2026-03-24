@@ -166,7 +166,8 @@
 					syncStatus: 'pending',
 					port_truck_arrival_timestamp: new Date(),
 					status: 'received',
-					truck_photo: photoData
+					truck_photo: photoData,
+					isWireSynced: false
 				});
 
 			goto('/bosveld/processes/truck-arrival/verification?truckArrivalId=' + selectedArrivalId);

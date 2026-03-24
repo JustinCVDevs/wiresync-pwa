@@ -26,4 +26,5 @@ export interface TruckArrival extends BaseRecord{
 	name?: string;
 	registration?: string;
 	user: string;
+	isWireSynced?: boolean;
 }

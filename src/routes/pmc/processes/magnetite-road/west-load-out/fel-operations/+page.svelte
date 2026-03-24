@@ -91,6 +91,7 @@
 					await indexedDBService.updateRecord('fleet', fleet.id, {
 						loadingLocation: loadingLocation,
 						syncStatus: 'pending',
+						isWireSynced: false,
 						felMassKg: Number(felWeight)
 					});
 					formPersistenceService.clearForm('fel-operations-west-load-out');
@@ -102,7 +103,7 @@
 				isDedicatedFleet = false;
 
 				if (selectedTruck) {
-					const truck = trucks.find((truck) => truck.registration === selectedTruck);
+					const truck = trucks.find((truck) => truck.transRef === selectedTruck);
 
 					if (!truck) {
 						throw new Error(`Truck with registration "${selectedTruck}" not found.`);
@@ -119,6 +120,7 @@
 					await indexedDBService.updateRecord('truckLoads', truckLoad.id, {
 						loadingLocation: loadingLocation,
 						syncStatus: 'pending',
+						isWireSynced: false,
 						felWeight: felWeight
 					});
 

@@ -10,6 +10,7 @@ import type { TruckArrival } from '$lib/types/truckArrival';
 import type { Fleet, Truck } from '$lib/types';
 import type { TrainArrival } from '$lib/types/trainArrival';
 import type { DedicatedFleetTruck } from '$lib/types/dedicatedFleetTruck';
+import type { Consignment } from '$lib/types/consignment';
 
 function base64ToBlob(base64: string, mime: string) {
 	// Always use a supported image format (default to image/jpeg)
@@ -197,6 +198,7 @@ export const syncService = {
 							siteLocation: assay.siteLocation,
 							syncStatus: 'synced',
 							serverId: assay.id,
+							isWireSynced: assay.isWireSynced,
 							created: assay.created,
 							updated: assay.updated
 						});
@@ -226,7 +228,8 @@ export const syncService = {
 						serverId: assay.id,
 						user: pocketbaseService.currentUser?.id || '',
 						created: assay.created,
-						updated: assay.updated
+						updated: assay.updated,
+						isWireSynced: assay.isWireSynced
 					});
 				}
 			}
@@ -441,15 +444,18 @@ export const syncService = {
 							dispatchTimestamp: wagon.dispatchTimestamp,
 							sampleTimestamp: wagon.sampleTimestamp,
 							stagingTimestamp: wagon.stagingTimestamp,
+							portSampleTimestamp: wagon.portSampleTimestamp,
 							felTimestamp: wagon.felTimestamp,
 							releaseTimestamp: wagon.releaseTimestamp,
 							trainNumber: wagon.trainNumber,
 							loadingLocation: wagon.loadingLocation,
 							wagonPosition: wagon.wagonPosition,
 							felWeight: wagon.felWeight,
+							portSampleId: wagon.portSampleId,
 							tarpedStatus: wagon.tarpedStatus,
 							serverId: wagon.id,
 							syncStatus: 'synced',
+							isWireSynced: wagon.isWireSynced,
 							created: wagon.created,
 							updated: wagon.updated
 						});
@@ -467,15 +473,18 @@ export const syncService = {
 						dispatchTimestamp: wagon.dispatchTimestamp,
 						sampleTimestamp: wagon.sampleTimestamp,
 						stagingTimestamp: wagon.stagingTimestamp,
+						portSampleTimestamp: wagon.portSampleTimestamp,
 						felTimestamp: wagon.felTimestamp,
 						releaseTimestamp: wagon.releaseTimestamp,
 						trainNumber: wagon.trainNumber,
 						loadingLocation: wagon.loadingLocation,
 						wagonPosition: wagon.wagonPosition,
+						portSampleId: wagon.portSampleId,
 						felWeight: wagon.felWeight,
 						tarpedStatus: wagon.tarpedStatus,
 						serverId: wagon.id,
 						syncStatus: 'synced',
+						isWireSynced: wagon.isWireSynced,
 						user: pocketbaseService.currentUser?.id || '',
 						created: wagon.created,
 						updated: wagon.updated
@@ -656,6 +665,7 @@ export const syncService = {
 							syncStatus: 'synced',
 							serverId: consignment.id,
 							siteLocation: consignment.siteLocation,
+							isWireSynced: consignment.isWireSynced,
 							created: consignment.created,
 							updated: consignment.updated
 						});
@@ -669,6 +679,7 @@ export const syncService = {
 						syncStatus: 'synced',
 						serverId: consignment.id,
 						siteLocation: consignment.siteLocation,
+						isWireSynced: consignment.isWireSynced,
 						created: consignment.created,
 						updated: consignment.updated
 					});
@@ -680,6 +691,49 @@ export const syncService = {
 				console.error('❌ Failed to sync consignment list:', err);
 			}
 			return false;
+		}
+	},
+
+	async syncConsignment(consignment: Consignment) {
+		try {
+			const { id, syncStatus, ...payload } = consignment;
+
+			let created;
+			if (consignment.serverId) {
+				created = await pocketbaseService.update('consignments', consignment.serverId, {
+					...payload,
+					user: pocketbaseService.currentUser?.id || ''
+				});
+			} else {
+				created = await pocketbaseService.create('consignments', {
+					...payload,
+					user: pocketbaseService.currentUser?.id || ''
+				});
+			}
+
+			if (consignment.id) {
+				await indexedDBService.updateRecord('consignments', consignment.id, {
+					...consignment,
+					syncStatus: 'synced',
+					serverId: created.id
+				});
+			}
+
+			return true;
+		} catch (err) {
+			console.warn('Failed to sync consignment with PocketBase:', err);
+			return false;
+		}
+	},
+
+	async syncPendingConsignments() {
+		const pending = await indexedDBService.getRecords(
+			'consignments',
+			(rec: { syncStatus: string }) => rec.syncStatus === 'pending'
+		);
+
+		for (const consignment of pending) {
+			await this.syncConsignment(consignment);
 		}
 	},
 
@@ -726,6 +780,7 @@ export const syncService = {
 							updated: truckLoad.updated,
 							syncStatus: 'synced',
 							serverId: truckLoad.id,
+							isWireSynced: truckLoad.isWireSynced,
 							siteLocation: truckLoad.siteLocation
 						});
 					}
@@ -748,6 +803,7 @@ export const syncService = {
 						syncStatus: 'synced',
 						serverId: truckLoad.id,
 						user: pocketbaseService.currentUser?.id || '',
+						isWireSynced: truckLoad.isWireSynced,
 						siteLocation: truckLoad.siteLocation
 					});
 				}
@@ -832,6 +888,7 @@ export const syncService = {
 							siteLocation: trainDispatch.siteLocation,
 							dispatchTimestamp: trainDispatch.dispatchTimestamp,
 							syncStatus: 'synced',
+							isWireSynced: trainDispatch.isWireSynced,
 							serverId: trainDispatch.id,
 							created: trainDispatch.created,
 							updated: trainDispatch.updated
@@ -848,6 +905,7 @@ export const syncService = {
 						siteLocation: trainDispatch.siteLocation,
 						dispatchTimestamp: trainDispatch.dispatchTimestamp,
 						syncStatus: 'synced',
+						isWireSynced: trainDispatch.isWireSynced,
 						serverId: trainDispatch.id,
 						user: pocketbaseService.currentUser?.id || '',
 						created: trainDispatch.created,
@@ -1060,6 +1118,7 @@ export const syncService = {
 							siteLocation: train.siteLocation,
 							serverId: train.id,
 							syncStatus: 'synced',
+							isWireSynced: train.isWireSynced,
 							created: train.created,
 							updated: train.updated
 						});
@@ -1076,6 +1135,7 @@ export const syncService = {
 						siteLocation: train.siteLocation,
 						serverId: train.id,
 						syncStatus: 'synced',
+						isWireSynced: train.isWireSynced,
 						user: pocketbaseService.currentUser?.id || '',
 						created: train.created,
 						updated: train.updated
@@ -1253,6 +1313,7 @@ export const syncService = {
 							siteLocation: arrival.siteLocation,
 							name: arrival.name,
 							registration: arrival.registration,
+							isWireSynced: arrival.isWireSynced,
 							created: arrival.created,
 							updated: arrival.updated,
 							serverId: arrival.id
@@ -1279,6 +1340,7 @@ export const syncService = {
 						siteLocation: arrival.siteLocation,
 						name: arrival.name,
 						registration: arrival.registration,
+						isWireSynced: arrival.isWireSynced,
 						created: arrival.created,
 						updated: arrival.updated,
 						serverId: arrival.id,
@@ -1332,6 +1394,7 @@ export const syncService = {
 							comment: trainArrival.comment,
 							syncStatus: 'synced',
 							serverId: trainArrival.id,
+							isWireSynced: trainArrival.isWireSynced,
 							created: trainArrival.created,
 							updated: trainArrival.updated
 						});
@@ -1351,6 +1414,7 @@ export const syncService = {
 						comment: trainArrival.comment,
 						syncStatus: 'synced',
 						serverId: trainArrival.id,
+						isWireSynced: trainArrival.isWireSynced,
 						user: pocketbaseService.currentUser?.id || '',
 						created: trainArrival.created,
 						updated: trainArrival.updated
@@ -1491,6 +1555,7 @@ export const syncService = {
 							siteLocation: fleet.siteLocation,
 							syncStatus: 'synced',
 							serverId: fleet.id,
+							isWireSynced: fleet.isWireSynced,
 							created: fleet.created,
 							updated: fleet.updated
 						});
@@ -1512,6 +1577,7 @@ export const syncService = {
 						siteLocation: fleet.siteLocation,
 						syncStatus: 'synced',
 						serverId: fleet.id,
+						isWireSynced: fleet.isWireSynced,
 						user: pocketbaseService.currentUser?.id || '',
 						created: fleet.created,
 						updated: fleet.updated
@@ -1663,6 +1729,7 @@ export const syncService = {
 		await Promise.all([
 			// Sync all pending records
 			this.syncPendingAssays(),
+			this.syncPendingConsignments(),
 			this.syncPendingFleet(),
 			this.syncPendingShuntingTrains(),
 			this.syncPendingTrainArrivals(),

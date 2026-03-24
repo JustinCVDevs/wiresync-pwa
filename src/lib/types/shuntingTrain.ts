@@ -12,4 +12,5 @@ export interface ShuntingTrain extends BaseRecord {
 	finishFELOperationTimestamp?: Date | string;
 	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"
 	user: string;
+	isWireSynced?: boolean;
 }

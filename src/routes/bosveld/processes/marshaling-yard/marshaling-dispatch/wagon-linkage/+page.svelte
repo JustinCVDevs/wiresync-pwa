@@ -124,7 +124,7 @@
 					...existingWagon,
 					dispatchTimestamp: new Date(),
 					tarpedStatus: event.detail.tarpedStatus,
-					updated: new Date().toISOString()
+					isWireSynced: false
 				});
 
 				// Update trainDispatch (without syncStatus - set after transaction succeeds)
@@ -135,7 +135,7 @@
 				await tx.objectStore('trainDispatches').put({
 					...existingDispatch,
 					linkedWagonIds: updatedIds,
-					updated: new Date().toISOString()
+					isWireSynced: false
 				});
 			});
 
@@ -175,7 +175,7 @@
 				...trainDispatch,
 				syncStatus: 'pending',
 				dispatchTimestamp: new Date(),
-				updated: new Date().toISOString()
+				isWireSynced: false
 			});
 
 			// 2. Update each linked wagon's tarpedStatus and dispatchTimestamp
@@ -189,7 +189,7 @@
 							syncStatus: 'pending',
 							tarpedStatus: wagon.tarpedStatus,
 							dispatchTimestamp: new Date(),
-							updated: new Date().toISOString()
+							isWireSynced: false
 						});
 					}
 				}

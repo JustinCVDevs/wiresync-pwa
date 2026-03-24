@@ -67,7 +67,7 @@
 			const wagons = await indexedDBService.getAllRecords('wagons');
 			const hasSampledWagon = linkedWagonIds.some(wid => {
 				const wagon = wagons.find(w => w.id === wid || w.serverId === wid);
-				return wagon && wagon.sampleTimestamp;
+				return wagon && wagon.portSampleTimestamp;
 			});
 
 			if (hasSampledWagon) {
@@ -92,7 +92,8 @@
 
 			await indexedDBService.updateRecord('trainArrivals', trainArrival.id, {
 				finishSamplingTimestamp: new Date(),
-				syncStatus: 'pending'
+				syncStatus: 'pending',
+				isWireSynced: false
 			});
 
 			processLayout.setSuccess(`Train sampling finished successfully for train ${selectedTrain}.`);

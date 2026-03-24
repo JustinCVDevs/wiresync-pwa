@@ -12,4 +12,5 @@ export interface TrainDispatch extends BaseRecord {
 	siteLocation?: string; // e.g. "PMC" / "Bosveld" / "Richards Bay"
 	dispatchTimestamp?: Date;
 	user: string;
+	isWireSynced?: boolean;
 }

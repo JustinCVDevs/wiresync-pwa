@@ -64,7 +64,7 @@
 			isSubmitting = true;
 
 			if (selectedTruck) {
-				const truck = availableTrucks.find(truck => truck.registration === selectedTruck);
+				const truck = availableTrucks.find(truck => truck.transRef === selectedTruck);
 
 				if (!truck) {
 					throw new Error(`Truck with registration "${selectedTruck}" not found.`);
@@ -81,6 +81,7 @@
 				truckLoad.updated = new Date().toISOString();
 				truckLoad.felWeight = felWeight;
 				truckLoad.syncStatus = 'pending';
+				truckLoad.isWireSynced = false;
 
 				await indexedDBService.updateRecord('truckLoads', truckLoad.id, truckLoad);
 

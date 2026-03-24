@@ -14,4 +14,5 @@ export interface TrainArrival extends BaseRecord {
 	linkedWagonIds?: ID[];
 	comment?: string;
 	user: string;
+	isWireSynced?: boolean;
 }

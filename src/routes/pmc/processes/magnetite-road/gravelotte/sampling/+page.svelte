@@ -245,6 +245,7 @@
 					syncStatus: 'pending',
 					siteLocation: 'PMC',
 					user: pocketbaseService.currentUser?.id || '',
+					isWireSynced: false,
 					created: new Date()
 				};
 
@@ -268,6 +269,7 @@
 					updated: new Date().toISOString(),
 					sampleId: sampleId,
 					user: pocketbaseService.currentUser?.id || '',
+					isWireSynced: false,
 					siteLocation: 'PMC'
 				};
 
@@ -303,6 +305,7 @@
 					created: new Date(),
 					loadingLocation: loadingLocation,
 					user: pocketbaseService.currentUser?.id || '',
+					isWireSynced: false,
 					siteLocation: 'PMC'
 				};
 
@@ -322,6 +325,7 @@
 					updated: new Date().toISOString(),
 					sampleId: sampleId,
 					user: pocketbaseService.currentUser?.id || '',
+					isWireSynced: false,
 					siteLocation: 'PMC'
 				};
 
