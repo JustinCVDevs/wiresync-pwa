@@ -113,9 +113,9 @@
 						syncStatus: 'pending'
 					});
 
-					const truckLoad = (await indexedDBService
-						.getAllRecords('truckLoads'))
-						.find((load) => load.truckId === truck.serverId);
+					const truckLoad = await indexedDBService.getAllRecords('truckLoads').then(loads => 
+						loads.find(load => load.truckId === truck.serverId && load.loadingLocation === 'Truck Load Out')
+					);
 
 					if (!truckLoad) {
 						throw new Error(`Truck load record for "${selectedTruck}" not found.`);
