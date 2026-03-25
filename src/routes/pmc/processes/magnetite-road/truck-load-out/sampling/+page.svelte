@@ -100,7 +100,7 @@
 
 		trucks = (await indexedDBService.getAllRecords('trucks')).filter(
 			(truck: Truck) => {
-				const matchesProduct = truck.productType === 'Magnetite - DMS';
+				const matchesProduct = truck.productType === 'Magnetite - DMS' && !truck.sampleTimestamp;
 				if (!truck.tareTimestamp) return false;
 				const ts = new Date(truck.tareTimestamp).getTime();
 				const isToday = ts >= startOfDay.getTime() && ts <= endOfDay.getTime();
@@ -165,8 +165,8 @@
 
 	$: if (truckRegistration && dedicatedFleet === 'No') {
 		const truck = trucks.find((t) => t.registration === truckRegistration);
-		if (truck && productType !== truck.productType) {
-			productType = truck.productType || '';
+		if (truck?.productType) {
+			productType = truck.productType;
 		}
 	}
 
@@ -238,7 +238,7 @@
 					productType: productType,
 					dedicatedFleet: isDedicatedFleet,
 					linkedDedicatedFleetTruckIds: linkedTruck?.serverId ? [linkedTruck.serverId] : [],
-					linkedFleetIds: [fleet.id], // Use the fleet ID directly
+					linkedFleetIds: [fleet.id],
 					syncStatus: 'pending',
 					location: loadingLocation,
 					created: new Date(),
@@ -270,6 +270,11 @@
 					(truck: Truck) => truck.transRef === transRef
 				);
 				const linkedTruck = linkedTrucks[0];
+
+				await indexedDBService.updateRecord('trucks', linkedTruck.id, {
+					sampleTimestamp: new Date(),
+					syncStatus: 'pending'
+				});
 
 				// Create truckLoad object
 				const truckLoad: TruckLoad = {

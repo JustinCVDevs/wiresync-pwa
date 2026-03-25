@@ -526,6 +526,9 @@ export const syncService = {
 							productType: truck.productType,
 							serverId: truck.id,
 							tareTimestamp: truck.tareTimestamp,
+							sampleTimestamp: truck.sampleTimestamp,
+							felTimestamp: truck.felTimestamp,
+							sulphuricAcidTimestamp: truck.sulphuricAcidTimestamp,
 							transRef: truck.transRef,
 							created: truck.created,
 							updated: truck.updated
@@ -541,6 +544,9 @@ export const syncService = {
 						productType: truck.productType,
 						serverId: truck.id,
 						tareTimestamp: truck.tareTimestamp,
+						sampleTimestamp: truck.sampleTimestamp,
+						felTimestamp: truck.felTimestamp,
+						sulphuricAcidTimestamp: truck.sulphuricAcidTimestamp,
 						transRef: truck.transRef,
 						created: truck.created,
 						updated: truck.updated
