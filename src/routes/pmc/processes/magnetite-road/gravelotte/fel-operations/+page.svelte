@@ -121,7 +121,7 @@
 						throw new Error(`Truck load for registration "${selectedTruck}" not found.`);
 					}
 					console.log('Truck Load:', truckLoad);
-					await indexedDBService.updateRecord('truckLoads', truckLoad.serverId || truckLoad.id, {
+					await indexedDBService.updateRecord('truckLoads', truckLoad.id, {
 						loadingLocation: loadingLocation,
 						syncStatus: 'pending',
 						isWireSynced: false,
