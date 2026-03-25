@@ -9,4 +9,7 @@ export interface Truck extends BaseRecord {
 	productType?: string;
 	transRef?: string;
 	tareTimestamp?: Date;
+	sampleTimestamp?: Date;
+	felTimestamp?: Date;
+	sulphuricAcidTimestamp?: Date;
 }

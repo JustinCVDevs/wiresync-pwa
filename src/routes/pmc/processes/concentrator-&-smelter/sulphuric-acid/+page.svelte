@@ -13,11 +13,13 @@
 	import { pocketbaseService } from '$lib/services/pocketbaseService';
 
 	let truckRegistration = '';
-	let availableTrucks: { id: string; registration: string }[] = [];
+	let transRef = '';
+	let trucks: Truck[] = [];
 	let tankLocation = '';
 	let loadingLocation = 'Sulphuric Acid';
 	let acidType = '';
 	let sampleId = '';
+	let error = '';
 	let capturedImage = '';
 	let isSubmitting = false;
 	let currentStep = 1;
@@ -51,10 +53,43 @@
 		sampleId = `${YYMMDD}${truckRegistration ? `_${truckRegistration}` : ''}${productCode ? `_${productCode}` : ''}`;
 	}
 
+	$: if (transRef) {
+		const selectedTruck = trucks.find(t => t.transRef === transRef);
+		truckRegistration = selectedTruck ? selectedTruck.registration : '';
+	}
+	
+	function formatTareTimestamp(date: Date) {
+		return new Date(date).toLocaleString('en-GB', {
+			day: '2-digit',
+			month: '2-digit',
+			year: '2-digit',
+			hour: '2-digit',
+			minute: '2-digit',
+			hour12: false
+		});
+	}
+
 	onMount(async () => {
-		// Fetch trucks from IndexedDB
-		const trucks = await indexedDBService.getRecords('trucks');
-		availableTrucks = trucks;
+		try {
+			const today = new Date();
+			const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+			const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+
+			trucks = (await indexedDBService.getAllRecords('trucks')).filter(
+				(truck: Truck) => {
+					const matchesProduct = truck.productType === 'Sulphuric Acid' && !truck.sulphuricAcidTimestamp;
+					if (!truck.tareTimestamp) return false;
+					const ts = new Date(truck.tareTimestamp).getTime();
+					const isToday = ts >= startOfDay.getTime() && ts <= endOfDay.getTime();
+					return matchesProduct && isToday;
+				}
+			);
+
+			trucks.sort((a, b) => a.registration.localeCompare(b.registration));
+		} catch (err) {
+			console.error('Failed to load trucks from IndexedDB:', err);
+			error = 'Failed to load truck records';
+		}
 	});
 
 	// Save form data when component is unmounted
@@ -109,12 +144,13 @@
 			processLayout.setSuccess('');
 
 			let linkTruck = (await indexedDBService.getAllRecords('trucks')).filter(
-				(truck: Truck) => truck.registration === truckRegistration
+				(truck: Truck) => truck.transRef === transRef
 			)[0];
 
-			if (!samplingStatus) {
-				sampleId = ''
-			}
+			await indexedDBService.updateRecord('trucks', linkTruck.id, {
+				sulphuricAcidTimestamp: new Date(),
+				syncStatus: 'pending'
+			});
 
 			const truckLoad: TruckLoad = {
 				id: crypto.randomUUID(),
@@ -133,17 +169,13 @@
 			}
 
 			await indexedDBService.saveRecord('truckLoads', truckLoad);
-			await syncService.syncTruckLoad(truckLoad);
-
-			let newTruckLoad = (await indexedDBService.getAllRecords('truckLoads')).filter(
-				(truckLoad: TruckLoad) => truckLoad.sampleId === sampleId
-			)[0];
 
 			const assay: Assay = {
 				id: crypto.randomUUID(),
 				name: sampleId,
 				materialType: acidType,
-				linkedTruckIds: [newTruckLoad?.serverId || ''],
+				linkedTruckLoadIds: [truckLoad.id],
+				linkedTruckIds: linkTruck?.serverId ? [linkTruck.serverId] : [],
 				syncStatus: 'pending',
 				location: loadingLocation,
 				created: new Date(),
@@ -155,7 +187,8 @@
 			};
 
 			await indexedDBService.saveRecord('assays', assay);
-			await syncService.syncAssay(assay);
+			// Sync in background
+			syncService.syncAssay(assay).catch(console.warn);
 
 			// Clear persisted form data
 			formPersistenceService.clearForm('acid_truck');
@@ -197,10 +230,13 @@
 			<FormField
 				id="truckRegistration"
 				label="Truck Registration"
-				bind:value={truckRegistration}
+				bind:value={transRef}
 				placeholder="Select Truck Registration"
 				search={true}
-				options={availableTrucks.map((truck) => ({ value: truck.registration, label: truck.registration  }))}
+				options={trucks.map((truck) => ({
+					value: truck.transRef ?? '',
+					label: `${truck.registration} - ${truck.tareTimestamp ? formatTareTimestamp(new Date(truck.tareTimestamp)) : ''}`
+				}))}				
 				required={true}
 				error={formErrors.tankLocation}
 			/>

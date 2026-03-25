@@ -53,7 +53,7 @@
 
 		trucks = (await indexedDBService.getAllRecords('trucks')).filter(
 			(truck: Truck) => {
-				const matchesProduct = truck.productType === 'Magnetite - DMS';
+				const matchesProduct = truck.productType === 'Magnetite - DMS' && !truck.felTimestamp;
 				if (!truck.tareTimestamp) return false;
 				const ts = new Date(truck.tareTimestamp).getTime();
 				const isToday = ts >= startOfDay.getTime() && ts <= endOfDay.getTime();
@@ -109,15 +109,20 @@
 						throw new Error(`Truck with registration "${selectedTruck}" not found.`);
 					}
 
-					const truckLoad = await indexedDBService
-						.getAllRecords('truckLoads')
-						.then((loads) => loads.find((load) => load.truckId === truck.serverId));
+					await indexedDBService.updateRecord('trucks', truck.id, {
+						felTimestamp: new Date(),
+						syncStatus: 'pending'
+					});
+
+					const truckLoad = (await indexedDBService
+						.getAllRecords('truckLoads'))
+						.find((load) => load.truckId === truck.serverId);
 
 					if (!truckLoad) {
 						throw new Error(`Truck load for "${selectedTruck}" not found.`);
 					}
 
-					await indexedDBService.updateRecord('truckLoads', truckLoad.id, {
+					await indexedDBService.updateRecord('truckLoads', truckLoad.serverId || truckLoad.id, {
 						loadingLocation: loadingLocation,
 						syncStatus: 'pending',
 						isWireSynced: false,
