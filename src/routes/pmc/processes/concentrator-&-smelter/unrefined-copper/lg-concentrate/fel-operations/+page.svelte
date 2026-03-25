@@ -87,7 +87,7 @@
 				truckLoad.syncStatus = 'pending';
 				truckLoad.isWireSynced = false;
 
-				await indexedDBService.updateRecord('truckLoads', truckLoad.serverId || truckLoad.id, truckLoad);
+				await indexedDBService.updateRecord('truckLoads', truckLoad.id, truckLoad);
 
 				goto(`/pmc/processes/concentrator-&-smelter/unrefined-copper/lg-concentrate/fel-operations/verification?sampleId=${encodeURIComponent(truckLoad.sampleId || '')}&truckRegistration=${encodeURIComponent(truck.registration || '')}`);
 			}

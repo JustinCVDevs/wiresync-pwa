@@ -121,7 +121,7 @@
 						throw new Error(`Truck load record for "${selectedTruck}" not found.`);
 					}
 
-					await indexedDBService.updateRecord('truckLoads', truckLoad.serverId || truckLoad.id, {
+					await indexedDBService.updateRecord('truckLoads', truckLoad.id, {
 						loadingLocation: loadingLocation,
 						syncStatus: 'pending',
 						isWireSynced: false,
