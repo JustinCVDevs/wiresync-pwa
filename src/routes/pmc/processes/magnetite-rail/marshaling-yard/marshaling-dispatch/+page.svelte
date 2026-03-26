@@ -26,8 +26,23 @@
 
 	async function loadTrainsAndConsignments() {
 		try {
+			// Get all trains and all train dispatches
 			const trainRecords = await indexedDBService.getRecords('trains');
-			trains = trainRecords;
+			const trainDispatches = await indexedDBService.getRecords('trainDispatches');
+
+			// Filter trains that are not linked to disatches or have dispatches without a dispatchTimestamp
+			trains = trainRecords.filter((train) => {
+				// Find all dispatches for this train
+				const dispatchesForTrain = trainDispatches.filter(
+					(d) => d.linkedTrainId === train.serverId || d.linkedTrainId === train.id
+				);
+				if (dispatchesForTrain.length === 0) {
+					// No dispatches for this train
+					return true;
+				}
+				// If any dispatch for this train does not have a dispatchTimestamp, include the train
+				return dispatchesForTrain.some((d) => !d.dispatchTimestamp);
+			});
 
 			if (selectedTrainRef) {
 				const foundTrain = trains.find((t) => t.refNr === selectedTrainRef);
@@ -78,22 +93,22 @@
 				foundTrainDispatch = true;
 			}
 		}
-		
 	}
 
 	$: if (selectedTrainRef) {
 		checkTrainDispatches();
-	};
+	}
 
 	async function confirmFinishDispatch(confirm: boolean) {
 		isSubmitting = true;
 		if (confirm) {
 			let train = (await indexedDBService.getAllRecords('trains')).filter(
-				train => train.refNr === selectedTrainRef
+				(train) => train.refNr === selectedTrainRef
 			)[0];
 
 			const trainDispatches = (await indexedDBService.getAllRecords('trainDispatches')).find(
-				(d) => !d.dispatchTimestamp && d.linkedTrainId === train?.serverId && d.siteLocation === 'PMC'
+				(d) =>
+					!d.dispatchTimestamp && d.linkedTrainId === train?.serverId && d.siteLocation === 'PMC'
 			);
 
 			if (!trainDispatches) {
@@ -130,7 +145,7 @@
 		}
 
 		const dispatchId = crypto.randomUUID();
-		
+
 		try {
 			isSubmitting = true;
 			if (foundTrainDispatch) {
@@ -139,10 +154,13 @@
 				);
 
 				const trainDispatches = (await indexedDBService.getAllRecords('trainDispatches')).find(
-					(d) => !d.dispatchTimestamp && d.linkedTrainId === trains?.serverId && d.siteLocation === 'PMC'
+					(d) =>
+						!d.dispatchTimestamp && d.linkedTrainId === trains?.serverId && d.siteLocation === 'PMC'
 				);
-				
-				goto(`/pmc/processes/magnetite-rail/marshaling-yard/marshaling-dispatch/wagon-linkage?dispatchId=${trainDispatches?.serverId}`);
+
+				goto(
+					`/pmc/processes/magnetite-rail/marshaling-yard/marshaling-dispatch/wagon-linkage?dispatchId=${trainDispatches?.serverId}`
+				);
 			} else {
 				const train = (await indexedDBService.getAllRecords('trains')).find(
 					(t) => t.refNr === selectedTrainRef
@@ -157,7 +175,7 @@
 					error = 'Selected train not found';
 					return;
 				}
-				
+
 				await indexedDBService.updateRecord('consignments', linkedConsignment.id, {
 					linkedTrainId: train.serverId,
 					siteLocation: 'PMC',
@@ -190,7 +208,9 @@
 				await indexedDBService.saveRecord('trainDispatches', trainDispatch);
 
 				success = 'Dispatch initialized';
-				goto(`/pmc/processes/magnetite-rail/marshaling-yard/marshaling-dispatch/wagon-linkage?dispatchId=${dispatchId}`);
+				goto(
+					`/pmc/processes/magnetite-rail/marshaling-yard/marshaling-dispatch/wagon-linkage?dispatchId=${dispatchId}`
+				);
 			}
 		} catch (e: any) {
 			console.error(e);
@@ -214,13 +234,10 @@
 	on:error={({ detail }) => (error = detail)}
 	on:success={({ detail }) => (success = detail)}
 >
-<div slot="header">
-	<h5 class="text-xl font-bold text-gray ">Train & Consignment Linkage</h5>
-	<p class="text-sm text-gay">
-		Please select the train and consignment
-	</p>
-</div>
-
+	<div slot="header">
+		<h5 class="text-gray text-xl font-bold">Train & Consignment Linkage</h5>
+		<p class="text-gay text-sm">Please select the train and consignment</p>
+	</div>
 
 	{#if error}
 		<div class="mb-4 rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">
@@ -239,7 +256,7 @@
 			bind:value={selectedTrainRef}
 			options={trains.map((t) => ({ value: t.refNr, label: t.refNr }))}
 		/>
-		<FormField	
+		<FormField
 			label="Consignment Number"
 			id="consignmentNumber"
 			isSelect={true}
@@ -247,14 +264,14 @@
 			bind:value={selectedConsignment}
 			options={consignments.map((c) => ({ value: c.name, label: c.name }))}
 		/>
-		{/if}
+	{/if}
 </ProcessLayout>
 {#if selectedTrainRef && foundTrainDispatch}
-	<div class="flex space-x-4 button-group">
+	<div class="button-group flex space-x-4">
 		<button
 			type="button"
 			class="submit-button flex-1 items-center justify-center rounded-lg py-3 text-white transition hover:bg-green-700 active:bg-green-800 disabled:opacity-50"
-			on:click={() => showPopup = true}
+			on:click={() => (showPopup = true)}
 		>
 			Finalize Consignment
 		</button>
@@ -263,7 +280,9 @@
 	{#if showPopup}
 		<div class="popup-overlay">
 			<div class="popup-content">
-				<p class="popup-message">Are you sure you are done with consignment {selectedConsignment}?</p>
+				<p class="popup-message">
+					Are you sure you are done with consignment {selectedConsignment}?
+				</p>
 				<div class="popup-buttons">
 					<button
 						type="button"

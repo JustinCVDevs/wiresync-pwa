@@ -57,7 +57,7 @@
 
 			trucks = (await indexedDBService.getAllRecords('trucks')).filter(
 				(truck: Truck) => {
-					const matchesProduct = truck.productType === 'Reverts';
+					const matchesProduct = truck.productType === 'Reverts' && !truck.sampleTimestamp;
 					if (!truck.tareTimestamp) return false;
 					const ts = new Date(truck.tareTimestamp).getTime();
 					const isToday = ts >= startOfDay.getTime() && ts <= endOfDay.getTime();
@@ -97,6 +97,11 @@
 				(truck: Truck) => truck.transRef === transRef
 			)[0];
 
+			await indexedDBService.updateRecord('trucks', linkTruck.id, {
+				sampleTimestamp: new Date(),
+				syncStatus: 'pending'
+			});
+
 			const truckLoad: TruckLoad = {
 				id: crypto.randomUUID(),
 				truckId: linkTruck?.serverId || '',
@@ -112,18 +117,13 @@
 			};
 
 			await indexedDBService.saveRecord('truckLoads', truckLoad);
-			await syncService.syncTruckLoad(truckLoad);
-
-			let newTruckLoad = (await indexedDBService.getAllRecords('truckLoads')).filter(
-				(truckLoad: TruckLoad) => truckLoad.sampleId === sampleId
-			)[0];
 
 			const assay: Assay = {
 				id: crypto.randomUUID(),
 				name: sampleId,
 				materialType: materialType,
-				linkedTruckIds: [linkTruck?.serverId || ''],
-				linkedTruckLoadIds: [newTruckLoad?.id || ''],
+				linkedTruckLoadIds: [truckLoad.id],
+				linkedTruckIds: linkTruck?.serverId ? [linkTruck.serverId] : [],
 				syncStatus: 'pending',
 				location: loadingLocation,
 				created: new Date(),
@@ -135,11 +135,15 @@
 			};
 
 			await indexedDBService.saveRecord('assays', assay);
-			await syncService.syncAssay(assay);
+			// Sync in background
+			syncService.syncAssay(assay).catch(console.warn);
 
-			goto(
-				`/pmc/processes/concentrator-&-smelter/unrefined-copper/reverts/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckTransRef=${encodeURIComponent(transRef)}`
-			);
+			processLayout.setSuccess('Data saved successfully');
+			setTimeout(() => {
+				goto(
+					`/pmc/processes/concentrator-&-smelter/unrefined-copper/reverts/sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckTransRef=${encodeURIComponent(transRef)}`
+				);
+			}, 1000);
 		} catch (err) {
 			error = 'Failed to submit data';
 			console.error(err);

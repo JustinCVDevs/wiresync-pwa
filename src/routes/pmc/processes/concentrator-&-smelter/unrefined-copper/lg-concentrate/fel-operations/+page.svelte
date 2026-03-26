@@ -42,7 +42,7 @@
 
 			availableTrucks = (await indexedDBService.getAllRecords('trucks')).filter(
 				(truck: Truck) => {
-					const matchesProduct = truck.productType === 'LG';
+					const matchesProduct = truck.productType === 'LG' && !truck.felTimestamp;
 					if (!truck.tareTimestamp) return false;
 					const ts = new Date(truck.tareTimestamp).getTime();
 					const isToday = ts >= startOfDay.getTime() && ts <= endOfDay.getTime();
@@ -70,6 +70,11 @@
 					throw new Error(`Truck with registration "${selectedTruck}" not found.`);
 				}
 
+				await indexedDBService.updateRecord('trucks', truck.id, {
+					felTimestamp: new Date(),
+					syncStatus: 'pending'
+				});
+
 				const truckLoad = await indexedDBService.getAllRecords('truckLoads').then(loads => 
 					loads.find(load => load.truckId === truck.serverId && load.loadingLocation === 'LG Concentrate')
 				);
@@ -78,7 +83,6 @@
 					throw new Error(`Truck load for "${selectedTruck}" not found.`);
 				}
 
-				truckLoad.updated = new Date().toISOString();
 				truckLoad.felWeight = felWeight;
 				truckLoad.syncStatus = 'pending';
 				truckLoad.isWireSynced = false;
@@ -91,7 +95,6 @@
 		} catch (err) {
 			error = 'Failed to submit data';
 			console.error(err);
-			processLayout.setError(error);
 		} finally {
 			isSubmitting = false;
 		}

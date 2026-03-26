@@ -99,7 +99,7 @@
 
 		trucks = (await indexedDBService.getAllRecords('trucks')).filter(
 			(truck: Truck) => {
-				const matchesProduct = truck.productType === 'Magnetite - DMS';
+				const matchesProduct = truck.productType === 'Magnetite - DMS' && !truck.sampleTimestamp;
 				if (!truck.tareTimestamp) return false;
 				const ts = new Date(truck.tareTimestamp).getTime();
 				const isToday = ts >= startOfDay.getTime() && ts <= endOfDay.getTime();
@@ -287,6 +287,11 @@
 				);
 				const linkedTruck = linkedTrucks[0];
 
+				await indexedDBService.updateRecord('trucks', linkedTruck.id, {
+					sampleTimestamp: new Date(),
+					syncStatus: 'pending'
+				});
+
 				// Create truckLoad object
 				const truckLoad: TruckLoad = {
 					id: crypto.randomUUID(),
@@ -309,7 +314,7 @@
 					name: sampleId,
 					productType: productType,
 					dedicatedFleet: isDedicatedFleet,
-					linkedTruckLoadIds: [truckLoad.id], // Use the truckLoad ID directly
+					linkedTruckLoadIds: [truckLoad.id],
 					linkedTruckIds: linkedTruck?.serverId ? [linkedTruck.serverId] : [],
 					syncStatus: 'pending',
 					location: loadingLocation,

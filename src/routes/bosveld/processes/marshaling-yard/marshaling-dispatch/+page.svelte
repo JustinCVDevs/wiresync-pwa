@@ -26,8 +26,23 @@
 
 	async function loadTrainsAndConsignments() {
 		try {
+			// Get all trains and all train dispatches
 			const trainRecords = await indexedDBService.getRecords('trains');
-			trains = trainRecords;
+			const trainDispatches = await indexedDBService.getRecords('trainDispatches');
+
+			// Filter trains that are not linked to disatches or have dispatches without a dispatchTimestamp
+			trains = trainRecords.filter((train) => {
+				// Find all dispatches for this train
+				const dispatchesForTrain = trainDispatches.filter(
+					(d) => d.linkedTrainId === train.serverId || d.linkedTrainId === train.id
+				);
+				if (dispatchesForTrain.length === 0) {
+					// No dispatches for this train
+					return true;
+				}
+				// If any dispatch for this train does not have a dispatchTimestamp, include the train
+				return dispatchesForTrain.some((d) => !d.dispatchTimestamp);
+			});
 
 			if (selectedTrainRef) {
 				const foundTrain = trains.find((t) => t.refNr === selectedTrainRef);

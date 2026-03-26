@@ -52,7 +52,7 @@
 
 		trucks = (await indexedDBService.getAllRecords('trucks')).filter(
 			(truck: Truck) => {
-				const matchesProduct = truck.productType === 'Magnetite - DMS';
+				const matchesProduct = truck.productType === 'Magnetite - DMS' && !truck.felTimestamp;
 				if (!truck.tareTimestamp) return false;
 				const ts = new Date(truck.tareTimestamp).getTime();
 				const isToday = ts >= startOfDay.getTime() && ts <= endOfDay.getTime();
@@ -108,9 +108,14 @@
 						throw new Error(`Truck with registration "${selectedTruck}" not found.`);
 					}
 
-					const truckLoad = await indexedDBService
-						.getAllRecords('truckLoads')
-						.then((loads) => loads.find((load) => load.truckId === truck.serverId));
+					await indexedDBService.updateRecord('trucks', truck.id, {
+						felTimestamp: new Date(),
+						syncStatus: 'pending'
+					});
+
+					const truckLoad = await indexedDBService.getAllRecords('truckLoads').then(loads => 
+						loads.find(load => load.truckId === truck.serverId && load.loadingLocation === 'Truck Load Out')
+					);
 
 					if (!truckLoad) {
 						throw new Error(`Truck load record for "${selectedTruck}" not found.`);
@@ -122,6 +127,7 @@
 						isWireSynced: false,
 						felWeight: felWeight
 					});
+
 					formPersistenceService.clearForm('fel-operations-truck-load-out');
 					goto(
 						`/pmc/processes/magnetite-road/truck-load-out/fel-operations/verification?truckRegistration=${encodeURIComponent(selectedTruck || '')}&sampleId=${encodeURIComponent(truckLoad?.sampleId || '')}`
