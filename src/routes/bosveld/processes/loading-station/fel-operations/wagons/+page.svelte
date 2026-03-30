@@ -122,6 +122,7 @@
 
 				await indexedDBService.updateRecord('wagons', wagon.id, {
 					felWeight: Number(felWeight),
+					loadingLocation: loadingLocation,
 					felTimestamp: new Date(),
 					syncStatus: 'pending',
 					isWireSynced: false
