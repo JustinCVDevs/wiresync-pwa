@@ -454,6 +454,8 @@ export const syncService = {
 							portSampleId: wagon.portSampleId,
 							tarpedStatus: wagon.tarpedStatus,
 							serverId: wagon.id,
+							manualCreated: wagon.manualCreated,
+							wagonDispatchPosition: wagon.wagonDispatchPosition,
 							syncStatus: 'synced',
 							isWireSynced: wagon.isWireSynced,
 							created: wagon.created,
@@ -485,6 +487,8 @@ export const syncService = {
 						serverId: wagon.id,
 						syncStatus: 'synced',
 						isWireSynced: wagon.isWireSynced,
+						manualCreated: wagon.manualCreated,
+						wagonDispatchPosition: wagon.wagonDispatchPosition,
 						user: pocketbaseService.currentUser?.id || '',
 						created: wagon.created,
 						updated: wagon.updated

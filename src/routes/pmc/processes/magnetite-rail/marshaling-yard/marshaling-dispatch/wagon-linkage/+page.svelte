@@ -4,16 +4,21 @@
 	import { goto } from '$app/navigation';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import WagonInput from '$lib/components/WagonInput.svelte';
+	import WagonCreate from '$lib/components/WagonCreate.svelte';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import type { TrainDispatch } from '$lib/types/trainDispatch';
 	import type { Consignment, Train, Wagon } from '$lib';
-	import { Container } from 'lucide-svelte';
+	import { Repeat  } from 'lucide-svelte';
+	import Button from '$lib/components/ui/button/button.svelte';
 
 	let dispatchId = '';
 	$: dispatchId = $page.url.searchParams.get('dispatchId') || '';
 
 	let trainDispatch: TrainDispatch | undefined;
 	let showWagonInput = false;
+	let showCreateWagonInput = false;
+	let showSwapWagonInput = false;
+	let swapTargetWagon: Wagon | null = null;
 	let error = '';
 	let success = '';
 	let isLoading = true;
@@ -26,6 +31,39 @@
 	let consignment: Consignment | undefined;
 	let wagons: Wagon[] | undefined;
 	let showPopup = false;
+	const wagonsPerPage = 10;
+	$: linkedWagonIds = trainDispatch?.linkedWagonIds ?? [];
+	$: {
+		const parsedWagonPage = Number($page.url.searchParams.get('wagonPage') || '1');
+		wagonPage = Number.isFinite(parsedWagonPage) ? Math.max(1, parsedWagonPage) : 1;
+	}
+	$: wagonPageCount = Math.max(1, Math.ceil(linkedWagonIds.length / wagonsPerPage));
+	$: safeWagonPage = Math.min(wagonPage, wagonPageCount);
+	$: paginatedLinkedWagonIds = linkedWagonIds.slice((safeWagonPage - 1) * wagonsPerPage, safeWagonPage * wagonsPerPage);
+	$: wagonPageStart = linkedWagonIds.length === 0 ? 0 : (safeWagonPage - 1) * wagonsPerPage + 1;
+	$: wagonPageEnd = Math.min(safeWagonPage * wagonsPerPage, linkedWagonIds.length);
+	let wagonPage = 1;
+
+	function setWagonPage(nextPage: number) {
+		const url = new URL($page.url);
+		const targetPage = Math.max(1, Math.min(nextPage, wagonPageCount));
+
+		if (targetPage === 1) {
+			url.searchParams.delete('wagonPage');
+		} else {
+			url.searchParams.set('wagonPage', String(targetPage));
+		}
+
+		goto(`${url.pathname}${url.search}${url.hash}`, {
+			replaceState: true,
+			noScroll: true,
+			keepFocus: true
+		});
+	}
+
+	$: if (wagonPage > wagonPageCount && linkedWagonIds.length > 0) {
+		setWagonPage(wagonPageCount);
+	}
 
 	async function loadDispatch() {
 		isLoading = true;
@@ -73,11 +111,8 @@
 		}
 	});
 
-	async function handleWagonSubmit(event: {
-		preventDefault: () => void;
-		detail: { wagonId: any; tarpedStatus: boolean };
-	}) {
-		event.preventDefault();
+	async function handleWagonSubmit(e: CustomEvent<{ wagonIds: string[] }>) {
+		// Accepts { wagonIds: string[] }
 		if (!trainDispatch || !trainDispatch.linkedWagonIds) {
 			console.error('Train dispatch not initialized:', trainDispatch);
 			error = 'Train dispatch not initialized';
@@ -85,80 +120,62 @@
 		}
 		error = '';
 		success = '';
-		
+
+		const { wagonIds } = e.detail;
+		if (!wagonIds || wagonIds.length === 0) {
+			error = 'No wagons selected';
+			return;
+		}
+
 		try {
-			if (trainDispatch.linkedWagonIds.length >= 80) {
-				error = 'Maximum of 80 wagons can be linked to a train dispatch';
-				return;
-			}
-			
-			// Find the existing wagon by wagonId
 			const allWagons = await indexedDBService.getAllRecords('wagons');
-			const wagon = allWagons.find((w) => w.wagonId === event.detail.wagonId);
+			let updatedIds = [...trainDispatch.linkedWagonIds];
+			let addedCount = 0;
 
-			if (!wagon) {
-				error = 'Wagon not found';
-				return;
+			for (const wagonId of wagonIds) {				
+				// Find the wagon by id or serverId
+				const wagon = allWagons.find((w) => w.id === wagonId || w.serverId === wagonId);
+				if (!wagon) {
+					continue; // skip if not found
+				}
+				const wagonIdToUse = wagon.serverId || wagon.id;
+				if (updatedIds.includes(wagonIdToUse)) {
+					continue; // skip if already linked
+				}
+				// Update wagon and trainDispatch in atomic transaction
+				await indexedDBService.atomicUpdate(['wagons', 'trainDispatches'], async (tx) => {
+					const existingWagon = await tx.objectStore('wagons').get(wagon.id);
+					if (!existingWagon) throw new Error('Wagon not found in transaction');
+					await tx.objectStore('wagons').put({
+						...existingWagon,
+						dispatchTimestamp: new Date(),
+						isWireSynced: false
+					});
+					const existingDispatch = await tx.objectStore('trainDispatches').get(trainDispatch!.id);
+					if (!existingDispatch) throw new Error('Train dispatch not found in transaction');
+					await tx.objectStore('trainDispatches').put({
+						...existingDispatch,
+						linkedWagonIds: [...updatedIds, wagonIdToUse],
+						isWireSynced: false
+					});
+				});
+				await indexedDBService.updateRecord('wagons', wagon.id, { syncStatus: 'pending', wagonDispatchPosition: updatedIds.length + 1 });
+				updatedIds.push(wagonIdToUse);
+				addedCount++;
 			}
 
-			// Check if wagon is already linked (check both id and serverId)
-			const wagonIdToUse = wagon.serverId || wagon.id;
-			if (trainDispatch.linkedWagonIds.includes(wagonIdToUse)) {
-				error = 'Wagon already linked to this dispatch';
-				return;
-			}
-
-			// Use consistent ID (prefer serverId if available, otherwise use id)
-			const updatedIds = [...trainDispatch.linkedWagonIds, wagonIdToUse];
-
-			// Perform atomic update: both wagon and trainDispatch update in single transaction
-			// If either fails, both are rolled back automatically by IndexedDB
-			await indexedDBService.atomicUpdate(['wagons', 'trainDispatches'], async (tx) => {
-				// Update wagon (without syncStatus - set after transaction succeeds)
-				const existingWagon = await tx.objectStore('wagons').get(wagon.id);
-				if (!existingWagon) {
-					throw new Error('Wagon not found in transaction');
-				}
-				await tx.objectStore('wagons').put({
-					...existingWagon,
-					dispatchTimestamp: new Date(),
-					tarpedStatus: event.detail.tarpedStatus,
-					isWireSynced: false
-				});
-
-				// Update trainDispatch (without syncStatus - set after transaction succeeds)
-				const existingDispatch = await tx.objectStore('trainDispatches').get(trainDispatch!.id);
-				if (!existingDispatch) {
-					throw new Error('Train dispatch not found in transaction');
-				}
-				await tx.objectStore('trainDispatches').put({
-					...existingDispatch,
-					linkedWagonIds: updatedIds,
-					isWireSynced: false
-				});
-			});
-
-			// Transaction completed successfully - now mark for sync
-			await indexedDBService.updateRecord('wagons', wagon.id, { syncStatus: 'pending' });
 			await indexedDBService.updateRecord('trainDispatches', trainDispatch.id, { syncStatus: 'pending' });
-
-			// Update local trainDispatch object only after transaction succeeds
 			trainDispatch = {
 				...trainDispatch,
 				linkedWagonIds: updatedIds
 			};
-
-			success = 'Wagon linked successfully';
+			success = addedCount > 0 ? `${addedCount} wagon(s) linked successfully` : 'No new wagons linked';
 			currentStep = 3;
-			
-			// Reload dispatch data to ensure UI is in sync
 			await loadDispatch();
-			
-			// Close wagon input after successful update
 			showWagonInput = false;
 		} catch (e) {
-			console.error('Error updating wagon:', e);
-			error = `Failed to update wagon: ${e instanceof Error ? e.message : 'Unknown error'}`;
+			console.error('Error updating wagons:', e);
+			error = `Failed to update wagons: ${e instanceof Error ? e.message : 'Unknown error'}`;
 		}
 	}
 
@@ -206,11 +223,133 @@
 		showWagonInput = false;
 	}
 
+	async function handleCreateSubmit(e: CustomEvent<{ wagon: Wagon }>) {
+		showCreateWagonInput = false;
+		const wagon = e.detail?.wagon;
+		if (!wagon || !trainDispatch) return;
+
+		// Add the new wagon's ID to the dispatch
+		const wagonIdToUse = wagon.serverId || wagon.id;
+		let updatedIds = trainDispatch.linkedWagonIds ? [...trainDispatch.linkedWagonIds] : [];
+		if (!updatedIds.includes(wagonIdToUse)) {
+			updatedIds.push(wagonIdToUse);
+			await indexedDBService.updateRecord('trainDispatches', trainDispatch.id, {
+			...trainDispatch,
+			linkedWagonIds: updatedIds,
+			syncStatus: 'pending',
+			isWireSynced: false
+			});
+			trainDispatch = { ...trainDispatch, linkedWagonIds: updatedIds };
+			await loadDispatch();
+		}
+	}
+	
+	function handleCreateCancel() {
+		showCreateWagonInput = false;
+	}
+
 	function handleReview() {
 		processLayout.setSuccess('Wagon linkage completed');
 		setTimeout(() => {
 			goto(`/pmc/processes/magnetite-rail/marshaling-yard/marshaling-dispatch`);
 		}, 1000);
+	}
+
+	function handleWagonSwap(wagon?: Wagon) {
+		if (!wagon) return;
+		swapTargetWagon = wagon;
+		error = '';
+		success = '';
+		showSwapWagonInput = true;
+	}
+
+	function handleSwapCancel() {
+		showSwapWagonInput = false;
+		swapTargetWagon = null;
+	}
+
+	async function handleSwapSubmit(e: CustomEvent<{ wagonIds: string[] }>) {
+		if (!trainDispatch || !swapTargetWagon) {
+			error = 'Swap target not initialized';
+			return;
+		}
+
+		const { wagonIds } = e.detail;
+		if (!wagonIds || wagonIds.length !== 1) {
+			error = 'Select exactly one wagon to swap with';
+			return;
+		}
+
+		try {
+			const allWagons = await indexedDBService.getAllRecords('wagons');
+			const newWagon = allWagons.find((w) => w.id === wagonIds[0] || w.serverId === wagonIds[0]);
+			if (!newWagon) {
+				error = 'Selected wagon was not found';
+				return;
+			}
+
+			const targetLinkedId = swapTargetWagon.serverId || swapTargetWagon.id;
+			const newWagonLinkedId = newWagon.serverId || newWagon.id;
+			if (targetLinkedId === newWagonLinkedId) {
+				error = 'Select a different wagon';
+				return;
+			}
+
+			const targetIndex = trainDispatch.linkedWagonIds?.findIndex((id) => id === targetLinkedId) ?? -1;
+			const targetPosition = swapTargetWagon.wagonDispatchPosition ?? (targetIndex >= 0 ? targetIndex + 1 : 0);
+
+			await indexedDBService.atomicUpdate(['wagons', 'trainDispatches'], async (tx) => {
+				const existingDispatch = await tx.objectStore('trainDispatches').get(trainDispatch!.id);
+				if (!existingDispatch) throw new Error('Train dispatch not found in transaction');
+
+				const oldWagon = await tx.objectStore('wagons').get(swapTargetWagon!.id);
+				if (!oldWagon) throw new Error('Swap wagon not found in transaction');
+
+				const replacementWagon = await tx.objectStore('wagons').get(newWagon.id);
+				if (!replacementWagon) throw new Error('Replacement wagon not found in transaction');
+
+				const updatedLinkedWagonIds = (existingDispatch.linkedWagonIds || []).map((id: string) =>
+					id === targetLinkedId ? newWagonLinkedId : id
+				);
+
+				await tx.objectStore('wagons').put({
+					...oldWagon,
+					dispatchTimestamp: null,
+					wagonDispatchPosition: 0,
+					isWireSynced: false,
+					syncStatus: 'pending'
+				});
+
+				await tx.objectStore('wagons').put({
+					...replacementWagon,
+					dispatchTimestamp: new Date(),
+					wagonDispatchPosition: targetPosition,
+					isWireSynced: false,
+					syncStatus: 'pending'
+				});
+
+				await tx.objectStore('trainDispatches').put({
+					...existingDispatch,
+					linkedWagonIds: updatedLinkedWagonIds,
+					isWireSynced: false,
+					syncStatus: 'pending'
+				});
+			});
+
+			trainDispatch = {
+				...trainDispatch,
+				linkedWagonIds: (trainDispatch.linkedWagonIds || []).map((id) =>
+					id === targetLinkedId ? newWagonLinkedId : id
+				)
+			};
+			success = 'Wagon swapped successfully';
+			showSwapWagonInput = false;
+			swapTargetWagon = null;
+			await loadDispatch();
+		} catch (e) {
+			console.error('Error swapping wagon:', e);
+			error = `Failed to swap wagon: ${e instanceof Error ? e.message : 'Unknown error'}`;
+		}
 	}
 </script>
 
@@ -244,17 +383,127 @@
 			</p>
 		</div>
 
+		<!-- Link Wagon -->
+		{#if showWagonInput}
+			<div
+				class="bg-opacity-40 fixed inset-0 z-10 flex items-center justify-center backdrop-blur-sm"
+				role="button"
+				tabindex="0"
+				on:click|self={() => showWagonInput = false}
+				on:keydown={(e) => e.key === 'Escape' && (showWagonInput = false)}
+			>
+				<div class="m-6 w-full max-w-xs rounded-lg bg-white p-6 shadow-xl">
+					<WagonInput 
+						on:submit={handleWagonSubmit} 
+						on:cancel={handleWagonCancel} 
+					/>
+				</div>
+			</div>
+		<!-- Create Wagon -->
+		{:else if  showCreateWagonInput}
+			<div
+				class="bg-opacity-40 fixed inset-0 z-10 flex items-center justify-center backdrop-blur-sm"
+				role="button"
+				tabindex="0"
+				on:click|self={() => showCreateWagonInput = false}
+				on:keydown={(e) => e.key === 'Escape' && (showCreateWagonInput = false)}
+			>
+				<div class="m-6 w-full max-w-xs rounded-lg bg-white p-6 shadow-xl">
+					<WagonCreate 
+						wagonPosition={(trainDispatch?.linkedWagonIds?.length ?? 0) + 1}
+						on:submit={handleCreateSubmit} 
+						on:cancel={handleCreateCancel} 
+					/>
+				</div>
+			</div>
+		{:else if showSwapWagonInput}
+			<div
+				class="bg-opacity-40 fixed inset-0 z-10 flex items-center justify-center backdrop-blur-sm"
+				role="button"
+				tabindex="0"
+				on:click|self={handleSwapCancel}
+				on:keydown={(e) => e.key === 'Escape' && handleSwapCancel()}
+			>
+				<div class="m-6 w-full max-w-xs rounded-lg bg-white p-6 shadow-xl">
+					<div class="mb-4">
+						<h5 class="text-xl font-bold text-gray">Swap Wagon</h5>
+						<p class="text-gray-500">
+							Replace {swapTargetWagon?.wagonIdSimple || 'the selected wagon'} with another wagon.
+						</p>
+					</div>
+					<WagonInput
+						swapping={true}
+						on:submit={handleSwapSubmit}
+						on:cancel={handleSwapCancel}
+					/>
+				</div>
+			</div>
+		{:else}
+			<div class="flex items-center justify-between">
+				<button
+					class="bg-gray mb-1 mr-1 w-full rounded-md py-3 text-sm text-white hover:bg-blue-700"
+					on:click={() => {
+						currentStep = 2;
+						showWagonInput = true;
+					}}
+					>Link Wagon
+				</button>
+				<button
+					class="bg-gray mb-1 ml-1 w-full rounded-md py-3 text-sm text-white hover:bg-blue-700"
+					on:click={() => {
+						showCreateWagonInput = true;
+					}}					
+					>Create Wagon
+				</button>
+			</div>			
+		{/if}
+		
 		<!-- Linked Wagons -->
-		<div class="mb-6">
-			<p class="text-gray mb-2 text-sm">
-				Linked Wagons: <span class="font-bold">{trainDispatch?.linkedWagonIds?.length || 0}</span>
-			</p>
-			{#if trainDispatch?.linkedWagonIds?.length && wagons}
+		<div class="mb-6">			
+			{#if linkedWagonIds.length > 0 && wagons}
+				<div class="mb-3 rounded bg-gray-50 px-3 py-3 text-center text-xs text-gray-500">
+					<div class="mb-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-lg text-gray">
+						<span>Showing <span class="font-bold">{wagonPageStart}-{wagonPageEnd}</span> of <span class="font-bold">{linkedWagonIds.length}</span> linked wagons</span>
+					</div>
+					<div class="flex items-center justify-center gap-2">
+						<button
+							type="button"
+							class="rounded border border-gray-300 bg-white px-3 py-1 font-medium text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+							disabled={safeWagonPage <= 1}
+							on:click={() => setWagonPage(safeWagonPage - 1)}
+						>
+							{'<'}
+						</button>
+						<input 
+							type="number" 
+							class="rounded border border-gray-300 bg-white px-3 py-1 text-center text-sm text-gray-700" 
+							min="1" 
+							max={wagonPageCount} 
+							value={safeWagonPage} 
+							on:change={(e) => {
+								const input = e.target as HTMLInputElement;
+								let page = parseInt(input.value);
+								if (isNaN(page)) page = 1;
+								setWagonPage(page);
+							}}
+						/>
+						<button
+							type="button"
+							class="rounded border border-gray-300 bg-white px-3 py-1 font-medium text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+							disabled={safeWagonPage >= wagonPageCount}
+							on:click={() => setWagonPage(safeWagonPage + 1)}
+						>
+							{'>'}
+						</button>
+					</div>
+				</div>
 				<ul class="space-y-1">
-					{#each trainDispatch.linkedWagonIds as id, i}
+					{#each paginatedLinkedWagonIds as id, i}
 						{@const wagon = wagons?.find((w) => w.id === id || w.serverId === id)}
 						<li class="flex items-center gap-3 rounded bg-white px-3 py-2 align-middle shadow-sm">
-							<Container size={16} class="inline text-xs" />
+							<span class="flex h-18 w-10 shrink-0 items-center justify-center rounded bg-gray text-sm font-bold text-white tabular-nums">
+								{wagon?.wagonDispatchPosition}
+							</span>
 							<div class="flex-1">
 								<div class="text-gray font-medium">
 									<span class="text-sm font-light">Wagon ID</span>: {wagon?.wagonIdSimple || 'Unknown'}
@@ -308,40 +557,22 @@
 									</div>
 								{/if}
 							</div>
+							<div class="self-start pt-1">
+								<Button
+									aria-label="Wagon actions"
+									on:click={() => handleWagonSwap(wagon)}
+									class="flex h-6 w-6 items-center justify-center rounded-md border border-gray-200 bg-white p-0 text-gray-600 shadow-sm transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900"
+								>
+									<Repeat size={14} strokeWidth={2} />
+								</Button>
+							</div>
 						</li>
 					{/each}
 				</ul>
 			{:else}
 				<p class="text-gray-400 italic">No wagons linked yet.</p>
 			{/if}
-		</div>
-
-		<!-- Add Wagon -->
-		{#if showWagonInput}
-			<div
-				class="bg-opacity-40 fixed inset-0 z-10 flex items-center justify-center backdrop-blur-sm"
-				role="button"
-				tabindex="0"
-				on:click|self={() => showWagonInput = false}
-				on:keydown={(e) => e.key === 'Escape' && (showWagonInput = false)}
-			>
-				<div class="m-6 w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
-					<WagonInput 
-						on:submit={handleWagonSubmit} 
-						on:cancel={handleWagonCancel} 
-					/>
-				</div>
-			</div>
-		{:else}
-			<button
-				class="bg-gray mb-4 w-full rounded-md py-3 text-sm text-white hover:bg-blue-700"
-				on:click={() => {
-					currentStep = 2;
-					showWagonInput = true;
-				}}
-				>+ Add Wagon
-			</button>
-		{/if}
+		</div>		
 	{/if}
 </ProcessLayout>
 <div class="button-group flex space-x-4">
