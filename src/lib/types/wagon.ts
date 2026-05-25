@@ -17,7 +17,7 @@ export interface Wagon extends BaseRecord {
 	serverId?: string;
 	syncStatus: 'pending' | 'synced';
 	process?: string; // e.g. "Loading" / "Unloading" / "Transferring"
-	dispatchTimestamp?: Date;
+	dispatchTimestamp?: Date | null; // Timestamp when the wagon was dispatched
 	sampleTimestamp?: Date; // Timestamp when the wagon was sampled
 	stagingTimestamp?: Date; // Timestamp when the wagon was staged at the port
 	felTimestamp?: Date;
@@ -29,4 +29,7 @@ export interface Wagon extends BaseRecord {
 	portSampleId?: string; // PORT_SAMPLE_ID
 	isWireSynced?: boolean;
 	portSampleTimestamp?: Date; // Timestamp when the wagon was sampled at the port
+	manualCreated?: boolean; // Indicates if the wagon record was created manually
+	wagonDispatchPosition?: number; // Position of the wagon in the dispatch order
+	siteLocation?: string; // Location of the wagon (e.g., "PMC", "Port", etc.)
 }

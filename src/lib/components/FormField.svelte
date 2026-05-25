@@ -28,6 +28,14 @@
         filteredOptions = options;
     }
 
+    // Sync searchQuery with value when value is set programmatically
+    $: if (search && value && options.length) {
+        const match = options.find(option => option.value === value);
+        if (match && searchQuery !== match.label) {
+            searchQuery = match.label;
+        }
+    }
+
     // Reactive statement to hide dropdown if filteredOptions is empty
     $: if (filteredOptions.length === 0) {
         showDropdown = false;
