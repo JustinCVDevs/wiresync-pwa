@@ -31,4 +31,5 @@ export interface Wagon extends BaseRecord {
 	portSampleTimestamp?: Date; // Timestamp when the wagon was sampled at the port
 	manualCreated?: boolean; // Indicates if the wagon record was created manually
 	wagonDispatchPosition?: number; // Position of the wagon in the dispatch order
+	siteLocation?: string; // Location of the wagon (e.g., "PMC", "Port", etc.)
 }

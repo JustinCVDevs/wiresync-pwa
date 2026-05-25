@@ -395,6 +395,7 @@
 			>
 				<div class="m-6 w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
 					<WagonInput 
+						siteLocation={'Bosveld'}
 						on:submit={handleWagonSubmit} 
 						on:cancel={handleWagonCancel} 
 					/>
@@ -411,6 +412,7 @@
 			>
 				<div class="m-6 w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
 					<WagonCreate 
+						siteLocation={'Bosveld'}
 						wagonPosition={(trainDispatch?.linkedWagonIds?.length ?? 0) + 1}
 						on:submit={handleCreateSubmit} 
 						on:cancel={handleCreateCancel} 
@@ -434,6 +436,7 @@
 					</div>
 					<WagonInput
 						swapping={true}
+						siteLocation={'Bosveld'}
 						on:submit={handleSwapSubmit}
 						on:cancel={handleSwapCancel}
 					/>

@@ -4,6 +4,7 @@
 	import { indexedDBService } from '$lib/services/indexedDBService';
 
 	export let swapping: boolean = false;
+	export let siteLocation: string = '';
 
 	let wagonSearch = '';
 	let availableWagons: Wagon[] = [];
@@ -52,6 +53,7 @@
 			(w) =>
 				!w.dispatchTimestamp &&
 				w.wagonIdSimple !== '' &&
+				w.siteLocation === siteLocation &&
 				// Exclude wagons whose id or serverId are present in any dispatch's linkedWagonIds
 				!allLinkedWagonIds.has(w.id) &&
 				!(w.serverId ? allLinkedWagonIds.has(w.serverId) : false)

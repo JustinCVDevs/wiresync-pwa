@@ -8,6 +8,7 @@ import FormField from './FormField.svelte';
 import DoubleConfirmField from '$lib/components/DoubleConfirmField.svelte';
 
 export let wagonPosition: number = 0;
+export let siteLocation: string = '';
 
 let wagonIdSimple = '';
 let wagonId = '';
@@ -121,6 +122,7 @@ async function handleSubmit(e?: Event) {
 				wagonId: wagonId,
 				wagonIdSimple: wagonIdSimple,
 				productType: productGrade,
+				siteLocation: siteLocation,
 				trainNumber,
 				loadingLocation,
 				sampleId,

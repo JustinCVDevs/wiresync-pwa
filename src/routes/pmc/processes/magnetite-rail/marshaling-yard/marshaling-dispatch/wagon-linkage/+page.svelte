@@ -393,7 +393,8 @@
 				on:keydown={(e) => e.key === 'Escape' && (showWagonInput = false)}
 			>
 				<div class="m-6 w-full max-w-xs rounded-lg bg-white p-6 shadow-xl">
-					<WagonInput 
+					<WagonInput
+						siteLocation={'PMC'}
 						on:submit={handleWagonSubmit} 
 						on:cancel={handleWagonCancel} 
 					/>
@@ -411,6 +412,7 @@
 				<div class="m-6 w-full max-w-xs rounded-lg bg-white p-6 shadow-xl">
 					<WagonCreate 
 						wagonPosition={(trainDispatch?.linkedWagonIds?.length ?? 0) + 1}
+						siteLocation={'PMC'}
 						on:submit={handleCreateSubmit} 
 						on:cancel={handleCreateCancel} 
 					/>
@@ -433,6 +435,7 @@
 					</div>
 					<WagonInput
 						swapping={true}
+						siteLocation={'PMC'}
 						on:submit={handleSwapSubmit}
 						on:cancel={handleSwapCancel}
 					/>
