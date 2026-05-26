@@ -9,10 +9,10 @@
 	import NoMoreWagons from '$lib/components/NoMoreWagons.svelte';
 	import QRPrinting from '$lib/components/QRPrinting.svelte';
 
-	let wagonIdSimple: string[] = [];
-	$: wagonIdSimple = ($page.url.searchParams.get('wagonIdSimple') || '').split(',').filter(Boolean);
-
-	let shuntingTrainVerificationDate = $page.url.searchParams.get('shuntingTrainVerificationDate') || '';
+	let shuntingTrainIdsParam = $page.url.searchParams.get('shuntingTrainIds') || '';
+	let shuntingTrainIds = shuntingTrainIdsParam ? shuntingTrainIdsParam.split(',') : [];
+	let wagonIdsParam = $page.url.searchParams.get('wagonIds') || '';
+	let linkedWagonIds = wagonIdsParam ? wagonIdsParam.split(',') : [];
 	let wagons: Wagon[] = [];
 	let filteredWagons: Wagon[] = [];
 	let error = '';
@@ -37,15 +37,10 @@
 	async function loadWagons() {
 		isLoading = true;
 		try {
-			let shuntingTrain = (await indexedDBService.getAllRecords('shuntingTrains')).find(t => t.verificationTimestamp === shuntingTrainVerificationDate);
-
-			let linkedWagonIds = shuntingTrain?.linkedWagons || [];
-
-			const allWagons = (await indexedDBService.getAllRecords('wagons')).filter(
-				wagon => wagon.sampleTimestamp
-			);
-
-			filteredWagons = allWagons.filter(w => linkedWagonIds.includes(w.id));
+			const allWagons = await indexedDBService.getAllRecords('wagons');
+			filteredWagons = allWagons.filter(
+				(w: any) => linkedWagonIds.includes(w.serverId) && w.sampleTimestamp
+			).sort((a, b) => a.wagonIdSimple.localeCompare(b.wagonIdSimple));
 		} catch (e) {
 			console.error(e);
 			error = 'Failed to load wagon data';
@@ -59,19 +54,15 @@
 	});
 
 	async function handleNewWagon() {
-		let shuntingTrain = (await indexedDBService.getAllRecords('shuntingTrains')).find(
-			t => t.verificationTimestamp === shuntingTrainVerificationDate
-		);
-		let linkedWagonIds = shuntingTrain?.linkedWagons || [];
 		const allWagons = await indexedDBService.getAllRecords('wagons');
 		const unsampledWagons = allWagons.filter(
-			w => linkedWagonIds.includes(w.id) && !w.sampleTimestamp
+			(w: any) => linkedWagonIds.includes(w.serverId) && !w.sampleTimestamp
 		);
 
 		if (unsampledWagons.length === 0) {
 			showNoMoreWagons = true;
 		} else {
-			goto(`/pmc/processes/magnetite-rail/west-load-out/sampling/wagons/?shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`);
+			goto(`/pmc/processes/magnetite-rail/west-load-out/sampling/wagons?shuntingTrainIds=${shuntingTrainIds.join(',')}&wagonIds=${linkedWagonIds.join(',')}`);
 		}
 	}
 
@@ -89,15 +80,15 @@
 
 	async function confirmFinishSampling(confirm: boolean) {
 		if (confirm) {
+			const allShunting = await indexedDBService.getAllRecords('shuntingTrains');
+			const selectedTrains = allShunting.filter((t: any) => shuntingTrainIds.includes(t.serverId));
 
-			let shuntingTrain = (await indexedDBService.getAllRecords('shuntingTrains')).filter(
-				arrival => arrival.verificationTimestamp === shuntingTrainVerificationDate
-			)[0];
-
-			await indexedDBService.updateRecord('shuntingTrains', shuntingTrain.id, {
-				finishSamplingTimestamp: new Date(),
-				syncStatus: 'pending'
-			});
+			for (const train of selectedTrains) {
+				await indexedDBService.updateRecord('shuntingTrains', train.id, {
+					finishSamplingTimestamp: formatTimestamp(new Date()),
+					syncStatus: 'pending'
+				});
+			}
 
 			processLayout.setSuccess(`Train sampling finished.`);
 			setTimeout(() => {
@@ -159,7 +150,7 @@
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<div
 								class="flex items-center gap-3 rounded bg-white px-3 py-2 shadow-sm cursor-pointer"
-								on:click={() => goto(`/pmc/processes/magnetite-rail/west-load-out/sampling/wagons?wagonIdSimple=${wagon.wagonIdSimple}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`)}
+								on:click={() => goto(`/pmc/processes/magnetite-rail/west-load-out/sampling/wagons?wagonIdSimple=${wagon.wagonIdSimple}&shuntingTrainIds=${shuntingTrainIds.join(',')}&wagonIds=${linkedWagonIds.join(',')}`)}
 							>
 								<Container size={16} class="inline text-xs" />
 								<div class="flex-1">
@@ -199,7 +190,7 @@
 {#if showPopup}
 	<div class="popup-overlay">
 		<div class="popup-content">
-			<p class="popup-message">Are you sure you are done sampling train {shuntingTrainVerificationDate}?</p>
+			<p class="popup-message">Are you sure you are done sampling the selected trains?</p>
 			<div class="popup-buttons">
 				<button
 					type="button"

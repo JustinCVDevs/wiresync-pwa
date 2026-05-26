@@ -14,7 +14,10 @@
 	let sampleId = '';
 	let trainNumber = '';
 	let wagonIdSimple = $page.url.searchParams.get('wagonIdSimple') || '';
-	let shuntingTrainVerificationDate = $page.url.searchParams.get('shuntingTrainVerificationDate');
+	let shuntingTrainIdsParam = $page.url.searchParams.get('shuntingTrainIds') || '';
+	let shuntingTrainIds = shuntingTrainIdsParam ? shuntingTrainIdsParam.split(',') : [];
+	let linkedWagonIdsParam = $page.url.searchParams.get('wagonIds') || '';
+	let linkedWagonIds = linkedWagonIdsParam ? linkedWagonIdsParam.split(',') : [];
 	let productGrade = localStorage.getItem('productGrade') || '';
 	let loadingLocation = 'West Load Out';
 	let isSubmitting = false;
@@ -139,17 +142,9 @@
 	$: existingIdsArray = ($page.url.searchParams.get('wagonIdSimple') || '').split(',').filter(Boolean);
 
 	onMount(async () => {
-		let shuntingTrain = (await indexedDBService.getAllRecords('shuntingTrains')).find(t => t.verificationTimestamp === shuntingTrainVerificationDate);
-
-		const linkedWagons = shuntingTrain?.linkedWagons || [];
-		
-		let allwagons = (await indexedDBService.getAllRecords('wagons')).filter(
-			wagon => linkedWagons.some(linkedWagon => linkedWagon === wagon.id)
-		);
-		
-		availableWagons = allwagons.filter(
-			wagon => !wagon.sampleTimestamp
-		);
+		availableWagons = (await indexedDBService.getAllRecords('wagons')).filter(
+			(w: any) => linkedWagonIds.includes(w.serverId) && !w.sampleTimestamp
+		).sort((a, b) => a.wagonIdSimple.localeCompare(b.wagonIdSimple));
 	});
 
 	function loadPersistedData() {
@@ -220,7 +215,7 @@
 				processLayout.setSuccess('Data saved successfully');
 				setTimeout(() => {
 					goto(
-						`/pmc/processes/magnetite-rail/west-load-out/sampling/wagons/review?wagonIdSimple=${encodeURIComponent(selectedWagon)}&shuntingTrainVerificationDate=${shuntingTrainVerificationDate}`
+						`/pmc/processes/magnetite-rail/west-load-out/sampling/wagons/review?shuntingTrainIds=${shuntingTrainIds.join(',')}&wagonIds=${linkedWagonIds.join(',')}`
 					);
 				}, 1000);
 			}
