@@ -411,11 +411,12 @@
 				on:keydown={(e) => e.key === 'Escape' && (showCreateWagonInput = false)}
 			>
 				<div class="m-6 w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
-					<WagonCreate 
+					<WagonCreate
 						siteLocation={'Bosveld'}
+						defaultLoadingLocation="Bosveld"
 						wagonPosition={(trainDispatch?.linkedWagonIds?.length ?? 0) + 1}
-						on:submit={handleCreateSubmit} 
-						on:cancel={handleCreateCancel} 
+						on:submit={handleCreateSubmit}
+						on:cancel={handleCreateCancel}
 					/>
 				</div>
 			</div>
