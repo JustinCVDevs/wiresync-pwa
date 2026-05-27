@@ -1,6 +1,7 @@
 <script lang="ts">
 import { createEventDispatcher } from 'svelte';
 import type { Wagon } from '$lib/types/wagon';
+import type { ShuntingTrain } from '$lib/types/shuntingTrain';
 import { indexedDBService } from '$lib/services/indexedDBService';
 import { syncService } from '$lib/services/syncService';
 import { pocketbaseService } from '$lib/services/pocketbaseService';
@@ -9,14 +10,18 @@ import DoubleConfirmField from '$lib/components/DoubleConfirmField.svelte';
 
 export let wagonPosition: number = 0;
 export let siteLocation: string = '';
+export let isSampling: boolean = false;
+export let shuntingTrains: ShuntingTrain[] = [];
+export let defaultLoadingLocation: string = 'West Load Out';
 
 let wagonIdSimple = '';
 let wagonId = '';
 let wagonConfirmId = '';
 let productGrade = '';
 let trainNumber = '';
-let loadingLocation = 'West Load Out';
+let loadingLocation = defaultLoadingLocation;
 let sampleId = '';
+let selectedShuntingTrainId = '';
 let isSubmitting = false;
 let hasAttemptedSubmit = false;
 let showWagonIdError = false;
@@ -27,10 +32,23 @@ let formErrors = {
 	productGrade: '',
 	wagonIdSimple: '',
 	wagonConfirmId: '',
-	trainNumber: ''
+	trainNumber: '',
+	shuntingTrain: ''
 };
 
-const dispatch = createEventDispatcher<{ submit: { wagon: Wagon }; cancel: void }>();
+const dispatch = createEventDispatcher<{ submit: { wagon: Wagon; shuntingTrainId?: string }; cancel: void }>();
+
+function formatTrainDate(date: Date | string | undefined): string {
+	if (!date) return 'Unknown date';
+	return new Date(date).toLocaleString('en-GB', {
+		day: '2-digit',
+		month: '2-digit',
+		year: 'numeric',
+		hour: '2-digit',
+		minute: '2-digit',
+		hour12: false
+	});
+}
 
 const productGrades = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite 62%', 'Magnetite 65%'];
 const loadingLocations = ['East Load Out', 'West Load Out', 'Bosveld'];
@@ -42,9 +60,14 @@ function validateForm() {
 		productGrade: '',
 		wagonIdSimple: '',
 		wagonConfirmId: '',
-		trainNumber: ''
+		trainNumber: '',
+		shuntingTrain: ''
 	};
 
+	if (isSampling && !selectedShuntingTrainId) {
+		formErrors.shuntingTrain = 'Please select a shunting train';
+		isValid = false;
+	}
 	if (!wagonIdSimple) {
 		formErrors.wagonIdSimple = 'Wagon ID is required';
 		isValid = false;
@@ -100,7 +123,8 @@ async function handleSubmit(e?: Event) {
 		productGrade: '',
 		wagonIdSimple: '',
 		wagonConfirmId: '',
-		trainNumber: ''
+		trainNumber: '',
+		shuntingTrain: ''
 	};
 
 	// Check if values match before proceeding
@@ -136,7 +160,7 @@ async function handleSubmit(e?: Event) {
 			};
 			await indexedDBService.saveRecord('wagons', wagon);
 			await syncService.syncWagon(wagon);
-			dispatch('submit', { wagon });
+			dispatch('submit', { wagon, shuntingTrainId: selectedShuntingTrainId || undefined });
 		} catch (err) {
 			formErrors.sampleId = 'Failed to create wagon';
 			console.error(err);
@@ -205,6 +229,28 @@ function handleCancel(e?: Event) {
 			required={true}
 		/>
 	</div>
+	{#if isSampling}
+		<div class="form pt-2">
+			<label for="shuntingTrainSelect" class="mb-1 block text-sm font-medium text-gray-700">
+				Shunting Train <span class="text-red-500">*</span>
+			</label>
+			<select
+				id="shuntingTrainSelect"
+				bind:value={selectedShuntingTrainId}
+				class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400"
+			>
+				<option value="">-- Select a shunting train --</option>
+				{#each shuntingTrains as train}
+					<option value={train.serverId ?? train.id}>
+						{formatTrainDate(train.postDate)}
+					</option>
+				{/each}
+			</select>
+			{#if formErrors.shuntingTrain}
+				<p class="mt-1 text-xs text-red-500">{formErrors.shuntingTrain}</p>
+			{/if}
+		</div>
+	{/if}
 	<div class="form pt-2">
 		<FormField
 			id="sampleId"
@@ -216,7 +262,6 @@ function handleCancel(e?: Event) {
 		/>
 	</div>
 </div>
-
 
 <div class="flex items-center justify-between pt-8">
 	<button

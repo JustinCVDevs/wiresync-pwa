@@ -410,11 +410,12 @@
 				on:keydown={(e) => e.key === 'Escape' && (showCreateWagonInput = false)}
 			>
 				<div class="m-6 w-full max-w-xs rounded-lg bg-white p-6 shadow-xl">
-					<WagonCreate 
+					<WagonCreate
 						wagonPosition={(trainDispatch?.linkedWagonIds?.length ?? 0) + 1}
 						siteLocation={'PMC'}
-						on:submit={handleCreateSubmit} 
-						on:cancel={handleCreateCancel} 
+						defaultLoadingLocation="West Load Out"
+						on:submit={handleCreateSubmit}
+						on:cancel={handleCreateCancel}
 					/>
 				</div>
 			</div>

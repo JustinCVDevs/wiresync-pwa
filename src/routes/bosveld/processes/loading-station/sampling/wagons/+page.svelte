@@ -26,6 +26,7 @@
 	let selectedWagonId = '';
 	let selectedWagon = '';
 	let availableWagons: any[] = [];
+	let editingWagon: any = null;
 
 	// Process steps
 	const processSteps = ['Arrival Train', 'Wagon Sampling', 'Verification'];
@@ -43,8 +44,13 @@
 	}
 
 	function handleCancel() {
-		goto('/bosveld/processes/loading-station/sampling');
+		if (editingWagon) {
+			goto(`/bosveld/processes/loading-station/sampling/wagons/review?shuntingTrainIds=${shuntingTrainIds.join(',')}&wagonIds=${linkedWagonIds.join(',')}`);
+		} else {
+			goto('/bosveld/processes/loading-station/sampling');
+		}
 	}
+
 	// Form errors
 	let formErrors = {
 		sampleId: '',
@@ -54,18 +60,17 @@
 	};
 
 	async function fetchData() {
-		// Only fetch data if wagonIdSimple is provided and not empty
 		if (!wagonIdSimple) return;
-		
+
 		const wagon = (await indexedDBService.getAllRecords('wagons')).find(
 			(w) => w.wagonIdSimple === wagonIdSimple
 		);
 
 		if (wagon) {
+			editingWagon = wagon;
 			selectedWagon = wagon.wagonIdSimple || '';
 			productGrade = wagon.productType || '';
 			trainNumber = wagon.trainNumber || '';
-			sampleId = wagon.sampleId || '';
 		}
 	}
 
@@ -73,20 +78,16 @@
 		selectedWagon = availableWagons.find(wagon => wagon.wagonId === selectedWagonId)?.wagonIdSimple || '';
 	}
 
-	$: if(wagonIdSimple === '') {
+	$: {
 		const currentDate = new Date();
 		const YYMMDD = `${currentDate.getFullYear().toString().slice(-2)}${String(currentDate.getMonth() + 1).padStart(2, '0')}${String(currentDate.getDate()).padStart(2, '0')}`;
-
 		const productCode = {
 			'Iron Oxide': 'IOX',
 			'Magnetite-DMS': 'DMS',
 			'Magnetite 62%': 'MAG62',
 			'Magnetite 65%': 'MAG65'
 		}[productGrade];
-
 		sampleId = `${YYMMDD}${selectedWagon ? `_${selectedWagon}` : ''}${trainNumber ? `_${trainNumber}` : ''}${productCode ? `_${productCode}` : ''}`;
-	} else {
-		fetchData();
 	}
 
 	const productGrades = ['Iron Oxide', 'Magnetite-DMS', 'Magnetite 62%', 'Magnetite 65%'];
@@ -145,6 +146,7 @@
 		availableWagons = (await indexedDBService.getAllRecords('wagons')).filter(
 			(w: any) => linkedWagonIds.includes(w.serverId) && !w.sampleTimestamp
 		).sort((a, b) => (a.wagonIdSimple || '').localeCompare(b.wagonIdSimple || ''));
+		if (wagonIdSimple) await fetchData();
 	});
 
 	function loadPersistedData() {
@@ -166,10 +168,46 @@
 			processLayout.setError('');
 			processLayout.setSuccess('');
 
-			if (selectedWagonId) {
-				let wagon = (availableWagons).find(
-					(w) => w.wagonId === selectedWagonId
-				);
+			if (wagonIdSimple && editingWagon) {
+				// Edit mode — update the existing wagon
+				await indexedDBService.updateRecord('wagons', editingWagon.id, {
+					...editingWagon,
+					wagonIdSimple: selectedWagon,
+					productType: productGrade,
+					trainNumber,
+					loadingLocation,
+					sampleId,
+					syncStatus: 'pending',
+					updated: formatTimestamp(new Date()),
+					isWireSynced: false
+				});
+
+				// Update the linked assay if one exists
+				const wagonIdToUse = editingWagon.serverId || editingWagon.id;
+				const allAssays = await indexedDBService.getAllRecords('assays');
+				const matchingAssay = allAssays.find((a: any) => a.linkedWagonIds?.includes(wagonIdToUse));
+				if (matchingAssay) {
+					await indexedDBService.updateRecord('assays', matchingAssay.id, {
+						...matchingAssay,
+						name: sampleId,
+						sampleId,
+						productType: productGrade,
+						location: loadingLocation,
+						syncStatus: 'pending',
+						updated: new Date().toISOString(),
+						isWireSynced: false
+					});
+				}
+
+				formPersistenceService.clearForm('loading_station');
+				processLayout.setSuccess('Data updated successfully');
+				setTimeout(() => {
+					goto(
+						`/bosveld/processes/loading-station/sampling/wagons/review?shuntingTrainIds=${shuntingTrainIds.join(',')}&wagonIds=${linkedWagonIds.join(',')}`
+					);
+				}, 1000);
+			} else if (selectedWagonId) {
+				let wagon = availableWagons.find((w) => w.wagonId === selectedWagonId);
 
 				if (!wagon) {
 					processLayout.setError('Wagon not found');
@@ -187,7 +225,6 @@
 
 				await indexedDBService.updateRecord('wagons', wagon.id, wagon);
 
-				// Create the assay object according to the Assay interface
 				const assay: Assay = {
 					id: crypto.randomUUID(),
 					name: sampleId,
@@ -200,18 +237,13 @@
 					syncStatus: 'pending',
 					user: pocketbaseService.currentUser?.id || '',
 					isWireSynced: false,
-					siteLocation: 'Bosveld',
+					siteLocation: 'Bosveld'
 				};
 
-				// Save to IndexedDB
 				await indexedDBService.saveRecord('assays', assay);
-
-				// Try to sync using the sync service
 				await syncService.syncAssay(assay);
 
-				// Clear persisted form data
 				formPersistenceService.clearForm('loading_station');
-
 				processLayout.setSuccess('Data saved successfully');
 				setTimeout(() => {
 					goto(
@@ -234,13 +266,15 @@
 	{currentStep}
 	{isSubmitting}
 	bind:this={processLayout}
-	cancelPath="/bosveld/processes/loading-station/sampling"
+	cancelPath={wagonIdSimple
+		? `/bosveld/processes/loading-station/sampling/wagons/review?shuntingTrainIds=${shuntingTrainIds.join(',')}&wagonIds=${linkedWagonIds.join(',')}`
+		: '/bosveld/processes/loading-station/sampling'}
 	on:submit={handleSubmit}
 	on:cancel={handleCancel}
 >
 	<div slot="header">
-		<h5 class="text-xl font-bold ">Sample Details Capturing</h5>
-		<p class="text-sm text-gay">Please enter the sample and product details</p>
+		<h5 class="text-xl font-bold">Sample Details Capturing</h5>
+		<p class="text-sm text-gray-500">Please enter the sample and product details</p>
 	</div>
 
 <div class="container">
@@ -264,7 +298,7 @@
 				required
 			/>
 		{/if}
-	</div>	
+	</div>
 	<div class="form">
 		<FormField
 			id="productGrade"
@@ -276,9 +310,9 @@
 			required={true}
 			error={formErrors.productGrade}
 		/>
-	</div>	
-	<div class="form">	
-		<FormField 
+	</div>
+	<div class="form">
+		<FormField
 			id="trainNumber"
 			label="Train Number"
 			bind:value={trainNumber}
@@ -286,8 +320,8 @@
 			placeholder="Enter Train Number"
 			error={formErrors.trainNumber}
 		/>
-	</div>		
-	<div class="form">	
+	</div>
+	<div class="form">
 		<FormField
 			id="loadingLocation"
 			label="Loading Location"
@@ -297,8 +331,8 @@
 			options={loadingLocations.map((location) => ({ value: location, label: location }))}
 			required={true}
 		/>
-	</div>	
-	<div class="form">	
+	</div>
+	<div class="form">
 		<FormField
 			id="sampleId"
 			label="Sample ID"
@@ -309,7 +343,7 @@
 		/>
 	</div>
 </div>
-<QRPrinting {sampleId}/>
+<QRPrinting {sampleId} />
 </ProcessLayout>
 
 <style>

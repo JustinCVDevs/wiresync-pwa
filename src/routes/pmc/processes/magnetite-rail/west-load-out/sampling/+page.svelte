@@ -38,8 +38,9 @@
 	}
 
 	onMount(async () => {
+		const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
 		const shuntingTrains = (await indexedDBService.getAllRecords('shuntingTrains')).filter(
-			shunting => !shunting.finishSamplingTimestamp && shunting.verificationTimestamp && shunting.siteLocation === 'PMC'
+			shunting => shunting.verificationTimestamp && shunting.siteLocation === 'PMC' && new Date(shunting.postDate) >= threeDaysAgo
 		).sort((a, b) => {
 			const dateA = a.postDate ? new Date(a.postDate).getTime() : 0;
 			const dateB = b.postDate ? new Date(b.postDate).getTime() : 0;

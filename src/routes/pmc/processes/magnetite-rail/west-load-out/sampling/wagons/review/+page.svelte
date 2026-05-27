@@ -4,10 +4,14 @@
 	import { goto } from '$app/navigation';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
+	import { syncService } from '$lib/services/syncService';
+	import { pocketbaseService } from '$lib/services/pocketbaseService';
 	import type { Wagon } from '$lib/types';
-	import { Container } from 'lucide-svelte';
+	import type { ShuntingTrain } from '$lib/types/shuntingTrain';
+	import type { Assay } from '$lib/types/assay';
+	import { Container, Pencil } from 'lucide-svelte';
 	import NoMoreWagons from '$lib/components/NoMoreWagons.svelte';
-	import QRPrinting from '$lib/components/QRPrinting.svelte';
+	import WagonCreate from '$lib/components/WagonCreate.svelte';
 
 	let shuntingTrainIdsParam = $page.url.searchParams.get('shuntingTrainIds') || '';
 	let shuntingTrainIds = shuntingTrainIdsParam ? shuntingTrainIdsParam.split(',') : [];
@@ -19,8 +23,9 @@
 	let success = '';
 	let isLoading = true;
 	let processLayout: ProcessLayout;
-	let showPopup = false;
 	let showNoMoreWagons = false;
+	let showCreateWagonInput = false;
+	let shuntingTrains: ShuntingTrain[] = [];
 
 	const steps = ['Arrival Train', 'Wagon Sampling', 'Verification'];
 	let currentStep = 3;
@@ -39,8 +44,10 @@
 		try {
 			const allWagons = await indexedDBService.getAllRecords('wagons');
 			filteredWagons = allWagons.filter(
-				(w: any) => linkedWagonIds.includes(w.serverId) && w.sampleTimestamp
-			).sort((a, b) => a.wagonIdSimple.localeCompare(b.wagonIdSimple));
+				(w: any) =>
+					(linkedWagonIds.includes(w.serverId) || linkedWagonIds.includes(w.id)) &&
+					w.sampleTimestamp
+			).sort((a, b) => (a.wagonIdSimple || '').localeCompare(b.wagonIdSimple || ''));
 		} catch (e) {
 			console.error(e);
 			error = 'Failed to load wagon data';
@@ -49,11 +56,13 @@
 		}
 	}
 
-	onMount(() => {
-		loadWagons();
+	onMount(async () => {
+		await loadWagons();
+		const allShunting = await indexedDBService.getAllRecords('shuntingTrains');
+		shuntingTrains = allShunting.filter((t: any) => shuntingTrainIds.includes(t.serverId));
 	});
 
-	async function handleNewWagon() {
+	async function handleSampleWagon() {
 		const allWagons = await indexedDBService.getAllRecords('wagons');
 		const unsampledWagons = allWagons.filter(
 			(w: any) => linkedWagonIds.includes(w.serverId) && !w.sampleTimestamp
@@ -72,31 +81,72 @@
 
 	async function handleSubmit() {
 		processLayout.setSuccess('Wagons Successfully Sampled!');
-
 		setTimeout(() => {
 			goto('/pmc/processes/magnetite-rail/west-load-out/sampling');
 		}, 1000);
 	}
 
-	async function confirmFinishSampling(confirm: boolean) {
-		if (confirm) {
-			const allShunting = await indexedDBService.getAllRecords('shuntingTrains');
-			const selectedTrains = allShunting.filter((t: any) => shuntingTrainIds.includes(t.serverId));
+	async function handleCreateSubmit(e: CustomEvent<{ wagon: Wagon; shuntingTrainId?: string }>) {
+		showCreateWagonInput = false;
+		const { wagon, shuntingTrainId } = e.detail ?? {};
+		if (!wagon) return;
 
-			for (const train of selectedTrains) {
+		const wagonIdToUse = wagon.serverId || wagon.id;
+
+		// Mark wagon as sampled
+		await indexedDBService.updateRecord('wagons', wagon.id, {
+			sampleTimestamp: new Date(),
+			syncStatus: 'pending',
+			isWireSynced: false
+		});
+
+		// Create assay
+		const assay: Assay = {
+			id: crypto.randomUUID(),
+			name: wagon.sampleId || '',
+			sampleId: wagon.sampleId || '',
+			productType: wagon.productType || '',
+			location: wagon.loadingLocation || '',
+			created: new Date(),
+			updated: new Date().toISOString(),
+			linkedWagonIds: [wagonIdToUse],
+			syncStatus: 'pending',
+			user: pocketbaseService.currentUser?.id || '',
+			siteLocation: 'PMC',
+			isWireSynced: false
+		};
+		await indexedDBService.saveRecord('assays', assay);
+		await syncService.syncAssay(assay);
+
+		// Link wagon to the selected shunting train
+		if (shuntingTrainId) {
+			const allShunting = await indexedDBService.getAllRecords('shuntingTrains');
+			const train = allShunting.find(
+				(t: any) => t.serverId === shuntingTrainId || t.id === shuntingTrainId
+			);
+			if (train) {
 				await indexedDBService.updateRecord('shuntingTrains', train.id, {
-					finishSamplingTimestamp: formatTimestamp(new Date()),
+					linkedWagons: [...(train.linkedWagons || []), wagonIdToUse],
 					syncStatus: 'pending'
 				});
 			}
-
-			processLayout.setSuccess(`Train sampling finished.`);
-			setTimeout(() => {
-				goto('/pmc/processes/magnetite-rail/west-load-out/sampling');
-			}, 1000);
 		}
-		showPopup = false;
+
+		// Add to local pool and update URL
+		if (!linkedWagonIds.includes(wagonIdToUse)) {
+			linkedWagonIds = [...linkedWagonIds, wagonIdToUse];
+			const url = new URL($page.url);
+			url.searchParams.set('wagonIds', linkedWagonIds.join(','));
+			goto(`${url.pathname}${url.search}`, { replaceState: true, noScroll: true, keepFocus: true });
+		}
+
+		await loadWagons();
 	}
+
+	function handleCreateCancel() {
+		showCreateWagonInput = false;
+	}
+
 </script>
 
 <ProcessLayout
@@ -134,13 +184,19 @@
 		<!-- Linked Wagons -->
 		<div class="mb-6">
 			<div class="mb-4 flex items-center justify-between">
-				<p class="text-sm text-gray">Sampled Wagons: <span class="font-bold">{filteredWagons.length}</span></p>
 				<button
 					type="button"
-					class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition hover:bg-blue-700"
-					on:click={handleNewWagon}
-				>+ New Wagon</button>
+					class="bg-gray mb-1 mr-1 w-full rounded-md py-3 text-sm text-white hover:bg-blue-700"
+					on:click={handleSampleWagon}
+				>Sample Wagon</button>
+				<button
+					type="button"
+					class="bg-gray mb-1 ml-1 w-full rounded-md py-3 text-sm text-white hover:bg-blue-700"
+					on:click={() => { showCreateWagonInput = true; }}
+				>Create Wagon</button>
 			</div>
+
+			<p class="text-sm text-gray">Sampled Wagons: <span class="font-bold">{filteredWagons.length}</span></p>
 
 			{#if filteredWagons.length > 0}
 				<div class="space-y-3">
@@ -162,6 +218,7 @@
 										{wagon.sampleId ? wagon.sampleId : 'Not set'}
 									</div>
 								</div>
+								<Pencil size={16} class="text-blue-500 mb-14" />
 							</div>
 						</div>
 					{/each}
@@ -177,92 +234,24 @@
 	<NoMoreWagons process="sampling" on:ok={() => (showNoMoreWagons = false)} />
 {/if}
 
-<div class="flex space-x-4 button-group">
-	<button
-		type="button"
-		class="submit-button flex-1 items-center justify-center rounded-lg py-3 text-white transition hover:bg-green-700 active:bg-green-800 disabled:opacity-50"
-		on:click={() => showPopup = true}
+{#if showCreateWagonInput}
+	<div
+		class="bg-opacity-40 fixed inset-0 z-10 flex items-center justify-center backdrop-blur-sm"
+		role="button"
+		tabindex="0"
+		on:click|self={handleCreateCancel}
+		on:keydown={(e) => e.key === 'Escape' && handleCreateCancel()}
 	>
-		Finish Train Sampling
-	</button>
-</div>
-<!-- Custom Popup -->
-{#if showPopup}
-	<div class="popup-overlay">
-		<div class="popup-content">
-			<p class="popup-message">Are you sure you are done sampling the selected trains?</p>
-			<div class="popup-buttons">
-				<button
-					type="button"
-					class="popup-button confirm-button"
-					on:click={() => confirmFinishSampling(true)}
-				>
-					Yes
-				</button>
-				<button
-					type="button"
-					class="popup-button cancel-button"
-					on:click={() => confirmFinishSampling(false)}
-				>
-					No
-				</button>
-			</div>
+		<div class="m-6 w-full max-w-xs overflow-y-auto max-h-[90vh] rounded-lg bg-white p-6 shadow-xl">
+			<WagonCreate
+				wagonPosition={linkedWagonIds.length + 1}
+				siteLocation={'PMC'}
+				defaultLoadingLocation="West Load Out"
+				isSampling={true}
+				{shuntingTrains}
+				on:submit={handleCreateSubmit}
+				on:cancel={handleCreateCancel}
+			/>
 		</div>
 	</div>
 {/if}
-<style>
-	.flex.space-x-4.button-group {
-		margin-left: 1rem;
-		margin-right: 1rem;
-	}
-
-	.popup-overlay {
-		position: fixed;
-		top: 0;
-		left: 0;
-		width: 100%;
-		height: 100%;
-		background: rgba(0, 0, 0, 0.5);
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		z-index: 1000;
-	}
-
-	.popup-content {
-		background: white;
-		padding: 2rem;
-		border-radius: 8px;
-		text-align: center;
-		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-	}
-
-	.popup-message {
-		font-size: 1.2rem;
-		margin-bottom: 1rem;
-	}
-
-	.popup-buttons {
-		display: flex;
-		justify-content: center;
-		gap: 1rem;
-	}
-
-	.popup-button {
-		padding: 0.5rem 1rem;
-		border: none;
-		border-radius: 4px;
-		cursor: pointer;
-		font-size: 1rem;
-	}
-
-	.confirm-button {
-		background: #4caf50;
-		color: white;
-	}
-
-	.cancel-button {
-		background: #f44336;
-		color: white;
-	}
-</style>
