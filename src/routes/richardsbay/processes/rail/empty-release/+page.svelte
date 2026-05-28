@@ -13,6 +13,14 @@
 	let availableWagons: Wagon[] = [];
 	let filteredWagons: Wagon[] = [];
 	let checkedWagons: Record<string, boolean> = {};
+	$: selectedCount = Object.values(checkedWagons).filter(Boolean).length;
+	$: allSelected = filteredWagons.length > 0 && filteredWagons.every(w => checkedWagons[w.id]);
+
+	function toggleSelectAll() {
+		const updated = { ...checkedWagons };
+		filteredWagons.forEach(w => { updated[w.id] = !allSelected; });
+		checkedWagons = updated;
+	}
 
 	const processSteps = ['Wagon', 'Verification'];
 	let processLayout: ProcessLayout;
@@ -86,63 +94,85 @@
 		<h5 class="text-xl font-bold text-gray">Wagon Details</h5>
 		<p class="text-gray-500">Search and select wagons to release.</p>
 	</div>
-	<div class="form">
-		<label for="wagonSearch" class="block font-medium text-gray text-sm mb-1">Search Wagon ID</label>
-		<input
-			id="wagonSearch"
-			type="text"
-			bind:value={wagonSearch}
-			placeholder="Search Wagon ID"
-			class="w-full rounded-lg text-sm border px-3 py-2 text-gray border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none"
-		/>
-	</div>
-	<div class="wagon-list mt-4">
+	<div class="space-y-4">
+		<div>
+			<label for="wagonSearch" class="block text-sm font-medium text-gray mb-1">Search by wagon ID</label>
+			<input
+				id="wagonSearch"
+				type="text"
+				bind:value={wagonSearch}
+				placeholder="Search Wagon ID"
+				class="w-full rounded-lg text-sm border px-3 py-2 text-gray border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none"
+			/>
+		</div>
+
+		<div class="flex items-center justify-between">
+			{#if filteredWagons.length > 0}
+				<span
+					role="button"
+					tabindex="0"
+					class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium cursor-pointer select-none transition-all
+						{allSelected ? 'border-gray-700 bg-gray-700 text-white' : 'border-gray-300 text-gray-600 hover:border-gray-500 hover:text-gray-900'}"
+					on:click={toggleSelectAll}
+					on:keydown={(e) => e.key === 'Enter' && toggleSelectAll()}
+				>
+					<div class="flex-shrink-0 w-3.5 h-3.5 rounded border flex items-center justify-center
+						{allSelected ? 'border-white' : 'border-current'}">
+						{#if allSelected}
+							<svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+							</svg>
+						{/if}
+					</div>
+					{allSelected ? 'Deselect all' : 'Select all'}
+				</span>
+			{:else}
+				<div></div>
+			{/if}
+			<div>
+				{#if selectedCount > 0}
+					<span class="inline-flex items-center rounded-full bg-gray-700 px-2.5 py-0.5 text-xs font-medium text-white">
+						{selectedCount} selected
+					</span>
+				{/if}
+			</div>
+		</div>
+
 		{#if filteredWagons.length === 0}
-			<p class="text-gray-400 italic">No wagons found.</p>
+			<p class="text-sm italic text-gray-400 text-center py-6">No wagons found.</p>
 		{:else}
-			<div class="wagon-list-scroll">
-				<ul>
-					{#each filteredWagons as wagon}
-						<li class="flex items-center justify-between border-b py-2">
-							<span class="text-gray-800">{wagon.wagonIdSimple}</span>
-							<input
-								type="checkbox"
-								class="w-5 h-5"
-								checked={checkedWagons[wagon.id] || false}
-								on:change={(e) => {
-                                    const target = e.target as HTMLInputElement | null;
-                                    if (target) {
-                                        handleWagonCheck(wagon.id, target.checked);
-                                    }
-                                }}
-							/>
-						</li>
-					{/each}
-				</ul>
+			<div class="rounded-lg border border-gray-200 p-2 space-y-2" style="max-height: 18rem; overflow-y: auto; position: relative">
+				{#each filteredWagons as wagon}
+					{@const isSelected = checkedWagons[wagon.id] || false}
+					<label
+						class="flex items-center gap-3 rounded-lg border-2 px-4 py-3 cursor-pointer transition-all select-none
+							{isSelected
+								? 'border-gray-700 bg-gray-50 shadow-sm'
+								: 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'}"
+					>
+						<input
+							type="checkbox"
+							class="sr-only"
+							checked={isSelected}
+							on:change={(e) => {
+								const target = e.target as HTMLInputElement | null;
+								if (target) handleWagonCheck(wagon.id, target.checked);
+							}}
+						/>
+						<div class="flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all
+							{isSelected ? 'bg-gray-700 border-gray-700' : 'border-gray-300 bg-white'}">
+							{#if isSelected}
+								<svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+								</svg>
+							{/if}
+						</div>
+						<span class="text-sm font-medium {isSelected ? 'text-gray-900' : 'text-gray-700'}">
+							{wagon.wagonIdSimple}
+						</span>
+					</label>
+				{/each}
 			</div>
 		{/if}
 	</div>
 </ProcessLayout>
-
-<style>
-	.form {
-		margin-top: 1rem;
-		position: relative;
-	}
-	.wagon-list ul {
-		list-style: none;
-		padding: 0;
-		margin: 0;
-	}
-	.wagon-list li {
-		padding-left: 0.5rem;
-		padding-right: 0.5rem;
-	}
-	.wagon-list-scroll {
-		max-height: 350px;
-		overflow-y: auto;
-		border: 1px solid #e5e7eb;
-		border-radius: 0.5rem;
-		background: #fff;
-	}
-</style>

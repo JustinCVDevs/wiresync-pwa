@@ -26,8 +26,19 @@
 
 	async function loadTrainsAndConsignments() {
 		try {
+			const today = new Date();
+
 			// Get all trains and all train dispatches
-			const trainRecords = await indexedDBService.getRecords('trains');
+			const trainRecords = (await indexedDBService.getRecords('trains')).filter(
+				(t) => 
+				{
+					if (!t.created) return true;
+					const createdDate = new Date(t.created);
+					const diffMs = today.getTime() - createdDate.getTime();
+					const diffDays = diffMs / (1000 * 60 * 60 * 24);
+					return diffDays < 4;
+				}
+			);
 			const trainDispatches = await indexedDBService.getRecords('trainDispatches');
 
 			// Filter trains that are not linked to disatches or have dispatches without a dispatchTimestamp
@@ -62,6 +73,14 @@
 			consignments = consignmentRecords.filter(
 				(c) => !c.linkedTrainId
 			);
+			
+			consignments = consignments.filter((c) => {
+				if (!c.created) return true;
+				const createdDate = new Date(c.created);
+				const diffMs = today.getTime() - createdDate.getTime();
+				const diffDays = diffMs / (1000 * 60 * 60 * 24);
+				return diffDays < 4;
+			});
 		} catch (e) {
 			console.error(e);
 			error = 'Failed to load data';
@@ -211,6 +230,7 @@
 		} catch (e: any) {
 			console.error(e);
 			error = 'Failed to initialize dispatch' + e?.data?.toJson();
+			processLayout.setError(error);
 		} finally {
 			isSubmitting = false;
 		}
@@ -246,22 +266,27 @@
 	{#if isLoading}
 		<div>Loading…</div>
 	{:else}
-		<FormField
-			label="Train Reference"
-			id="trainRef"
-			isSelect={true}
-			placeholder="Select Train Reference"
-			bind:value={selectedTrainRef}
-			options={trains.map((t) => ({ value: t.refNr, label: t.refNr }))}
-		/>
-		<FormField	
-			label="Consignment Number"
-			id="consignmentNumber"
-			isSelect={true}
-			placeholder="Select Consignment Number"
-			bind:value={selectedConsignment}
-			options={consignments.map((c) => ({ value: c.name, label: c.name }))}
-		/>
+		<div class="form-field">
+			<FormField
+				label="Train Reference"
+				id="trainRef"
+				search={true}
+				placeholder="Select Train Reference"
+				bind:value={selectedTrainRef}
+				options={trains.map((t) => ({ value: t.refNr, label: t.refNr }))}
+			/>
+		</div>
+
+		<div class="form-field">				
+			<FormField
+				label="Consignment Number"
+				id="consignmentNumber"
+				search={true}
+				placeholder="Select Consignment Number"
+				bind:value={selectedConsignment}
+				options={consignments.map((c) => ({ value: c.name, label: c.name }))}
+			/>
+		</div>
 		{/if}
 </ProcessLayout>
 {#if selectedTrainRef && foundTrainDispatch}
@@ -354,5 +379,10 @@
 	.cancel-button {
 		background: #f44336;
 		color: white;
+	}
+
+	.form-field {
+		margin-top: 1rem;
+		position: relative;
 	}
 </style>
