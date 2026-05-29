@@ -20,6 +20,8 @@
 	$: allSelected = filteredWagons.length > 0 && filteredWagons.every(w => selectedWagonIds.includes(w.id));
 
 	function toggleSelectAll() {
+		if (swapping) return;
+
 		if (allSelected) {
 			selectedWagonIds = selectedWagonIds.filter(id => !filteredWagons.some(w => w.id === id));
 		} else {
@@ -30,7 +32,11 @@
 
 	function handleWagonCheck(wagonId: string, checked: boolean) {
 		if (checked) {
-			if (!selectedWagonIds.includes(wagonId)) selectedWagonIds = [...selectedWagonIds, wagonId];
+			if (swapping) {
+				selectedWagonIds = [wagonId];
+			} else if (!selectedWagonIds.includes(wagonId)) {
+				selectedWagonIds = [...selectedWagonIds, wagonId];
+			}
 		} else {
 			selectedWagonIds = selectedWagonIds.filter(id => id !== wagonId);
 		}
@@ -105,7 +111,7 @@
 	</div>
 
 	<div class="flex items-center justify-between">
-		{#if filteredWagons.length > 0}
+		{#if !swapping && filteredWagons.length > 0}
 			<span
 				role="button"
 				tabindex="0"
@@ -128,7 +134,7 @@
 			<div></div>
 		{/if}
 		<div>
-			{#if selectedWagonIds.length > 0}
+			{#if !swapping && selectedWagonIds.length > 0}
 				<span class="inline-flex items-center rounded-full bg-gray-700 px-2.5 py-0.5 text-xs font-medium text-white">
 					{selectedWagonIds.length} selected
 				</span>

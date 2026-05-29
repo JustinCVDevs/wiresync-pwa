@@ -196,40 +196,43 @@ function handleCancel(e?: Event) {
 			}}
 		/>
 	</div>
-	<div class="form pt-2">
-		<FormField
-			id="productGrade"
-			label="Product Selection"
-			bind:value={productGrade}
-			placeholder="Select Product Grade"
-			isSelect={true}
-			options={productGrades.map((grade) => ({ value: grade, label: grade }))}
-			required={true}
-			error={formErrors.productGrade}
-		/>
-	</div>
-	<div class="form pt-2">
-		<FormField
-			id="trainNumber"
-			label="Train Number"
-			bind:value={trainNumber}
-			required={true}
-			placeholder="Enter Train Number"
-			error={formErrors.trainNumber}
-		/>
-	</div>
-	<div class="form pt-2">
-		<FormField
-			id="loadingLocation"
-			label="Loading Location"
-			bind:value={loadingLocation}
-			placeholder="Select Loading Location"
-			isSelect={true}
-			options={loadingLocations.map((location) => ({ value: location, label: location }))}
-			required={true}
-		/>
-	</div>
 	{#if isSampling}
+		<div class="form pt-2">
+			<FormField
+				id="productGrade"
+				label="Product Selection"
+				bind:value={productGrade}
+				placeholder="Select Product Grade"
+				isSelect={true}
+				options={productGrades.map((grade) => ({ value: grade, label: grade }))}
+				required={true}
+				error={formErrors.productGrade}
+			/>
+		</div>
+		
+		<div class="form pt-2">
+			<FormField
+				id="trainNumber"
+				label="Train Number"
+				bind:value={trainNumber}
+				required={true}
+				placeholder="Enter Train Number"
+				error={formErrors.trainNumber}
+			/>
+		</div>
+
+		<div class="form pt-2">
+			<FormField
+				id="loadingLocation"
+				label="Loading Location"
+				bind:value={loadingLocation}
+				placeholder="Select Loading Location"
+				isSelect={true}
+				options={loadingLocations.map((location) => ({ value: location, label: location }))}
+				required={true}
+			/>
+		</div>
+
 		<div class="form pt-2">
 			<label for="shuntingTrainSelect" class="mb-1 block text-sm font-medium text-gray-700">
 				Shunting Train <span class="text-red-500">*</span>
@@ -250,17 +253,18 @@ function handleCancel(e?: Event) {
 				<p class="mt-1 text-xs text-red-500">{formErrors.shuntingTrain}</p>
 			{/if}
 		</div>
-	{/if}
-	<div class="form pt-2">
-		<FormField
-			id="sampleId"
-			label="Sample ID"
-			bind:value={sampleId}
-			placeholder="Enter Sample ID"
-			required={true}
-			error={formErrors.sampleId}
-		/>
-	</div>
+
+		<div class="form pt-2">
+			<FormField
+				id="sampleId"
+				label="Sample ID"
+				bind:value={sampleId}
+				placeholder="Enter Sample ID"
+				required={true}
+				error={formErrors.sampleId}
+			/>
+		</div>
+	{/if}	
 </div>
 
 <div class="flex items-center justify-between pt-8">
