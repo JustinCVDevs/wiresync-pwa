@@ -29,13 +29,16 @@
 <div class="flex flex-col gap-2">
     <div>
         <label for="field1" class="block font-medium text-gray text-sm">{label}</label>
-        <input
-            id="field1"
-            type={hideFirst ? 'password' : 'text'}
-            bind:value={value1}
-            class="w-full rounded-lg border text-sm py-2 px-3 border-gray-300 text-gray focus:ring-2 focus:ring-gray-400 focus:outline-none {error ? 'border-red-500' : ''}"
-            on:input={handleInput1}
-        />
+        <div class="relative">
+            <input
+                id="field1"
+                type={hideFirst ? 'password' : 'text'}
+                bind:value={value1}
+                class="w-full rounded-lg border text-sm py-2 px-3 border-gray-300 text-gray focus:ring-2 focus:ring-gray-400 focus:outline-none {error ? 'border-red-500' : ''} {$$slots['field1-icon'] ? 'pr-10' : ''}"
+                on:input={handleInput1}
+            />
+            <slot name="field1-icon" />
+        </div>
         {#if error}
             <p class="text-sm text-red-600">{error}</p>
         {/if}

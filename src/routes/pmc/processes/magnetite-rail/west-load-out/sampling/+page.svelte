@@ -38,12 +38,22 @@
 	}
 
 	onMount(async () => {
-		const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+		const threeDaysAgo = new Date();
+		threeDaysAgo.setHours(0, 0, 0, 0);
+		threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 		const shuntingTrains = (await indexedDBService.getAllRecords('shuntingTrains')).filter(
-			shunting => shunting.verificationTimestamp && shunting.siteLocation === 'PMC' && new Date(shunting.postDate) >= threeDaysAgo
+			shunting => {
+				if (!shunting.verificationTimestamp || shunting.siteLocation !== 'PMC' || !shunting.created) {
+					return false;
+				}
+
+				const createdDate = new Date(shunting.created);
+				createdDate.setHours(0, 0, 0, 0);
+				return createdDate >= threeDaysAgo;
+			}
 		).sort((a, b) => {
-			const dateA = a.postDate ? new Date(a.postDate).getTime() : 0;
-			const dateB = b.postDate ? new Date(b.postDate).getTime() : 0;
+			const dateA = a.created ? new Date(a.created).getTime() : 0;
+			const dateB = b.created ? new Date(b.created).getTime() : 0;
 			return dateB - dateA;
 		});
 
@@ -86,11 +96,9 @@
 				linkedWagonIds = linkedWagonIds.concat(t.linkedWagons || []);
 			}
 
-			for (let wagonId of linkedWagonIds) {
-				let wagon = (await indexedDBService.getAllRecords('wagons')).find(
-					wagon => wagon.serverId === wagonId
-				);
-
+			const allWagons = await indexedDBService.getAllRecords('wagons');
+			for (const wagonId of linkedWagonIds) {
+				const wagon = allWagons.find(w => w.serverId === wagonId);
 				if (wagon?.sampleTimestamp) {
 					goto(`/pmc/processes/magnetite-rail/west-load-out/sampling/wagons/review?shuntingTrainIds=${selectedTrainIds.join(',')}&wagonIds=${linkedWagonIds.join(',')}`);
 					return;

@@ -9,7 +9,11 @@
 	import { syncService } from '$lib/services/syncService';
 	import { page } from '$app/stores';
 	import QRPrinting from '$lib/components/QRPrinting.svelte';
+	import WagonCreate from '$lib/components/WagonCreate.svelte';
+	import type { ShuntingTrain } from '$lib/types/shuntingTrain';
+	import type { Wagon } from '$lib/types';
 	import { pocketbaseService } from '$lib/services/pocketbaseService';
+	import { Pencil } from 'lucide-svelte';
 
 	let sampleId = '';
 	let trainNumber = '';
@@ -27,6 +31,8 @@
 	let selectedWagon = '';
 	let availableWagons: any[] = [];
 	let editingWagon: any = null;
+	let showCreateWagonInput = false;
+	let shuntingTrains: ShuntingTrain[] = [];
 
 	// Process steps
 	const processSteps = ['Arrival Train', 'Wagon Sampling', 'Verification'];
@@ -147,6 +153,8 @@
 			(w: any) => linkedWagonIds.includes(w.serverId) && !w.sampleTimestamp
 		).sort((a, b) => (a.wagonIdSimple || '').localeCompare(b.wagonIdSimple || ''));
 		if (wagonIdSimple) await fetchData();
+		const allShunting = await indexedDBService.getAllRecords('shuntingTrains');
+		shuntingTrains = allShunting.filter((t: any) => shuntingTrainIds.includes(t.serverId));
 	});
 
 	function loadPersistedData() {
@@ -258,6 +266,59 @@
 			isSubmitting = false;
 		}
 	}
+
+	async function handleCreateSubmit(e: CustomEvent<{ wagon: Wagon; shuntingTrainId?: string }>) {
+		showCreateWagonInput = false;
+		const { wagon, shuntingTrainId } = e.detail ?? {};
+		if (!wagon) return;
+
+		const wagonIdToUse = wagon.serverId || wagon.id;
+
+		await indexedDBService.updateRecord('wagons', wagon.id, {
+			sampleTimestamp: new Date(),
+			syncStatus: 'pending',
+			isWireSynced: false
+		});
+
+		const assay: Assay = {
+			id: crypto.randomUUID(),
+			name: wagon.sampleId || '',
+			sampleId: wagon.sampleId || '',
+			productType: wagon.productType || '',
+			location: wagon.loadingLocation || '',
+			created: new Date(),
+			updated: new Date().toISOString(),
+			linkedWagonIds: [wagonIdToUse],
+			syncStatus: 'pending',
+			user: pocketbaseService.currentUser?.id || '',
+			siteLocation: 'PMC',
+			isWireSynced: false
+		};
+		await indexedDBService.saveRecord('assays', assay);
+		await syncService.syncAssay(assay);
+
+		if (shuntingTrainId) {
+			const allShunting = await indexedDBService.getAllRecords('shuntingTrains');
+			const train = allShunting.find(
+				(t: any) => t.serverId === shuntingTrainId || t.id === shuntingTrainId
+			);
+			if (train) {
+				await indexedDBService.updateRecord('shuntingTrains', train.id, {
+					linkedWagons: [...(train.linkedWagons || []), wagonIdToUse],
+					syncStatus: 'pending'
+				});
+			}
+		}
+
+		if (!linkedWagonIds.includes(wagonIdToUse)) {
+			linkedWagonIds = [...linkedWagonIds, wagonIdToUse];
+		}
+		goto(`/pmc/processes/magnetite-rail/west-load-out/sampling/wagons/review?shuntingTrainIds=${shuntingTrainIds.join(',')}&wagonIds=${linkedWagonIds.join(',')}`);
+	}
+
+	function handleCreateCancel() {
+		showCreateWagonInput = false;
+	}
 </script>
 
 <ProcessLayout
@@ -276,6 +337,19 @@
 		<h5 class="text-xl font-bold">Sample Details Capturing</h5>
 		<p class="text-sm text-gray-500">Please enter the sample and product details</p>
 	</div>
+
+	{#if wagonIdSimple}
+		<div class="mb-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sky-700 shadow-sm">
+			<div class="flex items-start gap-3">
+				<Pencil size={16} class="mt-0.5 shrink-0 text-sky-600" />
+				<div class="min-w-0">
+					<div class="text-sm font-medium text-sky-900">
+						<span class="font-semibold tracking-wide text-sky-700">Editing wagon:</span> {wagonIdSimple}
+					</div>
+				</div>
+			</div>
+		</div>
+	{/if}
 
 <div class="container">
 	<div class="form">
@@ -344,7 +418,36 @@
 	</div>
 </div>
 <QRPrinting {sampleId} />
+<div class="button-group flex space-x-4">
+	<button
+		type="button"
+		class="bg-gray w-full rounded-md py-3 text-sm text-white hover:bg-blue-700"
+		on:click={() => { showCreateWagonInput = true; }}
+	>Create Wagon</button>
+</div>
 </ProcessLayout>
+
+{#if showCreateWagonInput}
+	<div
+		class="bg-opacity-40 fixed inset-0 z-10 flex items-center justify-center backdrop-blur-sm"
+		role="button"
+		tabindex="0"
+		on:click|self={handleCreateCancel}
+		on:keydown={(e) => e.key === 'Escape' && handleCreateCancel()}
+	>
+		<div class="m-6 w-full max-w-xs overflow-y-auto max-h-[90vh] rounded-lg bg-white p-6 shadow-xl">
+			<WagonCreate
+				wagonPosition={linkedWagonIds.length + 1}
+				siteLocation={'PMC'}
+				defaultLoadingLocation="West Load Out"
+				isSampling={true}
+				{shuntingTrains}
+				on:submit={handleCreateSubmit}
+				on:cancel={handleCreateCancel}
+			/>
+		</div>
+	</div>
+{/if}
 
 <style>
 	.container {

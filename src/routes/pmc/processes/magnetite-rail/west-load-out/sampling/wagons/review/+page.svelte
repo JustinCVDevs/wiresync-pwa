@@ -4,14 +4,9 @@
 	import { goto } from '$app/navigation';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
 	import { indexedDBService } from '$lib/services/indexedDBService';
-	import { syncService } from '$lib/services/syncService';
-	import { pocketbaseService } from '$lib/services/pocketbaseService';
 	import type { Wagon } from '$lib/types';
-	import type { ShuntingTrain } from '$lib/types/shuntingTrain';
-	import type { Assay } from '$lib/types/assay';
 	import { Container, Pencil } from 'lucide-svelte';
 	import NoMoreWagons from '$lib/components/NoMoreWagons.svelte';
-	import WagonCreate from '$lib/components/WagonCreate.svelte';
 
 	let shuntingTrainIdsParam = $page.url.searchParams.get('shuntingTrainIds') || '';
 	let shuntingTrainIds = shuntingTrainIdsParam ? shuntingTrainIdsParam.split(',') : [];
@@ -24,8 +19,6 @@
 	let isLoading = true;
 	let processLayout: ProcessLayout;
 	let showNoMoreWagons = false;
-	let showCreateWagonInput = false;
-	let shuntingTrains: ShuntingTrain[] = [];
 
 	const steps = ['Arrival Train', 'Wagon Sampling', 'Verification'];
 	let currentStep = 3;
@@ -58,8 +51,6 @@
 
 	onMount(async () => {
 		await loadWagons();
-		const allShunting = await indexedDBService.getAllRecords('shuntingTrains');
-		shuntingTrains = allShunting.filter((t: any) => shuntingTrainIds.includes(t.serverId));
 	});
 
 	async function handleSampleWagon() {
@@ -86,71 +77,11 @@
 		}, 1000);
 	}
 
-	async function handleCreateSubmit(e: CustomEvent<{ wagon: Wagon; shuntingTrainId?: string }>) {
-		showCreateWagonInput = false;
-		const { wagon, shuntingTrainId } = e.detail ?? {};
-		if (!wagon) return;
-
-		const wagonIdToUse = wagon.serverId || wagon.id;
-
-		// Mark wagon as sampled
-		await indexedDBService.updateRecord('wagons', wagon.id, {
-			sampleTimestamp: new Date(),
-			syncStatus: 'pending',
-			isWireSynced: false
-		});
-
-		// Create assay
-		const assay: Assay = {
-			id: crypto.randomUUID(),
-			name: wagon.sampleId || '',
-			sampleId: wagon.sampleId || '',
-			productType: wagon.productType || '',
-			location: wagon.loadingLocation || '',
-			created: new Date(),
-			updated: new Date().toISOString(),
-			linkedWagonIds: [wagonIdToUse],
-			syncStatus: 'pending',
-			user: pocketbaseService.currentUser?.id || '',
-			siteLocation: 'PMC',
-			isWireSynced: false
-		};
-		await indexedDBService.saveRecord('assays', assay);
-		await syncService.syncAssay(assay);
-
-		// Link wagon to the selected shunting train
-		if (shuntingTrainId) {
-			const allShunting = await indexedDBService.getAllRecords('shuntingTrains');
-			const train = allShunting.find(
-				(t: any) => t.serverId === shuntingTrainId || t.id === shuntingTrainId
-			);
-			if (train) {
-				await indexedDBService.updateRecord('shuntingTrains', train.id, {
-					linkedWagons: [...(train.linkedWagons || []), wagonIdToUse],
-					syncStatus: 'pending'
-				});
-			}
-		}
-
-		// Add to local pool and update URL
-		if (!linkedWagonIds.includes(wagonIdToUse)) {
-			linkedWagonIds = [...linkedWagonIds, wagonIdToUse];
-			const url = new URL($page.url);
-			url.searchParams.set('wagonIds', linkedWagonIds.join(','));
-			goto(`${url.pathname}${url.search}`, { replaceState: true, noScroll: true, keepFocus: true });
-		}
-
-		await loadWagons();
-	}
-
-	function handleCreateCancel() {
-		showCreateWagonInput = false;
-	}
 
 </script>
 
 <ProcessLayout
-	title="Shunting Train - Review"
+	title="Sampling - Review"
 	{steps}
 	{currentStep}
 	isSubmitting={isLoading}
@@ -186,14 +117,9 @@
 			<div class="mb-4 flex items-center justify-between">
 				<button
 					type="button"
-					class="bg-gray mb-1 mr-1 w-full rounded-md py-3 text-sm text-white hover:bg-blue-700"
+					class="bg-gray mb-1 w-full rounded-md py-3 text-sm text-white hover:bg-blue-700"
 					on:click={handleSampleWagon}
 				>Sample Wagon</button>
-				<button
-					type="button"
-					class="bg-gray mb-1 ml-1 w-full rounded-md py-3 text-sm text-white hover:bg-blue-700"
-					on:click={() => { showCreateWagonInput = true; }}
-				>Create Wagon</button>
 			</div>
 
 			<p class="text-sm text-gray">Sampled Wagons: <span class="font-bold">{filteredWagons.length}</span></p>
@@ -234,24 +160,3 @@
 	<NoMoreWagons process="sampling" on:ok={() => (showNoMoreWagons = false)} />
 {/if}
 
-{#if showCreateWagonInput}
-	<div
-		class="bg-opacity-40 fixed inset-0 z-10 flex items-center justify-center backdrop-blur-sm"
-		role="button"
-		tabindex="0"
-		on:click|self={handleCreateCancel}
-		on:keydown={(e) => e.key === 'Escape' && handleCreateCancel()}
-	>
-		<div class="m-6 w-full max-w-xs overflow-y-auto max-h-[90vh] rounded-lg bg-white p-6 shadow-xl">
-			<WagonCreate
-				wagonPosition={linkedWagonIds.length + 1}
-				siteLocation={'PMC'}
-				defaultLoadingLocation="West Load Out"
-				isSampling={true}
-				{shuntingTrains}
-				on:submit={handleCreateSubmit}
-				on:cancel={handleCreateCancel}
-			/>
-		</div>
-	</div>
-{/if}
