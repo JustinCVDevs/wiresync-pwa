@@ -13,6 +13,7 @@
 	import WagonCreate from '$lib/components/WagonCreate.svelte';
 	import type { ShuntingTrain } from '$lib/types/shuntingTrain';
 	import type { Wagon } from '$lib/types';
+	import { Pencil } from 'lucide-svelte';
 
 	let sampleId = '';
 	let trainNumber = '';
@@ -337,6 +338,18 @@
 		<p class="text-sm text-gray-500">Please enter the sample and product details</p>
 	</div>
 
+	{#if wagonIdSimple}
+		<div class="mb-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sky-700 shadow-sm">
+			<div class="flex items-start gap-3">
+				<Pencil size={16} class="mt-0.5 shrink-0 text-sky-600" />
+				<div class="min-w-0">
+					<div class="text-sm font-medium text-sky-900">
+						<span class="font-semibold tracking-wide text-sky-700">Editing wagon:</span> {wagonIdSimple}
+					</div>
+				</div>
+			</div>
+		</div>
+	{/if}
 <div class="container">
 	<div class="form">
 		{#if wagonIdSimple === ''}

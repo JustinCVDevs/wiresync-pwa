@@ -83,7 +83,7 @@
 </script>
 
 <ProcessLayout
-	title="Shunting Train - Review"
+	title="Sampling - Review"
 	{steps}
 	{currentStep}
 	isSubmitting={isLoading}
