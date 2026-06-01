@@ -134,6 +134,9 @@
 				: ''}"
 			{disabled}
 			{required}
+			on:focus
+			on:blur
+			on:input
 		/>
 	{/if}
 
