@@ -1,11 +1,13 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy, tick } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { indexedDBService } from '$lib/services/indexedDBService';
 	import type { Wagon } from '$lib/types';
 	import type { ShuntingTrain } from '$lib/types/shuntingTrain';
 	import FormField from '$lib/components/FormField.svelte';
+	import DoubleConfirmField from '$lib/components/DoubleConfirmField.svelte';
+	import { BrowserQRCodeReader } from '@zxing/browser';
 
 	let wagon: Wagon | null = null;
 	let shuntingTrain: ShuntingTrain | null = null;
@@ -13,19 +15,27 @@
 	let success = '';
 	let isLoading = true;
 	let isSubmitting = false;
-	let wagonValue = false;
 	let trainId: string;
 	let wagonId: string;
-	let wagonPosition: number = 1;
+	let wagonPosition: number = 0;
 
 	// Editable fields
 	let editableWagonId = '';
+	let editableWagonIdConfirm = '';
 	let editableTemporaryRfid = '';
+	let editableTemporaryRfidConfirm = '';
+	let rfidFocused = false;
+	let rfidScannedDirectly = false;
+
+	// QR scanner state
+	let showScanner = false;
+	let scannerVideoEl: HTMLVideoElement | null = null;
+	let scannerControls: { stop: () => void } | null = null;
+	let scanError = '';
 
 	const steps = ['Select Shunting Train', 'Wagon ID/RFID Editing'];
 	let currentStep = 2;
 
-	// Wrap reactive statements in try-catch to prevent exceptions
 	$: {
 		try {
 			trainId = $page.params.trainId;
@@ -44,14 +54,56 @@
 		}
 	}
 
-	$: wagonValue = !!(wagon?.wagonIdSimple && String(wagon.wagonIdSimple).trim() !== '');
+	let showWagonIdError = false;
+	let showRfidError = false;
+	let wagonIdErrorMsg = '';
+	let rfidErrorMsg = '';
 
+	$: wagonIdValid = !!editableWagonId && editableWagonId === editableWagonIdConfirm;
+	$: rfidValid = rfidScannedDirectly
+		? !!editableTemporaryRfid
+		: !rfidFocused || (!!editableTemporaryRfid && editableTemporaryRfid === editableTemporaryRfidConfirm);
+
+	async function openScanner() {
+		scanError = '';
+		showScanner = true;
+		await tick();
+
+		if (!scannerVideoEl) return;
+
+		try {
+			const codeReader = new BrowserQRCodeReader();
+			scannerControls = await codeReader.decodeFromConstraints(
+				{ video: { facingMode: 'environment' } },
+				scannerVideoEl,
+				(result, err) => {
+					if (result) {
+						editableTemporaryRfid = result.getText();
+						rfidScannedDirectly = true;
+						rfidFocused = false;
+						editableTemporaryRfidConfirm = '';
+						closeScanner();
+					}
+				}
+			);
+		} catch (e) {
+			scanError = e instanceof Error ? e.message : 'Camera access denied or unavailable';
+		}
+	}
+
+	function closeScanner() {
+		if (scannerControls) {
+			scannerControls.stop();
+			scannerControls = null;
+		}
+		showScanner = false;
+		scanError = '';
+	}
 
 	async function loadWagonAndTrain() {
-		try {	
-			// Load the shunting train first
+		try {
 			shuntingTrain = await indexedDBService.getRecord('shuntingTrains', trainId) ?? null;
-			
+
 			if (!shuntingTrain) {
 				console.error('Shunting train not found');
 				error = 'Shunting train not found';
@@ -59,22 +111,19 @@
 				return;
 			}
 
-			// Load the wagon
 			wagon = await indexedDBService.getRecord('wagons', wagonId) ?? null;
 			wagonPosition = wagon?.wagonPosition || 0;
-			
+
 			if (!wagon) {
 				console.error('Wagon not found with ID:', wagonId);
-				// If wagon not found, try to find it in the linked wagons list
 				if (shuntingTrain.linkedWagons && shuntingTrain.linkedWagons.length > 0) {
-					// Try to find the wagon by position if wagonId doesn't work
 					const wagonIndex = wagonPosition - 1;
 					if (wagonIndex >= 0 && wagonIndex < shuntingTrain.linkedWagons.length) {
 						const linkedWagonId = shuntingTrain.linkedWagons[wagonIndex];
 						wagon = await indexedDBService.getRecord('wagons', linkedWagonId) ?? null;
 					}
 				}
-				
+
 				if (!wagon) {
 					error = `Wagon not found. Wagon ID: ${wagonId}, Position: ${wagonPosition}`;
 					isLoading = false;
@@ -84,19 +133,16 @@
 
 			// Initialize editable fields with current values
 			editableWagonId = wagon.wagonIdSimple || '';
+			editableWagonIdConfirm = wagon.wagonIdSimple || '';
 			editableTemporaryRfid = wagon.transcoreTag || '';
-			
-			console.log('Successfully loaded wagon and train data');
 		} catch (e) {
 			console.error('Error loading wagon and train:', e);
 			error = `Failed to load wagon and train data: ${(e as Error).message || String(e)}`;
-			// DO NOT navigate away on error - stay on this page
 		} finally {
 			isLoading = false;
 		}
 	}
 
-	// Wrap onMount in try-catch to prevent any exceptions from causing redirects
 	onMount(() => {
 		try {
 			loadWagonAndTrain();
@@ -107,7 +153,29 @@
 		}
 	});
 
+	onDestroy(() => {
+		if (scannerControls) {
+			scannerControls.stop();
+			scannerControls = null;
+		}
+	});
+
 	async function handleSubmit() {
+		if (editableWagonId !== editableWagonIdConfirm) {
+			wagonIdErrorMsg = 'Wagon IDs do not match';
+			showWagonIdError = true;
+			editableWagonId = '';
+			editableWagonIdConfirm = '';
+			return;
+		}
+		if (rfidFocused && !rfidScannedDirectly && editableTemporaryRfid !== editableTemporaryRfidConfirm) {
+			rfidErrorMsg = 'RFID tags do not match';
+			showRfidError = true;
+			editableTemporaryRfid = '';
+			editableTemporaryRfidConfirm = '';
+			return;
+		}
+
 		try {
 			isSubmitting = true;
 			error = '';
@@ -116,10 +184,10 @@
 				error = 'Wagon data not available';
 				return;
 			}
-			
-			// Update wagon with new values - use updateRecord to prevent duplicates
+
 			try {
 				await indexedDBService.updateRecord('wagons', wagon.id, {
+					...wagon,
 					wagonIdSimple: editableWagonId,
 					transcoreTag: editableTemporaryRfid,
 					syncStatus: 'pending',
@@ -129,19 +197,14 @@
 				console.error('IndexedDB transaction failed:', dbError);
 				throw new Error(`Database update failed: ${dbError instanceof Error ? dbError.message : String(dbError)}`);
 			}
-			
-			// Transaction is now complete - dispatch custom event to notify other components
+
 			if (typeof window !== 'undefined') {
-				const event = new CustomEvent('wagon-updated', { 
-					detail: { 
-						wagonId: wagon.id,
-						trainId: trainId
-					} 
+				const event = new CustomEvent('wagon-updated', {
+					detail: { wagonId: wagon.id, trainId: trainId }
 				});
 				window.dispatchEvent(event);
 			}
-			
-			// Try to sync immediately instead of relying on background sync
+
 			try {
 				const { syncService } = await import('$lib/services/syncService');
 				const updatedWagon = await indexedDBService.getRecord('wagons', wagon.id);
@@ -155,16 +218,13 @@
 				console.warn('Sync failed, will retry in background:', syncError);
 				success = 'Wagon details updated successfully (sync will retry)';
 			}
-			
-			// Navigate back immediately - transaction is complete and event has been dispatched
+
 			await goto(`/bosveld/processes/marshaling-yard/wagon-id-linking/wagons/${trainId}`, {
-				invalidateAll: true,
-				replaceState: true
+				invalidateAll: true
 			});
 		} catch (e: any) {
 			console.error('Error updating wagon:', e);
 			error = `Failed to update wagon details: ${e.message || e}`;
-			// DO NOT navigate away on error
 		} finally {
 			isSubmitting = false;
 		}
@@ -195,23 +255,19 @@
 		}
 	}
 
-	// Add window error handler to catch any unhandled exceptions
 	if (typeof window !== 'undefined') {
 		window.addEventListener('error', (e) => {
 			console.error('Unhandled error:', e);
-			// Prevent default behavior that might cause navigation
 			e.preventDefault();
 		});
 
 		window.addEventListener('unhandledrejection', (e) => {
 			console.error('Unhandled promise rejection:', e);
-			// Prevent default behavior that might cause navigation
 			e.preventDefault();
 		});
 	}
 </script>
 
-<!-- Rest of the template remains the same -->
 <div class="space-y-4 px-4 mb-4">
 	<h1 class="text-gray text-center text-2xl font-semibold">Updating Wagon Details</h1>
 
@@ -282,46 +338,86 @@
 				<div class="mb-3">
 					<h6 class="font-semibold text-center">Position {wagonPosition}</h6>
 				</div>
-				
+
 				<div class="space-y-4">
 					<!-- Wagon ID (Editable) -->
-					<FormField
+					<DoubleConfirmField
 						label="Wagon ID:"
-						id="wagonId"
-						bind:value={editableWagonId}
-						placeholder="Enter Wagon ID"
-						required
+						bind:value1={editableWagonId}
+						bind:value2={editableWagonIdConfirm}
+						error={showWagonIdError ? wagonIdErrorMsg : ''}
+						on:field2focus={() => { showWagonIdError = false; }}
 					/>
-					
+
 					<!-- Temporary RFID (Editable) -->
-					<FormField
-						label="Temporary RFID:"
-						style="background-color: {wagonValue ? '#d1d5db' : 'transparent'}; cursor: {wagonValue ? 'not-allowed' : 'text'};"
-						id="temporaryRfid"
-						bind:value={editableTemporaryRfid}
-						placeholder="Scan or enter Temporary RFID"
-						required
-						disabled={wagonValue}
-					/>
+					{#if rfidFocused}
+						<!-- svelte-ignore a11y_consider_explicit_label -->
+						<DoubleConfirmField
+							label="Temporary RFID:"
+							bind:value1={editableTemporaryRfid}
+							bind:value2={editableTemporaryRfidConfirm}
+							error={showRfidError ? rfidErrorMsg : ''}
+							on:field2focus={() => { showRfidError = false; }}
+						>
+							<svelte:fragment slot="field1-icon">
+								<button
+									type="button"
+									class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+									on:click={openScanner}
+								>
+									<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+										<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z" />
+										<path stroke-linecap="round" stroke-linejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75ZM13.5 13.5h.75v.75h-.75v-.75ZM13.5 19.5h.75v.75h-.75v-.75ZM19.5 13.5h.75v.75h-.75v-.75ZM19.5 19.5h.75v.75h-.75v-.75ZM16.5 16.5h.75v.75h-.75v-.75Z" />
+									</svg>
+								</button>
+							</svelte:fragment>
+						</DoubleConfirmField>
+					{:else}
+						<div class="space-y-1">
+							<label for="temporaryRfid" class="block font-medium text-gray text-sm">Temporary RFID: *</label>
+							<div class="relative">
+								<input
+									id="temporaryRfid"
+									type="text"
+									bind:value={editableTemporaryRfid}
+									placeholder="Scan or enter Temporary RFID"
+									class="w-full rounded-lg text-sm border px-3 py-2 pr-10 text-gray border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none"
+									on:focus={() => { rfidFocused = true; }}
+								/>
+								<!-- svelte-ignore a11y_consider_explicit_label -->
+								<button
+									type="button"
+									class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+									tabindex="-1"
+									on:click={openScanner}
+								>
+									<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+										<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z" />
+										<path stroke-linecap="round" stroke-linejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75ZM13.5 13.5h.75v.75h-.75v-.75ZM13.5 19.5h.75v.75h-.75v-.75ZM19.5 13.5h.75v.75h-.75v-.75ZM19.5 19.5h.75v.75h-.75v-.75ZM16.5 16.5h.75v.75h-.75v-.75Z" />
+									</svg>
+								</button>
+							</div>
+						</div>
+					{/if}
 				</div>
 			</div>
 
 			<!-- Action Buttons -->
 			<div class="flex gap-4 mt-6">
-				<button 
+				<button
 					type="button"
-					class="cancel-button flex-1 border-2 rounded-lg py-3 border border-gray-800 text-sm  text-white transition hover:bg-red-700 active:bg-red-800 disabled:opacity-50"
+					class="cancel-button flex-1 border-2 rounded-lg py-3 border border-gray-800 text-sm text-white transition hover:bg-red-700 active:bg-red-800 disabled:opacity-50"
 					on:click={handleBackToWagonDetails}
 					disabled={isSubmitting}
 				>
 					Cancel
 				</button>
-				
-				<button 
+
+				<button
 					type="button"
 					class="submit-button flex-1 items-center justify-center rounded-lg py-3 text-white transition hover:bg-green-700 active:bg-green-800 disabled:opacity-50"
 					on:click={handleSubmit}
-					disabled={isSubmitting || !editableWagonId.trim() || !editableTemporaryRfid.trim()}
+					disabled={isSubmitting}
 				>
 					{isSubmitting ? 'Submitting...' : 'Submit'}
 				</button>
@@ -332,7 +428,7 @@
 				<p class="text-sm mt-2">Wagon ID: {wagonId}</p>
 				<p class="text-sm">Train ID: {trainId}</p>
 				<p class="text-sm">Position: {wagonPosition}</p>
-				<button 
+				<button
 					type="button"
 					class="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
 					on:click={handleBackToWagonDetails}
@@ -343,3 +439,42 @@
 		{/if}
 	</div>
 </div>
+
+<!-- QR Scanner Modal -->
+{#if showScanner}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="fixed inset-0 z-50 flex flex-col bg-black"
+		on:keydown={(e) => e.key === 'Escape' && closeScanner()}
+	>
+		<div class="flex items-center justify-between px-4 py-3 bg-black">
+			<span class="text-white font-medium">Scan Transcore Tag</span>
+			<button
+				type="button"
+				class="text-white text-2xl leading-none px-2"
+				on:click={closeScanner}
+			>✕</button>
+		</div>
+
+		<div class="flex-1 relative overflow-hidden">
+			<!-- svelte-ignore a11y_media_has_caption -->
+			<video
+				bind:this={scannerVideoEl}
+				class="w-full h-full object-cover"
+				playsinline
+				autoplay
+			></video>
+			<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+				<div class="w-56 h-56 border-2 border-white rounded-lg opacity-70"></div>
+			</div>
+		</div>
+
+		{#if scanError}
+			<div class="px-4 py-3 bg-red-700 text-white text-sm text-center">{scanError}</div>
+		{:else}
+			<div class="px-4 py-3 bg-black text-gray-400 text-sm text-center">
+				Point the camera at the QR code
+			</div>
+		{/if}
+	</div>
+{/if}

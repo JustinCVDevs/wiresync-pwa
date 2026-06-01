@@ -32,4 +32,5 @@ export interface Wagon extends BaseRecord {
 	manualCreated?: boolean; // Indicates if the wagon record was created manually
 	wagonDispatchPosition?: number; // Position of the wagon in the dispatch order
 	siteLocation?: string; // Location of the wagon (e.g., "PMC", "Port", etc.)
+	missingID?: boolean; // Indicates if the wagon is missing an ID
 }

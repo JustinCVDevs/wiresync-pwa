@@ -18,15 +18,23 @@
 
 	async function loadShuntingTrains() {
 		try {
-			const trainRecords = await indexedDBService.getRecords(
-				'shuntingTrains',
-				(rec) => rec.syncStatus === 'synced'
-			);
-			shuntingTrains = trainRecords.filter(
-				(train: ShuntingTrain) => !train.verificationTimestamp && train.siteLocation === 'PMC'
+			// Fetch all shunting trains
+			const threeDaysAgo = new Date();
+			threeDaysAgo.setHours(0, 0, 0, 0);
+			threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+			shuntingTrains = (await indexedDBService.getAllRecords('shuntingTrains')).filter(
+				shunting => {
+					if (shunting.siteLocation !== 'PMC' || !shunting.created) {
+						return false;
+					}
+
+					const createdDate = new Date(shunting.created);
+					createdDate.setHours(0, 0, 0, 0);
+					return createdDate >= threeDaysAgo;
+				}
 			).sort((a, b) => {
-				const dateA = a.postDate ? new Date(a.postDate).getTime() : 0;
-				const dateB = b.postDate ? new Date(b.postDate).getTime() : 0;
+				const dateA = a.created ? new Date(a.created).getTime() : 0;
+				const dateB = b.created ? new Date(b.created).getTime() : 0;
 				return dateB - dateA;
 			});
 		} catch (e) {
@@ -99,7 +107,7 @@
 >
 	<div slot="header">
 		<h5 class="text-xl font-bold text-gray">Select Shunting Train</h5>
-		<p class="text-sm text-gay">
+		<p class="text-sm text-gray">
 			Please select a shunting train for wagon ID linking
 		</p>
 	</div>
@@ -119,16 +127,25 @@
 	{#if isLoading}
 		<div>Loading…</div>
 	{:else}
-		<FormField
-			label="Shunting Train Date"
-			id="trainSelect"
-			isSelect={true}
-			placeholder="Select Shunting Train Date"
-			bind:value={selectedTrain}
-			options={shuntingTrains.map((train) => ({
-				value: train.postDate ? new Date(train.postDate).toISOString() : '',
-				label: formatDate(train.postDate)
-			}))}
-		/>
+		<div class="form-field">
+			<FormField
+				label="Shunting Train Date"
+				id="trainSelect"
+				search={true}
+				placeholder="Select Shunting Train Date"
+				bind:value={selectedTrain}
+				options={shuntingTrains.map((train) => ({
+					value: train.postDate ? new Date(train.postDate).toISOString() : '',
+					label: formatDate(train.postDate)
+				}))}
+			/>
+		</div>		
 	{/if}
 </ProcessLayout>
+
+<style>
+	.form-field {
+		margin-top: 1rem;
+		position: relative;
+	}
+</style>
