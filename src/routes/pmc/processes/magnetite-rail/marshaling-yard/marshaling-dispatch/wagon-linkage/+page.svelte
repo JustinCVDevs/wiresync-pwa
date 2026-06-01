@@ -228,16 +228,21 @@
 		const wagon = e.detail?.wagon;
 		if (!wagon || !trainDispatch) return;
 
-		// Add the new wagon's ID to the dispatch
 		const wagonIdToUse = wagon.serverId || wagon.id;
 		let updatedIds = trainDispatch.linkedWagonIds ? [...trainDispatch.linkedWagonIds] : [];
 		if (!updatedIds.includes(wagonIdToUse)) {
 			updatedIds.push(wagonIdToUse);
+			await indexedDBService.updateRecord('wagons', wagon.id, {
+				dispatchTimestamp: new Date(),
+				wagonDispatchPosition: updatedIds.length,
+				syncStatus: 'pending',
+				isWireSynced: false
+			});
 			await indexedDBService.updateRecord('trainDispatches', trainDispatch.id, {
-			...trainDispatch,
-			linkedWagonIds: updatedIds,
-			syncStatus: 'pending',
-			isWireSynced: false
+				...trainDispatch,
+				linkedWagonIds: updatedIds,
+				syncStatus: 'pending',
+				isWireSynced: false
 			});
 			trainDispatch = { ...trainDispatch, linkedWagonIds: updatedIds };
 			await loadDispatch();
