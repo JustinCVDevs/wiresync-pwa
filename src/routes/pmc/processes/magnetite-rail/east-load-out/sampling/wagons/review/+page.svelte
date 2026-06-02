@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
@@ -51,6 +52,10 @@
 	}
 
 	onMount(async () => {
+		await loadWagons();
+	});
+
+	afterNavigate(async () => {
 		await loadWagons();
 	});
 
@@ -134,7 +139,7 @@
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<div
 								class="flex items-center gap-3 rounded bg-white px-3 py-2 shadow-sm cursor-pointer"
-								on:click={() => goto(`/pmc/processes/magnetite-rail/east-load-out/sampling/wagons?wagonIdSimple=${wagon.wagonIdSimple}&shuntingTrainIds=${shuntingTrainIds.join(',')}&wagonIds=${linkedWagonIds.join(',')}`)}
+								on:click={() => goto(`/pmc/processes/magnetite-rail/east-load-out/sampling/wagons?wagonIdSimple=${wagon.wagonIdSimple}&wagonDbId=${wagon.id}&shuntingTrainIds=${shuntingTrainIds.join(',')}&wagonIds=${linkedWagonIds.join(',')}`)}
 							>
 								<Container size={16} class="inline text-xs" />
 								<div class="flex-1">
