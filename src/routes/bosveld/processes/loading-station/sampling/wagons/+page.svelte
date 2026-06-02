@@ -18,6 +18,7 @@
 	let sampleId = '';
 	let trainNumber = '';
 	let wagonIdSimple = $page.url.searchParams.get('wagonIdSimple') || '';
+	let wagonDbId = $page.url.searchParams.get('wagonDbId') || '';
 	let shuntingTrainIdsParam = $page.url.searchParams.get('shuntingTrainIds') || '';
 	let shuntingTrainIds = shuntingTrainIdsParam ? shuntingTrainIdsParam.split(',') : [];
 	let linkedWagonIdsParam = $page.url.searchParams.get('wagonIds') || '';
@@ -68,15 +69,22 @@
 	async function fetchData() {
 		if (!wagonIdSimple) return;
 
-		const wagon = (await indexedDBService.getAllRecords('wagons')).find(
-			(w) => w.wagonIdSimple === wagonIdSimple
-		);
+		let wagon = wagonDbId
+			? await indexedDBService.getRecord('wagons', wagonDbId)
+			: undefined;
+
+		if (!wagon) {
+			wagon = (await indexedDBService.getAllRecords('wagons')).find(
+				(w) => w.wagonIdSimple === wagonIdSimple
+			);
+		}
 
 		if (wagon) {
 			editingWagon = wagon;
 			selectedWagon = wagon.wagonIdSimple || '';
 			productGrade = wagon.productType || '';
 			trainNumber = wagon.trainNumber || '';
+			loadingLocation = wagon.loadingLocation || 'Bosveld';
 		}
 	}
 
