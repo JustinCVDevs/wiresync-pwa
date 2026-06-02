@@ -556,7 +556,10 @@
 															updated: new Date().toISOString(),
 															syncStatus: 'pending'
 														});
-														await loadDispatch();
+														const idx = wagons?.findIndex(w => w.id === wagon.id);
+														if (idx !== undefined && idx >= 0 && wagons) {
+															wagons[idx] = { ...wagons[idx], tarpedStatus: isChecked };
+														}
 													} catch (err) {
 														console.error('Failed to update tarped status:', err);
 														error = 'Failed to update tarped status';
