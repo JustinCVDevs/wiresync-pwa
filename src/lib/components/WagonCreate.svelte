@@ -169,6 +169,7 @@ async function handleSubmit(e?: Event) {
 					id: crypto.randomUUID(),
 					wagonId: wagonId,
 					wagonIdSimple: wagonIdSimple,
+					siteLocation: siteLocation,
 					syncStatus: 'pending',
 					dispatchTimestamp: new Date(),
 					manualCreated: true,

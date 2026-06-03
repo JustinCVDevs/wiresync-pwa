@@ -87,7 +87,7 @@
                     {required}
 					bind:value={searchQuery}
                     on:input={() => {
-                        value = searchQuery;
+                        value = '';
                     }}
 					on:focus={() => {
                         if (filteredOptions.length > 0) {

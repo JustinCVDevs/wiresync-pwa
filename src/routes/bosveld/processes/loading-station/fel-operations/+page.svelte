@@ -31,11 +31,22 @@
 
 	onMount(async () => {
 		// Fetch all shunting trains
+		const threeDaysAgo = new Date();
+		threeDaysAgo.setHours(0, 0, 0, 0);
+		threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 		const shuntingTrains = (await indexedDBService.getAllRecords('shuntingTrains')).filter(
-			shunting => !shunting.finishFELOperationTimestamp && shunting.verificationTimestamp && shunting.siteLocation === 'Bosveld'
+			shunting => {
+				if (!shunting.verificationTimestamp || shunting.siteLocation !== 'Bosveld' || !shunting.created) {
+					return false;
+				}
+
+				const createdDate = new Date(shunting.created);
+				createdDate.setHours(0, 0, 0, 0);
+				return createdDate >= threeDaysAgo;
+			}
 		).sort((a, b) => {
-			const dateA = a.postDate ? new Date(a.postDate).getTime() : 0;
-			const dateB = b.postDate ? new Date(b.postDate).getTime() : 0;
+			const dateA = a.created ? new Date(a.created).getTime() : 0;
+			const dateB = b.created ? new Date(b.created).getTime() : 0;
 			return dateB - dateA;
 		});
 
@@ -103,7 +114,7 @@
 			<FormField
 				id="trainArrival"
 				label="Shunting Train Date"
-				isSelect={true}
+				search={true}
 				options={availableTrains}
 				bind:value={selectedTrain}
 				placeholder="Select Shunting Train Date"
