@@ -229,16 +229,21 @@
 		const wagon = e.detail?.wagon;
 		if (!wagon || !trainDispatch) return;
 
-		// Add the new wagon's ID to the dispatch
 		const wagonIdToUse = wagon.serverId || wagon.id;
 		let updatedIds = trainDispatch.linkedWagonIds ? [...trainDispatch.linkedWagonIds] : [];
 		if (!updatedIds.includes(wagonIdToUse)) {
 			updatedIds.push(wagonIdToUse);
+			await indexedDBService.updateRecord('wagons', wagon.id, {
+				dispatchTimestamp: new Date(),
+				wagonDispatchPosition: updatedIds.length,
+				syncStatus: 'pending',
+				isWireSynced: false
+			});
 			await indexedDBService.updateRecord('trainDispatches', trainDispatch.id, {
-			...trainDispatch,
-			linkedWagonIds: updatedIds,
-			syncStatus: 'pending',
-			isWireSynced: false
+				...trainDispatch,
+				linkedWagonIds: updatedIds,
+				syncStatus: 'pending',
+				isWireSynced: false
 			});
 			trainDispatch = { ...trainDispatch, linkedWagonIds: updatedIds };
 			await loadDispatch();
@@ -289,7 +294,10 @@
 				return;
 			}
 
-			const targetLinkedId = swapTargetWagon.serverId || swapTargetWagon.id;
+			const currentLinkedIds = trainDispatch.linkedWagonIds || [];
+			const targetLinkedId = currentLinkedIds.find(
+				(id) => id === swapTargetWagon!.id || id === swapTargetWagon!.serverId
+			) ?? swapTargetWagon.serverId ?? swapTargetWagon.id;
 			const newWagonLinkedId = newWagon.serverId || newWagon.id;
 			if (targetLinkedId === newWagonLinkedId) {
 				error = 'Select a different wagon';
@@ -410,7 +418,7 @@
 				on:click|self={() => showCreateWagonInput = false}
 				on:keydown={(e) => e.key === 'Escape' && (showCreateWagonInput = false)}
 			>
-				<div class="m-6 w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
+				<div class="m-6 w-full max-w-xs rounded-lg bg-white p-6 shadow-xl">
 					<WagonCreate
 						siteLocation={'Bosveld'}
 						defaultLoadingLocation="Bosveld"
@@ -465,9 +473,6 @@
 
 		<!-- Linked Wagons -->
 		<div class="mb-6">
-			<p class="text-gray mb-2 text-sm">
-				Linked Wagons: <span class="font-bold">{trainDispatch?.linkedWagonIds?.length || 0}</span>
-			</p>
 			{#if trainDispatch?.linkedWagonIds?.length && wagons}
 			<div class="mb-3 rounded bg-gray-50 px-3 py-3 text-center text-xs text-gray-500">
 					<div class="mb-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-lg text-gray">
@@ -506,7 +511,7 @@
 					</div>
 				</div>
 				<ul class="space-y-1">
-					{#each trainDispatch.linkedWagonIds as id, i}
+					{#each paginatedLinkedWagonIds as id, i}
 						{@const wagon = wagons?.find((w) => w.id === id || w.serverId === id)}
 						<li class="flex items-center gap-3 rounded bg-white px-3 py-2 align-middle shadow-sm">
 							<span class="flex h-18 w-10 shrink-0 items-center justify-center rounded bg-gray text-sm font-bold text-white tabular-nums">
@@ -554,7 +559,10 @@
 															updated: new Date().toISOString(),
 															syncStatus: 'pending'
 														});
-														await loadDispatch();
+														const idx = wagons?.findIndex(w => w.id === wagon.id);
+														if (idx !== undefined && idx >= 0 && wagons) {
+															wagons[idx] = { ...wagons[idx], tarpedStatus: isChecked };
+														}
 													} catch (err) {
 														console.error('Failed to update tarped status:', err);
 														error = 'Failed to update tarped status';

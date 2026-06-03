@@ -7,7 +7,7 @@
 	import type { Wagon } from '$lib/types';
     import type { ShuntingTrain } from '$lib/types/shuntingTrain';
 	import ProcessLayout from '$lib/components/ProcessLayout.svelte';
-	import FormField from '$lib/components/FormField.svelte';
+	import { Pencil } from 'lucide-svelte';
 
 	let shuntingTrain: ShuntingTrain | null = null;
 	let linkedWagons: Wagon[] = [];
@@ -18,6 +18,7 @@
 	let dataRefreshKey = 0;
 	let isSubmitting = false;
 	let disableSubmit = false;
+	let filterMissing = false;
 
 	const steps = ['Select Shunting Train', 'Wagon Linking'];
 	let currentStep = 2;
@@ -40,6 +41,16 @@
 	}
 
 	$: disableSubmit = linkedWagons.length === 0;
+
+	type FilterMode = 'all' | 'missing';
+	let filterMode: FilterMode = 'all';
+	$: missingWagons = linkedWagons.filter(w => !w.wagonIdSimple);
+	$: filteredWagons = filterMode === 'missing' ? missingWagons : linkedWagons;
+	$: if (filterMode === 'missing' && missingWagons.length > 0) {
+		filterMissing = true;
+	} else {
+		filterMissing = false;
+	}
 
 	// Load train and linked wagons from IndexedDB
 	async function loadTrainAndWagons() {
@@ -88,7 +99,7 @@
 						wagonMap.set(w.serverId, w);
 					}
 				});
-				
+
 				// Fetch linked wagons using the map (instant lookups)
 				const foundWagons: Wagon[] = [];
 				const missingWagons: string[] = [];
@@ -244,52 +255,63 @@
 				</div>
 			</div>
 			<p class="text-xs text-gray-500 mt-2">
-				For the Blank Wagon IDs, please click on "Change" to update details.
+				Wagons missing a Wagon ID are highlighted in red.
 			</p>
+		</div>
+
+		<div class="flex items-center justify-between mb-2">
+			<button
+				type="button"
+				class="mb-1 mr-1 w-full rounded-md py-3 text-sm font-medium transition-colors {filterMode === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}"
+				on:click={() => { filterMode = 'all'; }}
+			>All Wagons <span class="ml-2 bg-gray-500 text-xs font-bold px-2 py-0.5 rounded-full">{linkedWagons.length}</span>
+			</button>
+
+			<button
+				type="button"
+				class="mb-1 ml-1 w-full rounded-md py-3 text-sm font-medium transition-colors {filterMode === 'missing' ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}"
+				on:click={() => { filterMode = 'missing'; }}
+			>Missing IDs <span class="ml-2 bg-gray-500 text-xs font-bold px-2 py-0.5 rounded-full">{missingWagons.length}</span>
+			</button>
 		</div>
 
 		<!-- Wagons List -->
 		{#key dataRefreshKey}
-		<div class="space-y-4">
-			{#each linkedWagons as wagon, index (wagon.id)}
-				<div class="border border-gray-300 rounded-lg p-4 bg-white">
-					<div class="mb-3">
-						<h6 class="font-semibold text-center">Position {wagon.wagonPosition}</h6>
+		<div class="space-y-2">
+			{#each filteredWagons as wagon, index (wagon.id)}
+				<div
+					role="button"
+					tabindex="0"
+					class="flex items-center gap-3 border rounded-lg px-4 py-3 cursor-pointer hover:brightness-95 active:brightness-90 {wagon.missingID ? 'bg-red-50 border-red-200' : 'bg-white border-gray-300'}"
+					on:click={() => goto(`/pmc/processes/magnetite-rail/marshaling-yard/wagon-id-linking/wagons/${trainId}/edit/${wagon.id}?position=${index + 1}`)}
+					on:keydown={(e) => e.key === 'Enter' && goto(`/pmc/processes/magnetite-rail/marshaling-yard/wagon-id-linking/wagons/${trainId}/edit/${wagon.id}?position=${index + 1}`)}
+				>
+					<span class="text-sm font-semibold text-gray-700 w-16 shrink-0">Pos {wagon.wagonPosition}</span>
+					<div class="flex-1 min-w-0 text-center">
+						{#if wagon.wagonIdSimple === ''}
+							<span class="inline-block bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">MISSING</span>
+						{:else}
+							{#if wagon.missingID}
+								<span class="inline-block bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{wagon.wagonIdSimple}</span>
+							{:else}
+								<span class="text-sm text-gray-900">{wagon.wagonIdSimple || '-'}</span>
+							{/if}
+						{/if}
 					</div>
-					
-					<div class="space-y-3">
-						<FormField
-							label="Wagon (ID):"
-							id="wagonName_{index}"
-							value={wagon.wagonIdSimple || ''}
-							disabled={true}
-						/>
-						
-						<FormField
-							label="Temporary RFID:"
-							id="wagonId_{index}"
-							value={wagon.transcoreTag || ''}
-							disabled={true}
-						/>
-						
-						<div class="flex justify-center">
-							<button 
-								type="button"
-								class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded font-medium"
-								on:click={() => {
-									goto(`/pmc/processes/magnetite-rail/marshaling-yard/wagon-id-linking/wagons/${trainId}/edit/${wagon.id}?position=${index + 1}`);
-								}}
-							>
-								Change
-							</button>
+					<div class="flex-1 min-w-0 text-center">
+						<span class="text-sm text-gray-900">{wagon.transcoreTag || '-'}</span>
+					</div>
+					{#if filterMissing}
+						<div class="text-right">							
+							<Pencil size={16} class="shrink-0 text-sky-600" />							
 						</div>
-					</div>
+					{/if}
 				</div>
 			{/each}
-			
-			{#if linkedWagons.length === 0}
+
+			{#if filteredWagons.length === 0}
 				<div class="text-center py-8 text-gray-500">
-					No wagons linked to this shunting train.
+					{filterMode === 'missing' ? 'No wagons with missing IDs.' : 'No wagons linked to this shunting train.'}
 				</div>
 			{/if}
 		</div>

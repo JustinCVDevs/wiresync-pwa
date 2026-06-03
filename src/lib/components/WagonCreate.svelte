@@ -64,7 +64,7 @@ function validateForm() {
 		shuntingTrain: ''
 	};
 
-	if (isSampling && !selectedShuntingTrainId) {
+	if (isSampling && shuntingTrains.length > 0 && !selectedShuntingTrainId) {
 		formErrors.shuntingTrain = 'Please select a shunting train';
 		isValid = false;
 	}
@@ -80,15 +80,15 @@ function validateForm() {
 		formErrors.wagonIdSimple = 'Wagon IDs do not match';
 		isValid = false;
 	}
-	if (!productGrade) {
+	if (isSampling && !productGrade) {
 		formErrors.productGrade = 'Product grade is required';
 		isValid = false;
 	}
-	if (!trainNumber) {
+	if (isSampling && !trainNumber) {
 		formErrors.trainNumber = 'Train number is required';
 		isValid = false;
 	}
-	if (!sampleId) {
+	if (isSampling && !sampleId) {
 		formErrors.sampleId = 'Sample ID is required';
 		isValid = false;
 	}
@@ -141,26 +141,49 @@ async function handleSubmit(e?: Event) {
 	if (validateForm()) {
 		isSubmitting = true;
 		try {
-			const wagon: Wagon = {
-				id: crypto.randomUUID(),
-				wagonId: wagonId,
-				wagonIdSimple: wagonIdSimple,
-				productType: productGrade,
-				siteLocation: siteLocation,
-				trainNumber,
-				loadingLocation,
-				sampleId,
-				syncStatus: 'pending',
-				manualCreated: true,
-				user: pocketbaseService.currentUser?.id || '',
-				created: new Date(),
-				updated: new Date().toISOString(),
-				isWireSynced: false,
-				wagonDispatchPosition: wagonPosition
-			};
-			await indexedDBService.saveRecord('wagons', wagon);
-			await syncService.syncWagon(wagon);
-			dispatch('submit', { wagon, shuntingTrainId: selectedShuntingTrainId || undefined });
+			if (isSampling)
+			{
+				const wagon: Wagon = {
+					id: crypto.randomUUID(),
+					wagonId: wagonId,
+					wagonIdSimple: wagonIdSimple,
+					productType: productGrade,
+					siteLocation: siteLocation,
+					trainNumber,
+					loadingLocation,
+					sampleId,
+					syncStatus: 'pending',
+					manualCreated: true,
+					user: pocketbaseService.currentUser?.id || '',
+					created: new Date(),
+					updated: new Date().toISOString(),
+					isWireSynced: false,
+					wagonDispatchPosition: wagonPosition
+				};
+				await indexedDBService.saveRecord('wagons', wagon);
+				await syncService.syncWagon(wagon);
+				dispatch('submit', { wagon, shuntingTrainId: selectedShuntingTrainId || undefined });
+			}
+			else {
+				const wagon: Wagon = {
+					id: crypto.randomUUID(),
+					wagonId: wagonId,
+					wagonIdSimple: wagonIdSimple,
+					siteLocation: siteLocation,
+					syncStatus: 'pending',
+					dispatchTimestamp: new Date(),
+					manualCreated: true,
+					user: pocketbaseService.currentUser?.id || '',
+					created: new Date(),
+					updated: new Date().toISOString(),
+					isWireSynced: false,
+					wagonDispatchPosition: wagonPosition
+				};
+				await indexedDBService.saveRecord('wagons', wagon);
+				await syncService.syncWagon(wagon);
+				dispatch('submit', { wagon });
+			}
+			
 		} catch (err) {
 			formErrors.sampleId = 'Failed to create wagon';
 			console.error(err);

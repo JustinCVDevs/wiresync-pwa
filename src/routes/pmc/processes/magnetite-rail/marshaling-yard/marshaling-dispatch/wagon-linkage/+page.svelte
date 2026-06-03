@@ -228,16 +228,21 @@
 		const wagon = e.detail?.wagon;
 		if (!wagon || !trainDispatch) return;
 
-		// Add the new wagon's ID to the dispatch
 		const wagonIdToUse = wagon.serverId || wagon.id;
 		let updatedIds = trainDispatch.linkedWagonIds ? [...trainDispatch.linkedWagonIds] : [];
 		if (!updatedIds.includes(wagonIdToUse)) {
 			updatedIds.push(wagonIdToUse);
+			await indexedDBService.updateRecord('wagons', wagon.id, {
+				dispatchTimestamp: new Date(),
+				wagonDispatchPosition: updatedIds.length,
+				syncStatus: 'pending',
+				isWireSynced: false
+			});
 			await indexedDBService.updateRecord('trainDispatches', trainDispatch.id, {
-			...trainDispatch,
-			linkedWagonIds: updatedIds,
-			syncStatus: 'pending',
-			isWireSynced: false
+				...trainDispatch,
+				linkedWagonIds: updatedIds,
+				syncStatus: 'pending',
+				isWireSynced: false
 			});
 			trainDispatch = { ...trainDispatch, linkedWagonIds: updatedIds };
 			await loadDispatch();
@@ -288,7 +293,10 @@
 				return;
 			}
 
-			const targetLinkedId = swapTargetWagon.serverId || swapTargetWagon.id;
+			const currentLinkedIds = trainDispatch.linkedWagonIds || [];
+			const targetLinkedId = currentLinkedIds.find(
+				(id) => id === swapTargetWagon!.id || id === swapTargetWagon!.serverId
+			) ?? swapTargetWagon.serverId ?? swapTargetWagon.id;
 			const newWagonLinkedId = newWagon.serverId || newWagon.id;
 			if (targetLinkedId === newWagonLinkedId) {
 				error = 'Select a different wagon';
@@ -550,7 +558,10 @@
 															updated: new Date().toISOString(),
 															syncStatus: 'pending'
 														});
-														await loadDispatch();
+														const idx = wagons?.findIndex(w => w.id === wagon.id);
+														if (idx !== undefined && idx >= 0 && wagons) {
+															wagons[idx] = { ...wagons[idx], tarpedStatus: isChecked };
+														}
 													} catch (err) {
 														console.error('Failed to update tarped status:', err);
 														error = 'Failed to update tarped status';

@@ -27,16 +27,18 @@
 	async function loadTrainsAndConsignments() {
 		try {
 			const today = new Date();
-
+			const threeDaysAgo = new Date();
+			threeDaysAgo.setHours(0, 0, 0, 0);
+			threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+			
 			// Get all trains and all train dispatches
 			const trainRecords = (await indexedDBService.getRecords('trains')).filter(
 				(t) => 
 				{
 					if (!t.created) return true;
 					const createdDate = new Date(t.created);
-					const diffMs = today.getTime() - createdDate.getTime();
-					const diffDays = diffMs / (1000 * 60 * 60 * 24);
-					return diffDays < 4;
+					createdDate.setHours(0, 0, 0, 0);
+					return createdDate >= threeDaysAgo;
 				}
 			);
 			const trainDispatches = await indexedDBService.getRecords('trainDispatches');
@@ -77,9 +79,8 @@
 			consignments = consignments.filter((c) => {
 				if (!c.created) return true;
 				const createdDate = new Date(c.created);
-				const diffMs = today.getTime() - createdDate.getTime();
-				const diffDays = diffMs / (1000 * 60 * 60 * 24);
-				return diffDays < 4;
+				createdDate.setHours(0, 0, 0, 0);
+				return createdDate >= threeDaysAgo;
 			});
 		} catch (e) {
 			console.error(e);

@@ -13,10 +13,12 @@
 	import WagonCreate from '$lib/components/WagonCreate.svelte';
 	import type { ShuntingTrain } from '$lib/types/shuntingTrain';
 	import type { Wagon } from '$lib/types';
+	import { Pencil } from 'lucide-svelte';
 
 	let sampleId = '';
 	let trainNumber = '';
 	let wagonIdSimple = $page.url.searchParams.get('wagonIdSimple') || '';
+	let wagonDbId = $page.url.searchParams.get('wagonDbId') || '';
 	let shuntingTrainIdsParam = $page.url.searchParams.get('shuntingTrainIds') || '';
 	let shuntingTrainIds = shuntingTrainIdsParam ? shuntingTrainIdsParam.split(',') : [];
 	let linkedWagonIdsParam = $page.url.searchParams.get('wagonIds') || '';
@@ -65,18 +67,24 @@
 	};
 
 	async function fetchData() {
-		// Only fetch data if wagonIdSimple is provided and not empty
 		if (!wagonIdSimple) return;
-		
-		const wagon = (await indexedDBService.getAllRecords('wagons')).find(
-			(w) => w.wagonIdSimple === wagonIdSimple
-		);
+
+		let wagon = wagonDbId
+			? await indexedDBService.getRecord('wagons', wagonDbId)
+			: undefined;
+
+		if (!wagon) {
+			wagon = (await indexedDBService.getAllRecords('wagons')).find(
+				(w) => w.wagonIdSimple === wagonIdSimple
+			);
+		}
 
 		if (wagon) {
 			editingWagon = wagon;
 			selectedWagon = wagon.wagonIdSimple || '';
 			productGrade = wagon.productType || '';
 			trainNumber = wagon.trainNumber || '';
+			loadingLocation = wagon.loadingLocation || 'East Load Out';
 		}
 	}
 
@@ -106,8 +114,7 @@
 		return () => {
 			if (sampleId || productGrade) {
 				formPersistenceService.saveForm('east_loadout', {
-					productGrade,
-					loadingLocation
+					productGrade
 				});
 			}
 		};
@@ -339,7 +346,19 @@
 		<h5 class="text-xl font-bold ">Sample Details Capturing</h5>
 		<p class="text-sm text-gay">Please enter the sample and product details</p>
 	</div>
-
+		
+	{#if wagonIdSimple}
+		<div class="mb-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sky-700 shadow-sm">
+			<div class="flex items-start gap-3">
+				<Pencil size={16} class="mt-0.5 shrink-0 text-sky-600" />
+				<div class="min-w-0">
+					<div class="text-sm font-medium text-sky-900">
+						<span class="font-semibold tracking-wide text-sky-700">Editing wagon:</span> {wagonIdSimple}
+					</div>
+				</div>
+			</div>
+		</div>
+	{/if}
 <div class="container">
 	<div class="form">
 		{#if wagonIdSimple === ''}
@@ -393,6 +412,7 @@
 			isSelect={true}
 			options={loadingLocations.map((location) => ({ value: location, label: location }))}
 			required={true}
+			disabled={true}
 		/>
 	</div>	
 	<div class="form">	
@@ -407,10 +427,10 @@
 	</div>
 </div>
 <QRPrinting {sampleId}/>
-<div class="mt-6">
+<div class="button-group flex space-x-4">
 	<button
 		type="button"
-		class="bg-gray w-full rounded-md py-3 text-sm text-white hover:bg-blue-700"
+		class="submit-button flex-1 items-center justify-center rounded-lg py-3 text-white transition hover:bg-green-700 active:bg-green-800 disabled:opacity-50"
 		on:click={() => { showCreateWagonInput = true; }}
 	>Create Wagon</button>
 </div>
