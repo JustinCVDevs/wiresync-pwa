@@ -293,7 +293,10 @@
 				return;
 			}
 
-			const targetLinkedId = swapTargetWagon.serverId || swapTargetWagon.id;
+			const currentLinkedIds = trainDispatch.linkedWagonIds || [];
+			const targetLinkedId = currentLinkedIds.find(
+				(id) => id === swapTargetWagon!.id || id === swapTargetWagon!.serverId
+			) ?? swapTargetWagon.serverId ?? swapTargetWagon.id;
 			const newWagonLinkedId = newWagon.serverId || newWagon.id;
 			if (targetLinkedId === newWagonLinkedId) {
 				error = 'Select a different wagon';

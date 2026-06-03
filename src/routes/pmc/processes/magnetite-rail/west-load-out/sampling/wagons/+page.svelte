@@ -114,8 +114,7 @@
 		return () => {
 			if (sampleId || productGrade) {
 				formPersistenceService.saveForm('west_loadout', {
-					productGrade,
-					loadingLocation
+					productGrade
 				});
 			}
 		};
@@ -412,6 +411,7 @@
 			isSelect={true}
 			options={loadingLocations.map((location) => ({ value: location, label: location }))}
 			required={true}
+			disabled={true}
 		/>
 	</div>
 	<div class="form">
@@ -429,7 +429,7 @@
 <div class="button-group flex space-x-4">
 	<button
 		type="button"
-		class="bg-gray w-full rounded-md py-3 text-sm text-white hover:bg-blue-700"
+		class="submit-button flex-1 items-center justify-center rounded-lg py-3 text-white transition hover:bg-green-700 active:bg-green-800 disabled:opacity-50"
 		on:click={() => { showCreateWagonInput = true; }}
 	>Create Wagon</button>
 </div>
