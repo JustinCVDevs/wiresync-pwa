@@ -26,6 +26,8 @@
 				shunting => {
 					if (shunting.siteLocation !== 'PMC' || !shunting.created) {
 						return false;
+					} else if (shunting.verificationTimestamp) {
+						return false;
 					}
 
 					const createdDate = new Date(shunting.created);
