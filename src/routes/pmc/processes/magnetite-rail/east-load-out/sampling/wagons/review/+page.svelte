@@ -20,7 +20,6 @@
 	let success = '';
 	let isLoading = true;
 	let processLayout: ProcessLayout;
-	let showNoMoreWagons = false;
 
 	const steps = ['Arrival Train', 'Wagon Sampling', 'Verification'];
 	let currentStep = 3;
@@ -65,11 +64,7 @@
 			(w: any) => linkedWagonIds.includes(w.serverId) && !w.sampleTimestamp
 		);
 
-		if (unsampledWagons.length === 0) {
-			showNoMoreWagons = true;
-		} else {
-			goto(`/pmc/processes/magnetite-rail/east-load-out/sampling/wagons?shuntingTrainIds=${shuntingTrainIds.join(',')}&wagonIds=${linkedWagonIds.join(',')}`);
-		}
+		goto(`/pmc/processes/magnetite-rail/east-load-out/sampling/wagons?shuntingTrainIds=${shuntingTrainIds.join(',')}&wagonIds=${linkedWagonIds.join(',')}`);
 	}
 
 	function handleCancel() {
@@ -162,8 +157,4 @@
 		</div>
 	{/if}
 </ProcessLayout>
-
-{#if showNoMoreWagons}
-	<NoMoreWagons process="sampling" on:ok={() => (showNoMoreWagons = false)} />
-{/if}
 
