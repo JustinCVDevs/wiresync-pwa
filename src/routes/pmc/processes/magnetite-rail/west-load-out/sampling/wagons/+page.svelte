@@ -23,7 +23,7 @@
 	let shuntingTrainIds = shuntingTrainIdsParam ? shuntingTrainIdsParam.split(',') : [];
 	let linkedWagonIdsParam = $page.url.searchParams.get('wagonIds') || '';
 	let linkedWagonIds = linkedWagonIdsParam ? linkedWagonIdsParam.split(',') : [];
-	let productGrade = localStorage.getItem('productGrade') || '';
+	let productGrade = '';
 	let loadingLocation = 'West Load Out';
 	let isSubmitting = false;
 	let currentStep = 2;
@@ -51,7 +51,7 @@
 	}
 
 	function handleCancel() {
-		if (editingWagon) {
+		if (editingWagon || linkedWagonIds.length > 0) {
 			goto(`/pmc/processes/magnetite-rail/west-load-out/sampling/wagons/review?shuntingTrainIds=${shuntingTrainIds.join(',')}&wagonIds=${linkedWagonIds.join(',')}`);
 		} else {
 			goto('/pmc/processes/magnetite-rail/west-load-out/sampling');
@@ -334,7 +334,7 @@
 	{currentStep}
 	{isSubmitting}
 	bind:this={processLayout}
-	cancelPath={wagonIdSimple
+	cancelPath={wagonIdSimple || linkedWagonIds.length > 0
 		? `/pmc/processes/magnetite-rail/west-load-out/sampling/wagons/review?shuntingTrainIds=${shuntingTrainIds.join(',')}&wagonIds=${linkedWagonIds.join(',')}`
 		: '/pmc/processes/magnetite-rail/west-load-out/sampling'}
 	on:submit={handleSubmit}

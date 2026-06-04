@@ -12,7 +12,7 @@ export let wagonPosition: number = 0;
 export let siteLocation: string = '';
 export let isSampling: boolean = false;
 export let shuntingTrains: ShuntingTrain[] = [];
-export let defaultLoadingLocation: string = 'West Load Out';
+export let defaultLoadingLocation: string;
 
 let wagonIdSimple = '';
 let wagonId = '';
@@ -253,6 +253,7 @@ function handleCancel(e?: Event) {
 				isSelect={true}
 				options={loadingLocations.map((location) => ({ value: location, label: location }))}
 				required={true}
+				disabled={true}
 			/>
 		</div>
 
