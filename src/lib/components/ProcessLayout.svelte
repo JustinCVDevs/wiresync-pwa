@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy, createEventDispatcher } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { browser } from '$app/environment';
 	import { CheckCircle, AlertCircle, Loader2 } from 'lucide-svelte';
 
 	// Props for the component
@@ -14,7 +15,7 @@
 	export let cancelPath: string;
 
 	// State variables
-	let isOnline = navigator.onLine;
+	let isOnline = browser ? navigator.onLine : true;
 	let error = '';
 	let success = '';
 

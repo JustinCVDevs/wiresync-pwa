@@ -45,6 +45,9 @@
 	type FilterMode = 'all' | 'missing';
 	let filterMode: FilterMode = 'all';
 	$: missingWagons = linkedWagons.filter(w => !w.wagonIdSimple);
+	$: if (missingWagons.length > 0) {
+		filterMode = 'missing';
+	}
 	$: filteredWagons = filterMode === 'missing' ? missingWagons : linkedWagons;
 	$: if (filterMode === 'missing' && missingWagons.length > 0) {
 		filterMissing = true;
@@ -262,14 +265,14 @@
 		<div class="flex items-center justify-between mb-2">
 			<button
 				type="button"
-				class="mb-1 mr-1 w-full rounded-md py-3 text-sm font-medium transition-colors {filterMode === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}"
+				class="mb-1 mr-1 w-full rounded-md py-3 text-sm font-medium transition-colors {filterMode === 'all' ? '' : '!bg-gray-200 !text-gray-700 !hover:bg-gray-300'}"
 				on:click={() => { filterMode = 'all'; }}
 			>All Wagons <span class="ml-2 bg-gray-500 text-xs font-bold px-2 py-0.5 rounded-full">{linkedWagons.length}</span>
 			</button>
 
 			<button
 				type="button"
-				class="mb-1 ml-1 w-full rounded-md py-3 text-sm font-medium transition-colors {filterMode === 'missing' ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}"
+				class="mb-1 ml-1 w-full rounded-md py-3 text-sm font-medium transition-colors {filterMode === 'missing' ? '' : '!bg-gray-200 !text-gray-700 !hover:bg-gray-300'}"
 				on:click={() => { filterMode = 'missing'; }}
 			>Missing IDs <span class="ml-2 bg-gray-500 text-xs font-bold px-2 py-0.5 rounded-full">{missingWagons.length}</span>
 			</button>
@@ -288,11 +291,11 @@
 				>
 					<span class="text-sm font-semibold text-gray-700 w-16 shrink-0">Pos {wagon.wagonPosition}</span>
 					<div class="flex-1 min-w-0 text-center">
-						{#if wagon.wagonIdSimple === ''}
+						{#if wagon.wagonIdSimple === '' && filterMode === 'all'}
 							<span class="inline-block bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">MISSING</span>
 						{:else}
 							{#if wagon.missingID}
-								<span class="inline-block bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{wagon.wagonIdSimple}</span>
+								<span class="text-gray-500 text-sm italic">(blank)</span>
 							{:else}
 								<span class="text-sm text-gray-900">{wagon.wagonIdSimple || '-'}</span>
 							{/if}

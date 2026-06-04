@@ -62,9 +62,11 @@
 	let rfidErrorMsg = '';
 
 	$: wagonIdValid = !!editableWagonId && editableWagonId === editableWagonIdConfirm;
-	$: rfidValid = rfidScannedDirectly
-		? !!editableTemporaryRfid
-		: !rfidFocused || (!!editableTemporaryRfid && editableTemporaryRfid === editableTemporaryRfidConfirm);
+	$: rfidValid = !!editableTemporaryRfid && (
+		rfidScannedDirectly ||
+		!rfidFocused ||
+		editableTemporaryRfid === editableTemporaryRfidConfirm
+	);
 
 	async function openScanner() {
 		scanError = '';
@@ -436,7 +438,7 @@
 					type="button"
 					class="submit-button flex-1 items-center justify-center rounded-lg py-3 text-white transition hover:bg-green-700 active:bg-green-800 disabled:opacity-50"
 					on:click={handleSubmit}
-					disabled={isSubmitting}
+					disabled={isSubmitting || !wagonIdValid || !rfidValid}
 				>
 					{isSubmitting ? 'Submitting...' : 'Submit'}
 				</button>

@@ -113,8 +113,7 @@
 
 
 	async function handleWagonSubmit(e: CustomEvent<{ wagonIds: string[] }>) {
-		// Accepts { wagonIds: string[] }
-		if (!trainDispatch || !trainDispatch.linkedWagonIds) {
+		if (!trainDispatch) {
 			console.error('Train dispatch not initialized:', trainDispatch);
 			error = 'Train dispatch not initialized';
 			return;
@@ -130,7 +129,7 @@
 
 		try {
 			const allWagons = await indexedDBService.getAllRecords('wagons');
-			let updatedIds = [...trainDispatch.linkedWagonIds];
+			let updatedIds = [...(trainDispatch.linkedWagonIds || [])];
 			let addedCount = 0;
 
 			for (const wagonId of wagonIds) {				
