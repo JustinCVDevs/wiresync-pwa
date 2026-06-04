@@ -293,9 +293,6 @@
 							{/if}
 						{/if}
 					</div>
-					<div class="flex-1 min-w-0 text-center">
-						<span class="text-sm text-gray-900">{wagon.transcoreTag || '-'}</span>
-					</div>
 					{#if filterMissing}
 						<div class="text-right">
 							<Pencil size={16} class="shrink-0 text-sky-600" />
