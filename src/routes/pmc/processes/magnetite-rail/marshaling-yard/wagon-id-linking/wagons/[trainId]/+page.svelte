@@ -294,8 +294,10 @@
 						{#if wagon.wagonIdSimple === '' && filterMode === 'all'}
 							<span class="inline-block bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">MISSING</span>
 						{:else}
-							{#if wagon.missingID}
+							{#if filterMode === 'missing' && wagon.wagonIdSimple === ''}
 								<span class="text-gray-500 text-sm italic">(blank)</span>
+							{:else if wagon.missingID}
+								<span class="inline-block bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full ml-2">{wagon.wagonIdSimple}</span>
 							{:else}
 								<span class="text-sm text-gray-900">{wagon.wagonIdSimple || '-'}</span>
 							{/if}
