@@ -13,7 +13,7 @@
 	let password = '';
 	let errorMsg = '';
 	let clearing = false;
-	let allowedusers: string[] = ['jonathan@claervolker.com', 'wihann@claervolker.com', 'wilbur@mmswire.com'];
+	let allowedusers: string[] = ['jonathan@claervolker.com', 'wihann@claervolker.com', 'wilbur@mmswire.com', 'isaac.mothomoholo@palabora.co.za'];
 
 	type StoreName = 'wagons' | 'trucks' | 'assays' | 'samples' | 'trains' | 'operationQueue' | 'tags' | 'consignments' | 'trainDispatches' | 'truckLoads' | 'shuntingTrains' | 'truckArrivals' | 'trainArrivals' | 'fleet' | 'dedicatedFleetTrucks';
 
