@@ -45,9 +45,7 @@
 	type FilterMode = 'all' | 'missing';
 	let filterMode: FilterMode = 'all';
 	$: missingWagons = linkedWagons.filter(w => !w.wagonIdSimple);
-	$: if (missingWagons.length > 0) {
-		filterMode = 'missing';
-	}
+
 	$: filteredWagons = filterMode === 'missing' ? missingWagons : linkedWagons;
 	$: if (filterMode === 'missing' && missingWagons.length > 0) {
 		filterMissing = true;
