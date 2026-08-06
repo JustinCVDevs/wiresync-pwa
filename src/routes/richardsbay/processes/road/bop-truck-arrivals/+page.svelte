@@ -33,9 +33,10 @@
 	onMount(async () => {
 		try {
 			// Fetch data in parallel for better performance
-			const [allTruckArrivals, allTrucks] = await Promise.all([
+			const [allTruckArrivals, allTrucks, allDedicatedTrucks] = await Promise.all([
 				indexedDBService.getAllRecords('truckArrivals'),
-				indexedDBService.getAllRecords('trucks')
+				indexedDBService.getAllRecords('trucks'),
+				indexedDBService.getAllRecords('dedicatedFleetTrucks')
 			]);
 
 			// Filter truck arrivals - only pending arrivals for BOP
@@ -61,15 +62,20 @@
 					return arrivalStr === todayStr;
 				})
 				.map(arrival => {
-					// Try to find the truck by truckId (serverId or id)
-					const truck = allTrucks.find(truck => (truck.serverId || truck.id) === arrival.truckId);
+					// Try regular truck first, then dedicated fleet truck
+					const truck = arrival.truckId
+						? allTrucks.find(t => (t.serverId || t.id) === arrival.truckId)
+						: allDedicatedTrucks.find(t => (t.serverId || t.id) === arrival.dedicatedTruckId);
 					if (!truck) return undefined;
 					return { truck, arrival };
 				})
 				.filter((t): t is { truck: any; arrival: TruckArrival } => t !== undefined);
 
-			// Cache trucks in a Map for fast lookup during submit
+			// Cache trucks in a Map for fast lookup during submit (regular and dedicated)
 			allTrucks.forEach(truck => {
+				cachedTrucks.set(truck.registration.toLowerCase(), truck);
+			});
+			allDedicatedTrucks.forEach(truck => {
 				cachedTrucks.set(truck.registration.toLowerCase(), truck);
 			});
 

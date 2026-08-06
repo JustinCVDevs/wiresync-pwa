@@ -21,16 +21,23 @@
 	let truckOptions: { value: string; label: string }[] = [];
 
 	onMount(async () => {
-		// Fetch all truck arrivals that have arrived but not been sampled yet
-		const truckArrivals = (await indexedDBService.getAllRecords('truckArrivals')).filter(
-			arrival => arrival.port_truck_arrival_timestamp && arrival.port_arrival_sample_id === '' && arrival.registration
+		const [allArrivals, allTrucks, allDedicatedTrucks] = await Promise.all([
+			indexedDBService.getAllRecords('truckArrivals'),
+			indexedDBService.getAllRecords('trucks'),
+			indexedDBService.getAllRecords('dedicatedFleetTrucks')
+		]);
+
+		const pendingArrivals = allArrivals.filter(
+			arrival => arrival.port_truck_arrival_timestamp && arrival.port_arrival_sample_id === ''
 		);
 
-		// Use truck arrival registrations directly
-		truckOptions = truckArrivals.map(arrival => ({
-			value: arrival.registration!,
-			label: arrival.registration!
-		}));
+		truckOptions = pendingArrivals.flatMap(arrival => {
+			const truck =
+				allTrucks.find(t => (t.serverId || t.id) === arrival.truckId) ??
+				allDedicatedTrucks.find(t => (t.serverId || t.id) === arrival.dedicatedTruckId);
+			if (!truck) return [];
+			return [{ value: arrival.id, label: truck.registration }];
+		});
 	});
 
 	function generateSampleId(): string {
@@ -48,7 +55,8 @@
 
 	// Update sampleId whenever truckRegistration changes
 	$: if (truckRegistration) {
-		sampleId = generateSampleId() + truckRegistration;
+		const registration = truckOptions.find(o => o.value === truckRegistration)?.label ?? truckRegistration;
+		sampleId = generateSampleId() + registration;
 	}
 
 	async function handleSubmit() {
@@ -57,19 +65,29 @@
 			processLayout.setSuccess('');
 			isSubmitting = true;
 
-			// Find truck arrival by registration
-			const truckArrival = (await indexedDBService.getAllRecords('truckArrivals')).find(
-				arrival => arrival.registration === truckRegistration
-			);
+			const [allArrivals, allTrucks, allDedicatedTrucks] = await Promise.all([
+				indexedDBService.getAllRecords('truckArrivals'),
+				indexedDBService.getAllRecords('trucks'),
+				indexedDBService.getAllRecords('dedicatedFleetTrucks')
+			]);
+
+			const truckArrival = allArrivals.find(a => a.id === truckRegistration || a.serverId === truckRegistration);
 
 			if (!truckArrival) {
 				processLayout.setError('Truck arrival not found');
 				return;
 			}
 
+			const linkedTruck = allTrucks.find(t => (t.serverId || t.id) === truckArrival.truckId);
+			const linkedDedicatedTruck = !linkedTruck
+				? allDedicatedTrucks.find(t => (t.serverId || t.id) === truckArrival.dedicatedTruckId)
+				: undefined;
+
 			const assay: Assay = {
 				id: crypto.randomUUID(),
 				name: truckArrival.name!,
+				...(linkedTruck ? { linkedTruckIds: [linkedTruck.serverId || ''] } : {}),
+				...(linkedDedicatedTruck ? { linkedDedicatedFleetTruckIds: [linkedDedicatedTruck.serverId || ''] } : {}),
 				syncStatus: 'pending',
 				location: loadingLocation,
 				created: new Date(),

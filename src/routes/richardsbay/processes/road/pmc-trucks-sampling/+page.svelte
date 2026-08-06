@@ -21,28 +21,23 @@
 	let truckOptions: { value: string; label: string }[] = [];
 
 	onMount(async () => {
-		// Fetch all truck arrivals
-		const truckArrivals = (await indexedDBService.getAllRecords('truckArrivals')).filter(
+		const [allArrivals, allTrucks, allDedicatedTrucks] = await Promise.all([
+			indexedDBService.getAllRecords('truckArrivals'),
+			indexedDBService.getAllRecords('trucks'),
+			indexedDBService.getAllRecords('dedicatedFleetTrucks')
+		]);
+
+		const pendingArrivals = allArrivals.filter(
 			arrival => arrival.port_truck_arrival_timestamp && arrival.port_arrival_sample_id === ''
 		);
 
-		// Get linked trucks from truck arrivals
-		const linkedTrucks = truckArrivals.map(arrival => arrival.truckId);
-
-		// Fetch all trucks
-		const allTrucks = (await indexedDBService.getAllRecords('trucks')).filter(
-			truck => truck.loadingLocation === 'PMC'
-		);
-
-		// Filter trucks that match the truck arrivals' port_arrival_sample_id
-		let availableTrucks = allTrucks.filter(truck =>
-			truckArrivals.some(arrival => arrival.truckId === truck.serverId)
-		);
-
-		truckOptions = availableTrucks.map(truck => ({
-			value: truck.registration,
-			label: truck.registration
-		}));
+		truckOptions = pendingArrivals.flatMap(arrival => {
+			const truck =
+				allTrucks.find(t => (t.serverId || t.id) === arrival.truckId) ??
+				allDedicatedTrucks.find(t => (t.serverId || t.id) === arrival.dedicatedTruckId);
+			if (!truck) return [];
+			return [{ value: arrival.id, label: truck.registration }];
+		});
 	});
 
 	function generateSampleId(): string {
@@ -60,7 +55,8 @@
 
 	// Update sampleId whenever truckRegistration changes
 	$: if (truckRegistration) {
-		sampleId = generateSampleId() + truckRegistration;
+		const registration = truckOptions.find(o => o.value === truckRegistration)?.label ?? truckRegistration;
+		sampleId = generateSampleId() + registration;
 	}
 
 	async function handleSubmit() {
@@ -69,14 +65,29 @@
 			processLayout.setSuccess('');
 			isSubmitting = true;
 
-			let findTruck = (await indexedDBService.getAllRecords('trucks')).find(
-				(truck: Truck) => truck.registration === truckRegistration
-			);
+			const [allTrucks, allDedicatedTrucks, allArrivals] = await Promise.all([
+				indexedDBService.getAllRecords('trucks'),
+				indexedDBService.getAllRecords('dedicatedFleetTrucks'),
+				indexedDBService.getAllRecords('truckArrivals')
+			]);
+
+			const truckArrival = allArrivals.find(a => a.id === truckRegistration || a.serverId === truckRegistration);
+
+			if (!truckArrival) {
+				processLayout.setError('Truck arrival not found');
+				return;
+			}
+
+			const linkedTruck = allTrucks.find((t: Truck) => (t.serverId || t.id) === truckArrival.truckId);
+			const linkedDedicatedTruck = !linkedTruck
+				? allDedicatedTrucks.find(t => (t.serverId || t.id) === truckArrival.dedicatedTruckId)
+				: undefined;
 
 			const assay: Assay = {
 				id: crypto.randomUUID(),
 				name: sampleId,
-				linkedTruckIds: [findTruck?.serverId || ''],
+				...(linkedTruck ? { linkedTruckIds: [linkedTruck.serverId || ''] } : {}),
+				...(linkedDedicatedTruck ? { linkedDedicatedFleetTruckIds: [linkedDedicatedTruck.serverId || ''] } : {}),
 				syncStatus: 'pending',
 				location: loadingLocation,
 				created: new Date(),
@@ -91,19 +102,12 @@
 			await indexedDBService.saveRecord('assays', assay);
 			await syncService.syncAssay(assay);
 
-			// Update truck arrival with the sample ID
-			const truckArrival = (await indexedDBService.getAllRecords('truckArrivals')).find(
-				arrival => arrival.truckId === findTruck?.serverId
-			);
-
-			if (truckArrival) {
-				await indexedDBService.updateRecord('truckArrivals', truckArrival.id, {
-					...truckArrival,
-					port_arrival_sample_id: sampleId,
-					syncStatus: 'pending',
-					isWireSynced: false
-				});
-			}
+			await indexedDBService.updateRecord('truckArrivals', truckArrival.id, {
+				...truckArrival,
+				port_arrival_sample_id: sampleId,
+				syncStatus: 'pending',
+				isWireSynced: false
+			});
 
 			goto(`/richardsbay/processes/road/pmc-trucks-sampling/verification?sampleId=${encodeURIComponent(sampleId)}&truckRegistration=${encodeURIComponent(truckRegistration)}`);
 		} catch (err) {
