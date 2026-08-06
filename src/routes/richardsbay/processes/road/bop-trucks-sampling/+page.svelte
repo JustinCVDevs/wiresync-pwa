@@ -28,7 +28,7 @@
 		]);
 
 		const pendingArrivals = allArrivals.filter(
-			arrival => arrival.port_truck_arrival_timestamp && arrival.port_arrival_sample_id === ''
+			arrival => arrival.port_truck_arrival_timestamp && arrival.port_arrival_sample_id === '' && arrival.siteLocation === 'BOP'
 		);
 
 		truckOptions = pendingArrivals.flatMap(arrival => {
