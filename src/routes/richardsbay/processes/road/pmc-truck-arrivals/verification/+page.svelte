@@ -26,9 +26,13 @@
 			);
 			truckArrival = result ?? null;
 
-			const linkedTruck = (await indexedDBService.getAllRecords('trucks')).find(
-				(t) => t.id === truckArrival?.truckId || t.serverId === truckArrival?.truckId
-			);
+			const [allTrucks, allDedicatedTrucks] = await Promise.all([
+				indexedDBService.getAllRecords('trucks'),
+				indexedDBService.getAllRecords('dedicatedFleetTrucks')
+			]);
+			const linkedTruck =
+				allTrucks.find((t) => t.id === truckArrival?.truckId || t.serverId === truckArrival?.truckId) ??
+				allDedicatedTrucks.find((t) => t.id === truckArrival?.dedicatedTruckId || t.serverId === truckArrival?.dedicatedTruckId);
 			truck = linkedTruck ?? null;
 		}
 	}
@@ -71,7 +75,7 @@
 				<div class="grid grid-cols-1 gap-4">
 					<div>
 						<p class="text-sm text-gray-500 font-bold">Truck Registration Nr</p>
-						<p class="font-medium">{truck?.registration}</p>
+						<p class="font-medium">{truck?.registration ?? 'N/A'}</p>
 					</div>
 
 					<div>

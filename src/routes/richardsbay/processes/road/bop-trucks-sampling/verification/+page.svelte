@@ -8,6 +8,7 @@
 
 	const sampleId = $page.url.searchParams.get('sampleId') || '';
 	let truckArrival: TruckArrival | null = null;
+	let truck: any = null;
 	let currentStep = 2;
 	let processLayout: ProcessLayout;
 	
@@ -24,6 +25,17 @@
 				(a) => a.port_arrival_sample_id === sampleId
 			)[0];
 			truckArrival = result ?? null;
+
+			if (truckArrival) {
+				const [allTrucks, allDedicatedTrucks] = await Promise.all([
+					indexedDBService.getAllRecords('trucks'),
+					indexedDBService.getAllRecords('dedicatedFleetTrucks')
+				]);
+				truck =
+					allTrucks.find(t => (t.serverId || t.id) === truckArrival?.truckId) ??
+					allDedicatedTrucks.find(t => (t.serverId || t.id) === truckArrival?.dedicatedTruckId) ??
+					null;
+			}
 		}
 	}
 
@@ -56,7 +68,7 @@
 				<div class="grid grid-cols-1 gap-4">
 					<div>
 						<p class="text-sm text-gray-500 font-bold">Truck Registration Nr</p>
-						<p class="font-medium">{truckArrival.registration}</p>
+						<p class="font-medium">{truck?.registration ?? 'N/A'}</p>
 					</div>
 
 					<div>

@@ -7,9 +7,8 @@
 	import type { TruckArrival, Truck } from '$lib';
 
 	const sampleId = $page.url.searchParams.get('sampleId') || '';
-	const truckRegistration = $page.url.searchParams.get('truckRegistration') || '';
 	let truckArrival: TruckArrival | null = null;
-	let truck: Truck | null = null;
+	let truck: any = null;
 	let currentStep = 2;
 	let processLayout: ProcessLayout;
 	
@@ -17,28 +16,23 @@
 	const processSteps = ['Registration', 'Verification'];
 
 	onMount(async () => {
-		await loadTruckArrivalData();
-		await loadTruckData();
+		if (!sampleId) return;
+
+		const [allArrivals, allTrucks, allDedicatedTrucks] = await Promise.all([
+			indexedDBService.getAllRecords('truckArrivals'),
+			indexedDBService.getAllRecords('trucks'),
+			indexedDBService.getAllRecords('dedicatedFleetTrucks')
+		]);
+
+		truckArrival = allArrivals.find(a => a.port_arrival_sample_id === sampleId) ?? null;
+
+		if (truckArrival) {
+			truck =
+				allTrucks.find(t => (t.serverId || t.id) === truckArrival?.truckId) ??
+				allDedicatedTrucks.find(t => (t.serverId || t.id) === truckArrival?.dedicatedTruckId) ??
+				null;
+		}
 	});
-
-	async function loadTruckArrivalData() {
-		if (sampleId) {
-			const result = (await indexedDBService.getAllRecords('truckArrivals')).filter(
-				(a) => a.port_arrival_sample_id === sampleId
-			)[0];
-			truckArrival = result ?? null;
-		}
-	}
-
-	async function loadTruckData() {
-		if (truckRegistration) {
-			const result = (await indexedDBService.getAllRecords('trucks')).filter(
-				(t) => t.registration === truckRegistration
-			)[0];
-			truck = result ?? null;
-			console.log('Truck Data:', truck);
-		}
-	}
 
 	function handleCancel() {
 		goto('/richardsbay/processes/road');
@@ -64,12 +58,12 @@
 	cancelPath="/richardsbay/processes/road"
 >
 	<div class="space-y-4">
-		{#if truckArrival && truck}
+		{#if truckArrival}
 			<div class="bg-white p-4 rounded-lg shadow-sm">
 				<div class="grid grid-cols-1 gap-4">
 					<div>
 						<p class="text-sm text-gray-500 font-bold">Truck Registration Nr</p>
-						<p class="font-medium">{truck.registration}</p>
+						<p class="font-medium">{truck?.registration ?? 'N/A'}</p>
 					</div>
 
 					<div>

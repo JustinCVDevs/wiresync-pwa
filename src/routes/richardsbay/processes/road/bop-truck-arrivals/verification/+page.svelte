@@ -8,6 +8,7 @@
 
 	const truckArrivalId = $page.url.searchParams.get('truckArrivalId') || '';
 	let truckArrival: TruckArrival | null = null;
+	let truck: any = null;
 	let currentStep = 2;
 	let processLayout: ProcessLayout;
 	
@@ -24,6 +25,15 @@
 				(a) => a.id === truckArrivalId || a.serverId === truckArrivalId
 			);
 			truckArrival = result ?? null;
+
+			const [allTrucks, allDedicatedTrucks] = await Promise.all([
+				indexedDBService.getAllRecords('trucks'),
+				indexedDBService.getAllRecords('dedicatedFleetTrucks')
+			]);
+			const linkedTruck =
+				allTrucks.find((t) => t.id === truckArrival?.truckId || t.serverId === truckArrival?.truckId) ??
+				allDedicatedTrucks.find((t) => t.id === truckArrival?.dedicatedTruckId || t.serverId === truckArrival?.dedicatedTruckId);
+			truck = linkedTruck ?? null;
 		}
 	}
 
@@ -65,7 +75,7 @@
 				<div class="grid grid-cols-1 gap-4">
 					<div>
 						<p class="text-sm text-gray-500 font-bold">Truck Registration</p>
-						<p class="font-medium">{truckArrival.registration || 'N/A'}</p>
+						<p class="font-medium">{truck?.registration ?? 'N/A'}</p>
 					</div>
 
 					<div>
